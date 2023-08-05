@@ -1,3 +1,5 @@
+const logger = require('../../logger.js');
+
 // Abstract base class for all Executor components
 class ExecutorComponent {
     constructor(name) {
@@ -5,9 +7,7 @@ class ExecutorComponent {
     }
 
     witnessComputation(stageId) {
-        throw new Error(
-            "Method 'resolve' must be implemented in concrete classes."
-        );
+        throw new Error("Method 'resolve' must be implemented in concrete classes.");
     }
 }
 
@@ -36,7 +36,7 @@ class ExecutorComposite extends ExecutorComponent {
     }
 
     witnessComputation(stageId) {
-        console.log(`Executor: Resolving stage ${stageId}`);
+        logger.info(`[ExecutorComposite] Resolving stage ${stageId}`);
         this.executors.forEach((executor) => {
             executor.witnessComputation(stageId);
         });

@@ -1,4 +1,5 @@
 const { ExecutorComponent } = require("./executor.js");
+const logger = require('../../logger.js');
 
 class ExecutorB extends ExecutorComponent {
     constructor() {
@@ -6,7 +7,7 @@ class ExecutorB extends ExecutorComponent {
     }
 
     witnessComputation() {
-        console.log(`Executor ${this.name}: Resolving constraints...`);
+        logger.info(`[ExecutorB] ${this.name}: Resolving constraints...`);
     }
 }
 
