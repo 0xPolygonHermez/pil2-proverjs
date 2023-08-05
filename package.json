@@ -1,0 +1,35 @@
+{
+  "name": "pil2-proofman",
+  "version": "0.0.1",
+  "description": "Proof Generation Manager for PIL2",
+  "author": "Polygon Hermez",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [
+    "pil",
+    "pil2",
+    "zksnark",
+    "prover",
+    "polygon",
+    "hermez"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xPolygonHermez/pil2-proofman-js.git"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/0xPolygonHermez/pil2-proofman-js/issues"
+  },
+  "homepage": "https://github.com/0xPolygonHermez/pil2-proofman-js#readme",
+  "devDependencies": {
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0"
+  },
+  "dependencies": {
+    "pino": "^8.15.0",
+    "pino-pretty": "^10.2.0"
+  }
+}
