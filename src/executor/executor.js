@@ -44,4 +44,4 @@ class ExecutorComposite extends ExecutorComponent {
 }
 
 module.exports.ExecutorComponent = ExecutorComponent;
-module.exports.Executor = ExecutorComposite;
+module.exports.ExecutorComposite = ExecutorComposite;

@@ -7,8 +7,11 @@ proofManager.prove(
     {
         name: "zkEvmProof-" + Date.now(),
         pilout: "pilout",
-        executors: ["Executor Type A", "Executor Type B"],
+        executors: [{ type: "executorA" }, { type: "executorB" }],
         prover: "prover",
         setup: "setup"
+    },
+    {
+        debug: false
     }
 );

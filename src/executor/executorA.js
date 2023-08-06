@@ -6,8 +6,8 @@ class ExecutorA extends ExecutorComponent {
         super("Executor Type A");
     }
 
-    witnessComputation() {
-        logger.info(`[ExecutorA] ${this.name}: Resolving constraints...`);
+    witnessComputation(stageId) {
+        logger.info(`[ExecutorA] ${this.name}: Computing witness for stage ${stageId}.`);
     }
 }
 
