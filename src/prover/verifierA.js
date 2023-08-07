@@ -9,12 +9,13 @@ class VerifierA extends VerifierComponent {
 
     checkInitialized() {
         if(!this.initialized) {
+            logger.error("[Fflonk Verifier]", `${this.name}: not initialized.`);
             throw new Error(`[Fflonk Verifier] ${this.name}: not initialized.`);
         }
     }
 
     initialize() {
-        logger.info(`[Fflonk Verifier] ${this.name}: Initializing.`);
+        logger.info("[Fflonk Verifier]", `${this.name}: Initializing.`);
 
         this.initialized = true;
     }
@@ -22,7 +23,7 @@ class VerifierA extends VerifierComponent {
     verify(proof) {
         this.checkInitialized();
 
-        logger.info(`[Fflonk Verifier] ${this.name}: Verifying.`);
+        logger.info("[Fflonk Verifier]", `[Fflonk Verifier] ${this.name}: Verifying.`);
         return true;
 
     }

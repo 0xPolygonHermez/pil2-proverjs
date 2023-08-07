@@ -1,5 +1,3 @@
-const logger = require('../../logger.js');
-
 // Abstract base class for all Verifier components
 class VerifierComponent {
     constructor(name) {

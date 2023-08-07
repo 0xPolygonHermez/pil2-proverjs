@@ -6,7 +6,6 @@ async function run(settings) {
     proofManager.initialize("zkEvmProofmanager", settings.options);
 
     const proof = await proofManager.prove(settings.settings);
-
     logger.info("Proof generated");
 }
 

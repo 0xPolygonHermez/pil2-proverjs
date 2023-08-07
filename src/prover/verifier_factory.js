@@ -8,9 +8,7 @@ class VerifierFactory {
             case "verifierA":
                 return new VerifierA();
             default:
-                logger.error(
-                    "[VerifierFactory] Invalid Verifier type"
-                );
+                logger.error("[VerifierFactory]", "Invalid Verifier type");
                 throw new Error("Invalid Verifier type");
         }
     }

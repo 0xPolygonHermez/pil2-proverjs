@@ -16,14 +16,14 @@ class ExecutorA extends ExecutorComponent {
     }
 
     initialize() {
-        logger.info(`[ExecutorA] ${this.name}: Initializing.`);
+        logger.info("[ExecutorA]", `${this.name}: Initializing.`);
 
         this.initialized = true;
     }
 
     checkInitialized() {
         if (!this.initialized) {
-            throw new Error(`[ExecutorA] ${this.name}: not initialized.`);
+            throw new Error("[ExecutorA]", `${this.name}: not initialized.`);
         }
     }
 
@@ -35,8 +35,7 @@ class ExecutorA extends ExecutorComponent {
             this.step = 0;
         }
 
-        logger.info(
-            `[ExecutorA] ${this.name}: Computing witness for stage ${stageId}.`
+        logger.info("[ExecutorA]", `${this.name}: Computing witness for stage ${stageId}.`
         );
 
         this.step++;
@@ -45,19 +44,15 @@ class ExecutorA extends ExecutorComponent {
                 ? WITNESS_ROUND_FULLY_DONE
                 : WITNESS_ROUND_PARTIAL_DONE;
 
+        let msg;
         if (status === WITNESS_ROUND_FULLY_DONE) {
-            logger.info(
-                `[ExecutorA] ${this.name}: Witness computation for stage ${stageId} finished.`
-            );
+            msg = `${this.name}: Witness computation for stage ${stageId} finished.`;
         } else if (status === WITNESS_ROUND_PARTIAL_DONE) {
-            logger.info(
-                `[ExecutorA] ${this.name}: Witness computation for stage ${stageId} in progress.`
-            );
+            msg = `${this.name}: Witness computation for stage ${stageId} in progress.`
         } else if (status === WITNESS_ROUND_NOTHING_DONE) {
-            logger.info(
-                `[ExecutorA] ${this.name}: Witness computation for stage ${stageId} not started.`
-            );
+            msg = `${this.name}: Witness computation for stage ${stageId} not started.`
         }
+        logger.info("[ExecutorA]", msg);
 
         return status;
     }

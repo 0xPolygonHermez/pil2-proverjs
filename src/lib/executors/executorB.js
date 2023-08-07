@@ -30,18 +30,20 @@ class ExecutorB extends ExecutorComponent {
     witnessComputation(stageId) {
         this.checkInitialized();
 
-        logger.info(`[ExecutorB] ${this.name}: Computing witness for stage ${stageId}.`);
+        logger.info("[ExecutorB]", `${this.name}: Computing witness for stage ${stageId}.`);
 
         this.step++;
         let status = this.step >= this.nSteps ? WITNESS_ROUND_FULLY_DONE : WITNESS_ROUND_PARTIAL_DONE;
 
-        if(status === WITNESS_ROUND_FULLY_DONE) {
-            logger.info(`[ExecutorB] ${this.name}: Witness computation for stage ${stageId} finished.`);
-        } else if(status === WITNESS_ROUND_PARTIAL_DONE) {
-            logger.info(`[ExecutorB] ${this.name}: Witness computation for stage ${stageId} in progress.`);
-        } else if(status === WITNESS_ROUND_NOTHING_DONE) {
-            logger.info(`[ExecutorB] ${this.name}: Witness computation for stage ${stageId} not started.`);
+        let msg;
+        if (status === WITNESS_ROUND_FULLY_DONE) {
+            msg = `${this.name}: Witness computation for stage ${stageId} finished.`;
+        } else if (status === WITNESS_ROUND_PARTIAL_DONE) {
+            msg = `${this.name}: Witness computation for stage ${stageId} in progress.`
+        } else if (status === WITNESS_ROUND_NOTHING_DONE) {
+            msg = `${this.name}: Witness computation for stage ${stageId} not started.`
         }
+        logger.info("[ExecutorB]", msg);
 
         return status;
     }

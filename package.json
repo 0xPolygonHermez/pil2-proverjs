@@ -29,7 +29,6 @@
     "mocha": "^10.2.0"
   },
   "dependencies": {
-    "pino": "^8.15.0",
-    "pino-pretty": "^10.2.0"
+    "npmlog": "^7.0.1"
   }
 }

@@ -1,8 +1,8 @@
-const pino = require("pino");
-const pretty = require("pino-pretty");
+const logger = require("npmlog");
+// const pretty = require("pino-pretty");
 
-const stream = pretty({
-    colorize: true,
-});
+// const stream = pretty({
+//     colorize: true,
+// });
 
-module.exports = pino(stream);
+module.exports = logger;

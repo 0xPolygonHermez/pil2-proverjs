@@ -8,9 +8,7 @@ class ProverFactory {
             case "proverA":
                 return new ProverA();
             default:
-                logger.error(
-                    "[ProverFactory] Invalid Prover type"
-                );
+                logger.error("[ProverFactory]", "Invalid Prover type");
                 throw new Error("Invalid Prover type");
         }
     }
