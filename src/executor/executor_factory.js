@@ -11,9 +11,7 @@ class ExecutorFactory {
             case "executorB":
                 return new ExecutorB();
             default:
-                logger.error(
-                    "[ExecutorFactory] Invalid Executor type"
-                );
+                logger.error("[ExecutorFactory] Invalid Executor type");
                 throw new Error("Invalid Executor type");
         }
     }

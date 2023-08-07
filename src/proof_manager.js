@@ -2,6 +2,7 @@ const logger = require("../logger.js");
 
 const { ExecutorComposite } = require("./executor/executor.js");
 const ExecutorFactory = require("./executor/executor_factory.js");
+const ProverFactory = require("./prover/prover_factory.js");
 
 class ProofManager {
     constructor() {
@@ -132,12 +133,13 @@ class ProofManager {
         this.executors = new ExecutorComposite();
 
         provingSchema.executors.map((executor) => {
-            this.executors.registerExecutor(
-                ExecutorFactory.createExecutor(executor.type)
-            );
+            const newExecutor = ExecutorFactory.createExecutor(executor.type);
+            newExecutor.initialize(executor.settings);
+
+            this.executors.registerExecutor(newExecutor);
         });
 
-        // TODO Initialize prover
+        this.prover = ProverFactory.createProver(provingSchema.prover.prover.type);
 
         // TODO Initialize setup
     }
@@ -149,8 +151,18 @@ class ProofManager {
 
         const proof = {};
 
-        // To start the resolution process, call resolve() on the Executor
-        this.executors.witnessComputation(0);
+        const nMockStages = 3;
+        for(let i = 0; i < nMockStages; i++) {
+            this.executors.witnessComputation(i);
+
+            this.prover.commitStage(i, proof);
+        }
+
+        this.prover.computeQ(proof);
+
+        this.prover.computeOpenings(proof);
+
+        this.prover.finalizeProof(proof);
 
         logger.info(
             `[ProofManager] Proof '${provingSchema.name}' successfully generated.`

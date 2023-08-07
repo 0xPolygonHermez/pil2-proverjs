@@ -10,13 +10,17 @@ const {
 class ExecutorB extends ExecutorComponent {
     constructor() {
         super("Executor Type B");
-        this.nSteps = 3;
+        this.nSteps = 1;
         this.step = 0;
+    }
+
+    initialize() {
+        logger.info(`[ExecutorB] ${this.name}: Initializing.`);
     }
 
     witnessComputation(stageId) {
         logger.info(`[ExecutorB] ${this.name}: Computing witness for stage ${stageId}.`);
-        return WITNESS_ROUND_FULLY_DONE;
+
         this.step++;
         let status = this.step >= this.nSteps ? WITNESS_ROUND_FULLY_DONE : WITNESS_ROUND_PARTIAL_DONE;
 

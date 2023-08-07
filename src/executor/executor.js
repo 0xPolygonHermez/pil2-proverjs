@@ -10,6 +10,10 @@ class ExecutorComponent {
         this.name = name;
     }
 
+    initialize() {
+        throw new Error("Method 'initialize' must be implemented in concrete classes.");
+    }
+    
     witnessComputation(stageId) {
         throw new Error("Method 'resolve' must be implemented in concrete classes.");
     }
@@ -70,7 +74,7 @@ class ExecutorComposite extends ExecutorComponent {
             if(status === WITNESS_ROUND_FULLY_DONE || status === WITNESS_ROUND_PARTIAL_DONE) {
                 lastId = i;
             }
-            
+
             if (executorStatus[i] === WITNESS_ROUND_NOTHING_DONE) x--;
             else if (executorStatus[i] === WITNESS_ROUND_FULLY_DONE) {
                 nPendingToFinish--;
