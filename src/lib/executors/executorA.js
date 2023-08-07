@@ -3,8 +3,8 @@ const {
     WITNESS_ROUND_NOTHING_DONE,
     WITNESS_ROUND_PARTIAL_DONE,
     WITNESS_ROUND_FULLY_DONE,
-} = require("../../executor/executor.js");
-const logger = require("../../../logger.js");
+} = require("../../executor.js");
+const log = require("../../../logger.js");
 
 class ExecutorA extends ExecutorComponent {
     constructor() {
@@ -16,7 +16,7 @@ class ExecutorA extends ExecutorComponent {
     }
 
     initialize() {
-        logger.info("[ExecutorA]", `${this.name}: Initializing.`);
+        log.info("[ExecutorA]", `${this.name}: Initializing.`);
 
         this.initialized = true;
     }
@@ -35,7 +35,7 @@ class ExecutorA extends ExecutorComponent {
             this.step = 0;
         }
 
-        logger.info("[ExecutorA]", `${this.name}: Computing witness for stage ${stageId}.`
+        log.info("[ExecutorA]", `${this.name}: Computing witness for stage ${stageId}.`
         );
 
         this.step++;
@@ -52,7 +52,7 @@ class ExecutorA extends ExecutorComponent {
         } else if (status === WITNESS_ROUND_NOTHING_DONE) {
             msg = `${this.name}: Witness computation for stage ${stageId} not started.`
         }
-        logger.info("[ExecutorA]", msg);
+        log.info("[ExecutorA]", msg);
 
         return status;
     }

@@ -1,12 +1,12 @@
 const ProofManager = require("./src/proof_manager.js");
-const logger = require("./logger.js");
+const log = require("./logger.js");
 
 async function run(settings) {
     const proofManager = new ProofManager();
     proofManager.initialize("zkEvmProofmanager", settings.options);
 
     const proof = await proofManager.prove(settings.settings);
-    logger.info("Proof generated");
+    log.info("Proof generated");
 }
 
 settings = {

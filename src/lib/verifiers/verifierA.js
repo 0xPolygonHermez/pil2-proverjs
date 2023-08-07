@@ -1,5 +1,5 @@
-const VerifierComponent = require("./verifier.js");
-const logger = require('../../logger.js');
+const VerifierComponent = require("../../verifier.js");
+const log = require('../../../logger.js');
 
 class VerifierA extends VerifierComponent {
     constructor() {
@@ -9,13 +9,13 @@ class VerifierA extends VerifierComponent {
 
     checkInitialized() {
         if(!this.initialized) {
-            logger.error("[Fflonk Verifier]", `${this.name}: not initialized.`);
+            log.error("[Fflonk Verifier]", `${this.name}: not initialized.`);
             throw new Error(`[Fflonk Verifier] ${this.name}: not initialized.`);
         }
     }
 
     initialize() {
-        logger.info("[Fflonk Verifier]", `${this.name}: Initializing.`);
+        log.info("[Fflonk Verifier]", `${this.name}: Initializing.`);
 
         this.initialized = true;
     }
@@ -23,7 +23,7 @@ class VerifierA extends VerifierComponent {
     verify(proof) {
         this.checkInitialized();
 
-        logger.info("[Fflonk Verifier]", `[Fflonk Verifier] ${this.name}: Verifying.`);
+        log.info("[Fflonk Verifier]", `[Fflonk Verifier] ${this.name}: Verifying.`);
         return true;
 
     }

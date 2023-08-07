@@ -1,9 +1,9 @@
-const logger = require("../logger.js");
+const log = require("../logger.js");
 const path = require("path");
 
-const { ExecutorComposite } = require("./executor/executor.js");
-const ExecutorFactory = require("./executor/executor_factory.js");
-const ProverFactory = require("./prover/prover_factory.js");
+const { ExecutorComposite } = require("./executor.js");
+const ExecutorFactory = require("./executor_factory.js");
+const ProverFactory = require("./prover_factory.js");
 
 class ProofManager {
     constructor() {
@@ -13,26 +13,26 @@ class ProofManager {
             return ProofManager.instance;
         }
 
-        logger.info("[ProofManager]", "ProofManager new instance created.");
+        log.info("[ProofManager]", "ProofManager new instance created.");
         ProofManager.instance = this;
     }
 
     initialize(name, settings) {
         if (this._initialized) {
-            logger.error("[ProofManager]", "ProofManager already initialized.");
+            log.error("[ProofManager]", "ProofManager already initialized.");
             throw new Error("ProofManager already initialized.");
         }
 
         this._name = name;
         this._settings = settings;
 
-        logger.info("[ProofManager]", `[ProofManager] ProofManager ${name} initialized.`);
+        log.info("[ProofManager]", `[ProofManager] ProofManager ${name} initialized.`);
         this._initialized = true;
     }
 
     checkInitialized() {
         if(!this._initialized) {
-            logger.error("[ProofManager]", `[ProofManager] ${this.name}: not initialized.`);
+            log.error("[ProofManager]", `[ProofManager] ${this.name}: not initialized.`);
             throw new Error(`[ProofManager] ${this.name}: not initialized.`);
         }
     }
@@ -44,12 +44,12 @@ class ProofManager {
 
     async prove(provingSchema, options) {
         if (!this._initialized) {
-            logger.error("[ProofManager]", "ProofManager not initialized.");
+            log.error("[ProofManager]", "ProofManager not initialized.");
             throw new Error("ProofManager not initialized.");
         }
 
         if (this._isProving) {
-            logger.error("[ProofManager]", "ProofManager already generating a proof.");
+            log.error("[ProofManager]", "ProofManager already generating a proof.");
             throw new Error("ProofManager already generating a proof.");
         }
 
@@ -68,7 +68,7 @@ class ProofManager {
         if (!this.provingSchemaIsValid(provingSchema)) {
             this._isProving = false;
 
-            logger.error("[ProofManager]", "Invalid provingSchema.");
+            log.error("[ProofManager]", "Invalid provingSchema.");
             throw new Error("Invalid provingSchema.");
         }
 
@@ -78,7 +78,7 @@ class ProofManager {
 
             proof = this.generateProof(provingSchema, options);
         } catch (error) {
-            logger.error("[ProofManager]", `[ProofManager] Error while generating proof: ${error}`);
+            log.error("[ProofManager]", `[ProofManager] Error while generating proof: ${error}`);
             throw error;
         } finally {
             this._isProving = false;
@@ -92,26 +92,26 @@ class ProofManager {
     provingSchemaIsValid(provingSchema) {
         if (!provingSchema.name) {
             provingSchema.name = "proof-" + Date.now();
-            logger.warn("[ProofManager]", `[ProofManager] No name provided in the provingSchema, assigning a default name ${provingSchema.name}.`);
+            log.warn("[ProofManager]", `[ProofManager] No name provided in the provingSchema, assigning a default name ${provingSchema.name}.`);
         }
 
         if (!provingSchema.pilout) {
-            logger.error("[ProofManager]", "No pilout provided in the provingSchema.");
+            log.error("[ProofManager]", "No pilout provided in the provingSchema.");
             return false;
         }
 
         if (!provingSchema.executors) {
-            logger.error("[ProofManager]", "No executors provided in the provingSchema.");
+            log.error("[ProofManager]", "No executors provided in the provingSchema.");
             return false;
         }
 
         if (!provingSchema.prover) {
-            logger.error("[ProofManager]", "No prover provided in the provingSchema.");
+            log.error("[ProofManager]", "No prover provided in the provingSchema.");
             return false;
         }
 
         if (!provingSchema.setup) {
-            logger.error("[ProofManager]", "No setup provided in the provingSchema.");
+            log.error("[ProofManager]", "No setup provided in the provingSchema.");
             return false;
         }
 
@@ -123,7 +123,7 @@ class ProofManager {
 
         // Initialize the executors
         if (provingSchema.executors.length === 0) {
-            logger.error("[ProofManager]", "No executors provided in the provingSchema.");
+            log.error("[ProofManager]", "No executors provided in the provingSchema.");
             this._isProving = false;
             throw new Error("No executors provided in the provingSchema.");
         }
@@ -145,7 +145,7 @@ class ProofManager {
     }
 
     generateProof(provingSchema) {
-        logger.info("[ProofManager]", `Initiating the generation of the proof '${provingSchema.name}'.`
+        log.info("[ProofManager]", `Initiating the generation of the proof '${provingSchema.name}'.`
         );
 
         const proof = {};
@@ -163,7 +163,7 @@ class ProofManager {
 
         this.prover.finalizeProof(proof);
 
-        logger.info("[ProofManager]", `Proof '${provingSchema.name}' successfully generated.`);
+        log.info("[ProofManager]", `Proof '${provingSchema.name}' successfully generated.`);
 
         return proof;
     }

@@ -1,5 +1,5 @@
-const ProverComponent = require("./prover.js");
-const logger = require('../../logger.js');
+const ProverComponent = require("../../prover.js");
+const log = require('../../../logger.js');
 
 class ProverA extends ProverComponent {
     constructor() {
@@ -14,31 +14,31 @@ class ProverA extends ProverComponent {
     }
 
     initialize() {
-        logger.info("[Fflonk Prover]", `${this.name}: Initializing.`);
+        log.info("[Fflonk Prover]", `${this.name}: Initializing.`);
 
         this.initialized = true;
     }
 
     commitStage(stageId, proof) {
-        logger.info("[Fflonk Prover]", `${this.name}: Committing stage ${stageId}.`);
+        log.info("[Fflonk Prover]", `${this.name}: Committing stage ${stageId}.`);
 
         this.checkInitialized();
     }
 
     computeQ(proof) {
-        logger.info("[Fflonk Prover]", `${this.name}: Computing Q.`);
+        log.info("[Fflonk Prover]", `${this.name}: Computing Q.`);
 
         this.checkInitialized();
     }
 
     computeOpenings(proof) {
-        logger.info("[Fflonk Prover]", `${this.name}: Computing openings.`);
+        log.info("[Fflonk Prover]", `${this.name}: Computing openings.`);
 
         this.checkInitialized();
     }
 
     finalizeProof(proof) {
-        logger.info("[Fflonk Prover]", `${this.name}: Finalizing proof.`);
+        log.info("[Fflonk Prover]", `${this.name}: Finalizing proof.`);
 
         proof.commitments = [];
         proof.openings = [];

@@ -1,6 +1,6 @@
-const ProverA = require("./proverA.js");
+const ProverA = require("./lib/provers/proverA.js");
 
-const logger = require("../../logger.js");
+const log = require("../logger.js");
 
 class ProverFactory {
     static createProver(type) {
@@ -8,7 +8,7 @@ class ProverFactory {
             case "proverA":
                 return new ProverA();
             default:
-                logger.error("[ProverFactory]", "Invalid Prover type");
+                log.error("[ProverFactory]", "Invalid Prover type");
                 throw new Error("Invalid Prover type");
         }
     }

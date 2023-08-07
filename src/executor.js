@@ -1,4 +1,4 @@
-const logger = require('../../logger.js');
+const log = require('../logger.js');
 
 const WITNESS_ROUND_NOTHING_DONE = 1;
 const WITNESS_ROUND_PARTIAL_DONE = 2;
@@ -44,7 +44,7 @@ class ExecutorComposite extends ExecutorComponent {
     }
 
     witnessComputation(stageId) {
-        logger.info("[ExecutorComposite]", ` Starting witness computation stage ${stageId}`);
+        log.info("[ExecutorComposite]", ` Starting witness computation stage ${stageId}`);
 
         const numExecutors = this.executors.length;
         let executorStatus = Array(numExecutors).fill(WITNESS_ROUND_NOTHING_DONE);
@@ -56,7 +56,7 @@ class ExecutorComposite extends ExecutorComponent {
             if(executorStatus[i] === WITNESS_ROUND_FULLY_DONE) continue;
 
             if(lastId !== -1 && lastId === i) {
-                logger.error("[ExecutorComposite]", `Executor ${this.executors[i].name} is stuck in witness computation for stage ${stageId}`);
+                log.error("[ExecutorComposite]", `Executor ${this.executors[i].name} is stuck in witness computation for stage ${stageId}`);
                 throw new Error(`Executor ${this.executors[i].name} is stuck in witness computation for stage ${stageId}`);
             }
 
@@ -65,7 +65,7 @@ class ExecutorComposite extends ExecutorComponent {
             if(executorStatus[i] !== WITNESS_ROUND_NOTHING_DONE &&
                 executorStatus[i] !== WITNESS_ROUND_PARTIAL_DONE &&
                 executorStatus[i] !== WITNESS_ROUND_FULLY_DONE) {
-                logger.error("[ExecutorComposite]", `Unknown executor status return value: ${executorStatus[i]}`);
+                log.error("[ExecutorComposite]", `Unknown executor status return value: ${executorStatus[i]}`);
                 throw new Error(`Unknown executor status return value: ${executorStatus[i]}`);
             }
 
@@ -85,13 +85,13 @@ class ExecutorComposite extends ExecutorComponent {
         if(nPendingToFinish !== 0) {
             executorStatus.forEach((status, index) => {
                 if(status !== WITNESS_ROUND_FULLY_DONE)
-                    logger.error("[ExecutorComposite]", `Executor ${this.executors[index].name} did not finish witness computation for stage ${stageId}`);
+                    log.error("[ExecutorComposite]", `Executor ${this.executors[index].name} did not finish witness computation for stage ${stageId}`);
             });
-            logger.error("[ExecutorComposite]", `Unable to compute all witnesses for stage ${stageId}`);
+            log.error("[ExecutorComposite]", `Unable to compute all witnesses for stage ${stageId}`);
             throw new Error(`Unable to compute all witnesses for stage ${stageId}`);
         }
 
-        logger.info("[ExecutorComposite]", `Witness computation stage ${stageId} finished`);
+        log.info("[ExecutorComposite]", `Witness computation stage ${stageId} finished`);
     }
 }
 
