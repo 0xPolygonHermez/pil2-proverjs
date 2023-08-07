@@ -1,7 +1,8 @@
 // Abstract base class for all Verifier components
 class VerifierComponent {
-    constructor(name) {
+    constructor(name, proofManagerAPI) {
         this.name = name;
+        this.proofManagerAPI = proofManagerAPI;
     }
 
     initialize() {

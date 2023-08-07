@@ -7,8 +7,8 @@ const {
 const log = require("../../../logger.js");
 
 class ExecutorB extends ExecutorComponent {
-    constructor() {
-        super("Executor Type B");
+    constructor(proofManagerAPI) {
+        super("Executor Type B", proofManagerAPI);
         this.initialized = false;
         this.nSteps = 1;
         this.step = 0;

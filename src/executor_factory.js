@@ -1,7 +1,7 @@
 class ExecutorFactory {
-    static async createExecutor(executorLib) {
+    static async createExecutor(executorLib, proofManagerAPI) {
         const { default: myClass } = await import(executorLib);
-        return new myClass();
+        return new myClass(proofManagerAPI);
     }
 }
 

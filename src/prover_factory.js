@@ -1,7 +1,7 @@
 class ProverFactory {
-    static async createProver(proverLib) {
+    static async createProver(proverLib, proofManagerAPI) {
         const { default: myClass } = await import(proverLib);
-        return new myClass();
+        return new myClass(proofManagerAPI);
     }
 }
 

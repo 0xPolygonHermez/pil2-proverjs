@@ -6,6 +6,7 @@ const { ExecutorComposite } = require("./executor.js");
 const ExecutorFactory = require("./executor_factory.js");
 const ProverFactory = require("./prover_factory.js");
 const VerifierFactory = require("./verifier_factory.js");
+const ProofManagerAPI = require("./proof_manager_api.js");
 
 class ProofManager {
     constructor() {
@@ -147,6 +148,8 @@ class ProofManager {
     }
 
     async initializeProve(provingSchema) {
+        const proofManagerAPI = new ProofManagerAPI(this);
+
         // TODO Initialize pilout
 
         // Initialize the executors
@@ -156,19 +159,19 @@ class ProofManager {
             throw new Error("No executors provided in the provingSchema.");
         }
 
-        this.executors = new ExecutorComposite();
+        this.executors = new ExecutorComposite(proofManagerAPI);
 
         for(const executor of provingSchema.executors) {
-            const newExecutor = await ExecutorFactory.createExecutor(executor.executorLib);
+            const newExecutor = await ExecutorFactory.createExecutor(executor.executorLib, proofManagerAPI);
             newExecutor.initialize(executor.settings);
 
             this.executors.registerExecutor(newExecutor);
         }
 
-        this.prover = await ProverFactory.createProver(provingSchema.prover.proverLib);
+        this.prover = await ProverFactory.createProver(provingSchema.prover.proverLib, proofManagerAPI);
         this.prover.initialize(provingSchema.prover.settings);
 
-        this.verifier = await VerifierFactory.createVerifier(provingSchema.verifier.verifierLib);
+        this.verifier = await VerifierFactory.createVerifier(provingSchema.verifier.verifierLib, proofManagerAPI);
         this.verifier.initialize(provingSchema.verifier.settings);
 
         // TODO Initialize setup

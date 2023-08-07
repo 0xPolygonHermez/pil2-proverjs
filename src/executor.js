@@ -6,8 +6,9 @@ const WITNESS_ROUND_FULLY_DONE = 3;
 
 // Abstract base class for all Executor components
 class ExecutorComponent {
-    constructor(name) {
+    constructor(name, proofManagerAPI) {
         this.name = name;
+        this.proofManagerAPI = proofManagerAPI;
     }
 
     initialize() {
@@ -21,8 +22,8 @@ class ExecutorComponent {
 
 // Executor class acting as the composite
 class ExecutorComposite extends ExecutorComponent {
-    constructor() {
-        super("ExecutorComposite");
+    constructor(proofManagerAPI) {
+        super("ExecutorComposite", proofManagerAPI);
         this.executors = [];
     }
 
