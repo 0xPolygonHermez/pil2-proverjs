@@ -18,7 +18,7 @@ settings = {
             { executorLib: "./src/lib/executors/executorB.js", settings: {} },
         ],
         prover: { proverLib: "./src/lib/provers/proverA.js", settings: {} },
-        // verifier: { verifierLib: "./src/lib/verifiers/verifierA.js", settings: {} },
+        verifier: { verifierLib: "./src/lib/verifiers/verifierA.js", settings: {} },
         setup: "setup",
     },
     options: {

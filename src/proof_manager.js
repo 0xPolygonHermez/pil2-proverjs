@@ -5,6 +5,7 @@ const path = require("path");
 const { ExecutorComposite } = require("./executor.js");
 const ExecutorFactory = require("./executor_factory.js");
 const ProverFactory = require("./prover_factory.js");
+const VerifierFactory = require("./verifier_factory.js");
 
 class ProofManager {
     constructor() {
@@ -131,7 +132,15 @@ class ProofManager {
                 log.error("[ProofManager]", "No setup provided in the provingSchema.");
                 return false;
             }
-        
+
+            const verifierLib =  path.join(__dirname, "..", provingSchema.verifier.verifierLib);
+
+            if (!await fileExists(verifierLib)) {
+                log.error("[ProofManager]", `Verifier ${provingSchema.verifier.verifierLib} does not exist.`);
+                return false;
+            }
+            provingSchema.verifier.verifierLib = verifierLib;
+
             return true;
         }
     
@@ -158,6 +167,9 @@ class ProofManager {
 
         this.prover = await ProverFactory.createProver(provingSchema.prover.proverLib);
         this.prover.initialize(provingSchema.prover.settings);
+
+        this.verifier = await VerifierFactory.createVerifier(provingSchema.verifier.verifierLib);
+        this.verifier.initialize(provingSchema.verifier.settings);
 
         // TODO Initialize setup
 
