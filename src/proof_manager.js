@@ -1,4 +1,5 @@
 const log = require("../logger.js");
+const { fileExists } = require("./utils.js");
 const path = require("path");
 
 const { ExecutorComposite } = require("./executor.js");
@@ -65,7 +66,7 @@ class ProofManager {
          * - setup: setup data
          *
          */
-        if (!this.provingSchemaIsValid(provingSchema)) {
+        if (!await provingSchemaIsValid(provingSchema)) {
             this._isProving = false;
 
             log.error("[ProofManager]", "Invalid provingSchema.");
@@ -86,36 +87,54 @@ class ProofManager {
         }
 
         return proof;
-    }
 
+        async function provingSchemaIsValid(provingSchema) {
+            if (!provingSchema.name) {
+                provingSchema.name = "proof-" + Date.now();
+                log.warn("[ProofManager]", `[ProofManager] No name provided in the provingSchema, assigning a default name ${provingSchema.name}.`);
+            }
+    
+            if (!provingSchema.pilout) {
+                log.error("[ProofManager]", "No pilout provided in the provingSchema.");
+                return false;
+            }
+    
+            if (!provingSchema.executors) {
+                log.error("[ProofManager]", "No executors provided in the provingSchema.");
+                return false;
+            }
+            
+            for(const executor of provingSchema.executors) {
+                const executorLib =  path.join(__dirname, "..", executor.executorLib);
 
-    provingSchemaIsValid(provingSchema) {
-        if (!provingSchema.name) {
-            provingSchema.name = "proof-" + Date.now();
-            log.warn("[ProofManager]", `[ProofManager] No name provided in the provingSchema, assigning a default name ${provingSchema.name}.`);
+                if (!await fileExists(executorLib)) {
+                    log.error("[ProofManager]", `Executor ${executor.executorLib} does not exist.`);
+                    return false;
+                }
+                executor.executorLib = executorLib;
+            }                
+    
+            if (!provingSchema.prover) {
+                log.error("[ProofManager]", "No prover provided in the provingSchema.");
+                return false;
+            }
+
+            const proverLib =  path.join(__dirname, "..", provingSchema.prover.proverLib);
+
+            if (!await fileExists(proverLib)) {
+                log.error("[ProofManager]", `Prover ${provingSchema.prover.proverLib} does not exist.`);
+                return false;
+            }
+            provingSchema.prover.proverLib = proverLib;
+
+            if (!provingSchema.setup) {
+                log.error("[ProofManager]", "No setup provided in the provingSchema.");
+                return false;
+            }
+        
+            return true;
         }
-
-        if (!provingSchema.pilout) {
-            log.error("[ProofManager]", "No pilout provided in the provingSchema.");
-            return false;
-        }
-
-        if (!provingSchema.executors) {
-            log.error("[ProofManager]", "No executors provided in the provingSchema.");
-            return false;
-        }
-
-        if (!provingSchema.prover) {
-            log.error("[ProofManager]", "No prover provided in the provingSchema.");
-            return false;
-        }
-
-        if (!provingSchema.setup) {
-            log.error("[ProofManager]", "No setup provided in the provingSchema.");
-            return false;
-        }
-
-        return true;
+    
     }
 
     async initializeProve(provingSchema) {
@@ -131,17 +150,17 @@ class ProofManager {
         this.executors = new ExecutorComposite();
 
         for(const executor of provingSchema.executors) {
-            const executorLib =  path.join(__dirname, "..", executor.executorLib);
-            const newExecutor = await ExecutorFactory.createExecutor(executorLib);
+            const newExecutor = await ExecutorFactory.createExecutor(executor.executorLib);
             newExecutor.initialize(executor.settings);
 
             this.executors.registerExecutor(newExecutor);
         }
 
-        this.prover = ProverFactory.createProver(provingSchema.prover.prover.type);
-        this.prover.initialize(provingSchema.prover.prover.settings);
+        this.prover = await ProverFactory.createProver(provingSchema.prover.proverLib);
+        this.prover.initialize(provingSchema.prover.settings);
 
         // TODO Initialize setup
+
     }
 
     generateProof(provingSchema) {
