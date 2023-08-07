@@ -10,15 +10,27 @@ const {
 class ExecutorB extends ExecutorComponent {
     constructor() {
         super("Executor Type B");
+        this.initialized = false;
         this.nSteps = 1;
         this.step = 0;
+        this.lastStageId = -1;
     }
 
     initialize() {
         logger.info(`[ExecutorB] ${this.name}: Initializing.`);
+
+        this.initialized = true;
+    }
+
+    checkInitialized() {
+        if(!this.initialized) {
+            throw new Error(`[ExecutorB] ${this.name}: not initialized.`);
+        }
     }
 
     witnessComputation(stageId) {
+        this.checkInitialized();
+
         logger.info(`[ExecutorB] ${this.name}: Computing witness for stage ${stageId}.`);
 
         this.step++;

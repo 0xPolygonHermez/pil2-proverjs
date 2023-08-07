@@ -29,7 +29,15 @@ class ProofManager {
         this._initialized = true;
     }
 
+    checkInitialized() {
+        if(!this._initialized) {
+            logger.error(`[ProofManager] ${this.name}: not initialized.`);
+            throw new Error(`[ProofManager] ${this.name}: not initialized.`);
+        }
+    }
+
     getName() {
+        this.checkInitialized
         return this._name;
     }
 
@@ -40,11 +48,10 @@ class ProofManager {
         }
 
         if (this._isProving) {
-            logger.error(
-                "[ProofManager] ProofManager already generating a proof."
-            );
+            logger.error("[ProofManager] ProofManager already generating a proof.");
             throw new Error("ProofManager already generating a proof.");
         }
+
         // TODO must do it with a semaphore?
         this._isProving = true;
 
@@ -58,8 +65,9 @@ class ProofManager {
          *
          */
         if (!this.provingSchemaIsValid(provingSchema)) {
-            logger.error("[ProofManager] Invalid provingSchema.");
             this._isProving = false;
+
+            logger.error("[ProofManager] Invalid provingSchema.");
             throw new Error("Invalid provingSchema.");
         }
 
@@ -79,32 +87,25 @@ class ProofManager {
         return proof;
     }
 
+
     provingSchemaIsValid(provingSchema) {
         if (!provingSchema.name) {
             provingSchema.name = "proof-" + Date.now();
-            logger.warn(
-                `[ProofManager] No name provided in the provingSchema, assigning a default name ${provingSchema.name}.`
-            );
+            logger.warn(`[ProofManager] No name provided in the provingSchema, assigning a default name ${provingSchema.name}.`);
         }
 
         if (!provingSchema.pilout) {
-            logger.error(
-                "[ProofManager] No pilout provided in the provingSchema."
-            );
+            logger.error("[ProofManager] No pilout provided in the provingSchema.");
             return false;
         }
 
         if (!provingSchema.executors) {
-            logger.error(
-                "[ProofManager] No executors provided in the provingSchema."
-            );
+            logger.error("[ProofManager] No executors provided in the provingSchema.");
             return false;
         }
 
         if (!provingSchema.prover) {
-            logger.error(
-                "[ProofManager] No prover provided in the provingSchema."
-            );
+            logger.error("[ProofManager] No prover provided in the provingSchema.");
             return false;
         }
 
@@ -140,6 +141,7 @@ class ProofManager {
         });
 
         this.prover = ProverFactory.createProver(provingSchema.prover.prover.type);
+        this.prover.initialize(provingSchema.prover.prover.settings);
 
         // TODO Initialize setup
     }
