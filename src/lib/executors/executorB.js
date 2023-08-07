@@ -1,11 +1,10 @@
-const { ExecutorComponent } = require("../executor/executor.js");
-const logger = require('../../logger.js');
-
 const {
+    ExecutorComponent,
     WITNESS_ROUND_NOTHING_DONE,
     WITNESS_ROUND_PARTIAL_DONE,
     WITNESS_ROUND_FULLY_DONE,
-} = require("../executor/executor.js");
+} = require("../../executor/executor.js");
+const logger = require("../../../logger.js");
 
 class ExecutorB extends ExecutorComponent {
     constructor() {

@@ -1,4 +1,5 @@
 const logger = require("../logger.js");
+const path = require("path");
 
 const { ExecutorComposite } = require("./executor/executor.js");
 const ExecutorFactory = require("./executor/executor_factory.js");
@@ -41,7 +42,7 @@ class ProofManager {
         return this._name;
     }
 
-    prove(provingSchema, options) {
+    async prove(provingSchema, options) {
         if (!this._initialized) {
             logger.error("[ProofManager] ProofManager not initialized.");
             throw new Error("ProofManager not initialized.");
@@ -73,7 +74,7 @@ class ProofManager {
 
         let proof;
         try {
-            this.initializeProve(provingSchema, options);
+            await this.initializeProve(provingSchema, options);
 
             proof = this.generateProof(provingSchema, options);
         } catch (error) {
@@ -119,7 +120,7 @@ class ProofManager {
         return true;
     }
 
-    initializeProve(provingSchema) {
+    async initializeProve(provingSchema) {
         // TODO Initialize pilout
 
         // Initialize the executors
@@ -133,12 +134,13 @@ class ProofManager {
 
         this.executors = new ExecutorComposite();
 
-        provingSchema.executors.map((executor) => {
-            const newExecutor = ExecutorFactory.createExecutor(executor.type);
+        for(const executor of provingSchema.executors) {
+            const executorLib =  path.join(__dirname, "..", executor.executorLib);
+            const newExecutor = await ExecutorFactory.createExecutor(executorLib);
             newExecutor.initialize(executor.settings);
 
             this.executors.registerExecutor(newExecutor);
-        });
+        }
 
         this.prover = ProverFactory.createProver(provingSchema.prover.prover.type);
         this.prover.initialize(provingSchema.prover.prover.settings);
