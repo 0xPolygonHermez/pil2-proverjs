@@ -1,5 +1,5 @@
-const ExecutorA = require("./executorA.js");
-const ExecutorB = require("./executorB.js");
+const ExecutorA = require("../lib/executorA.js");
+const ExecutorB = require("../lib/executorB.js");
 
 const logger = require("../../logger.js");
 
