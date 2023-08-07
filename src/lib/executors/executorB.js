@@ -16,7 +16,7 @@ class ExecutorB extends ExecutorComponent {
     }
 
     initialize() {
-        log.info(`[ExecutorB] ${this.name}: Initializing.`);
+        log.info("[ExecutorB]", `${this.name}: Initializing.`);
 
         this.initialized = true;
     }
@@ -30,18 +30,18 @@ class ExecutorB extends ExecutorComponent {
     witnessComputation(stageId) {
         this.checkInitialized();
 
-        log.info("[ExecutorB]", `${this.name}: Computing witness for stage ${stageId}.`);
+        log.info("[ExecutorB]", `--> ${this.name}: Computing witness for stage ${stageId}.`);
 
         this.step++;
         let status = this.step >= this.nSteps ? WITNESS_ROUND_FULLY_DONE : WITNESS_ROUND_PARTIAL_DONE;
 
         let msg;
         if (status === WITNESS_ROUND_FULLY_DONE) {
-            msg = `${this.name}: Witness computation for stage ${stageId} finished.`;
+            msg = `<-- ${this.name}: Witness computation for stage ${stageId} finished.`;
         } else if (status === WITNESS_ROUND_PARTIAL_DONE) {
-            msg = `${this.name}: Witness computation for stage ${stageId} in progress.`
+            msg = `<-- ${this.name}: Witness computation for stage ${stageId} in progress.`
         } else if (status === WITNESS_ROUND_NOTHING_DONE) {
-            msg = `${this.name}: Witness computation for stage ${stageId} not started.`
+            msg = `<-- ${this.name}: Witness computation for stage ${stageId} not started.`
         }
         log.info("[ExecutorB]", msg);
 

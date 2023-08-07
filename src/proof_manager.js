@@ -28,7 +28,7 @@ class ProofManager {
         this._name = name;
         this._settings = settings;
 
-        log.info("[ProofManager]", `[ProofManager] ProofManager ${name} initialized.`);
+        log.info("[ProofManager]", `ProofManager ${name} initialized.`);
         this._initialized = true;
     }
 
@@ -176,7 +176,7 @@ class ProofManager {
     }
 
     generateProof(provingSchema) {
-        log.info("[ProofManager]", `Initiating the generation of the proof '${provingSchema.name}'.`
+        log.info("[ProofManager]", `--> Initiating the generation of the proof '${provingSchema.name}'.`
         );
 
         const proof = {};
@@ -194,7 +194,7 @@ class ProofManager {
 
         this.prover.finalizeProof(proof);
 
-        log.info("[ProofManager]", `Proof '${provingSchema.name}' successfully generated.`);
+        log.info("[ProofManager]", `<-- Proof '${provingSchema.name}' successfully generated.`);
 
         return proof;
     }

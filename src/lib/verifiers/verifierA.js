@@ -23,7 +23,7 @@ class VerifierA extends VerifierComponent {
     verify(proof) {
         this.checkInitialized();
 
-        log.info("[Fflonk Verifier]", `[Fflonk Verifier] ${this.name}: Verifying.`);
+        log.info("[Fflonk Verifier]", `${this.name}: Verifying.`);
         return true;
 
     }

@@ -35,7 +35,7 @@ class ExecutorA extends ExecutorComponent {
             this.step = 0;
         }
 
-        log.info("[ExecutorA]", `${this.name}: Computing witness for stage ${stageId}.`
+        log.info("[ExecutorA]", `--> ${this.name}: Computing witness for stage ${stageId}.`
         );
 
         this.step++;
@@ -46,11 +46,11 @@ class ExecutorA extends ExecutorComponent {
 
         let msg;
         if (status === WITNESS_ROUND_FULLY_DONE) {
-            msg = `${this.name}: Witness computation for stage ${stageId} finished.`;
+            msg = `<-- ${this.name}: Witness computation for stage ${stageId} finished.`;
         } else if (status === WITNESS_ROUND_PARTIAL_DONE) {
-            msg = `${this.name}: Witness computation for stage ${stageId} in progress.`
+            msg = `<-- ${this.name}: Witness computation for stage ${stageId} in progress.`
         } else if (status === WITNESS_ROUND_NOTHING_DONE) {
-            msg = `${this.name}: Witness computation for stage ${stageId} not started.`
+            msg = `<-- ${this.name}: Witness computation for stage ${stageId} not started.`
         }
         log.info("[ExecutorA]", msg);
 

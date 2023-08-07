@@ -44,7 +44,7 @@ class ExecutorComposite extends ExecutorComponent {
     }
 
     witnessComputation(stageId) {
-        log.info("[ExecutorComposite]", ` Starting witness computation stage ${stageId}`);
+        log.info("[ExecutorComposite]", `--> Starting witness computation stage ${stageId}`);
 
         const numExecutors = this.executors.length;
         let executorStatus = Array(numExecutors).fill(WITNESS_ROUND_NOTHING_DONE);
@@ -91,7 +91,7 @@ class ExecutorComposite extends ExecutorComponent {
             throw new Error(`Unable to compute all witnesses for stage ${stageId}`);
         }
 
-        log.info("[ExecutorComposite]", `Witness computation stage ${stageId} finished`);
+        log.info("[ExecutorComposite]", `<-- Witness computation stage ${stageId} finished`);
     }
 }
 
