@@ -7,6 +7,7 @@ const ExecutorFactory = require("./executor_factory.js");
 const ProverFactory = require("./prover_factory.js");
 const VerifierFactory = require("./verifier_factory.js");
 const ProofManagerAPI = require("./proof_manager_api.js");
+const PilOut = require("./pilout.js");
 
 class ProofManager {
     constructor() {
@@ -41,7 +42,7 @@ class ProofManager {
     }
 
     getName() {
-        this.checkInitialized
+        this.checkInitialized();
         return this._name;
     }
 
@@ -75,6 +76,13 @@ class ProofManager {
             throw new Error("Invalid provingSchema.");
         }
 
+        if (!await ValidateFileNameCorrectness(provingSchema)) {
+            this._isProving = false;
+
+            log.error("[ProofManager]", "Invalid provingSchema.");
+            throw new Error("Invalid provingSchema.");
+        }
+
         let proof;
         try {
             await this.initializeProve(provingSchema, options);
@@ -95,17 +103,33 @@ class ProofManager {
                 provingSchema.name = "proof-" + Date.now();
                 log.warn("[ProofManager]", `[ProofManager] No name provided in the provingSchema, assigning a default name ${provingSchema.name}.`);
             }
-    
-            if (!provingSchema.pilout) {
-                log.error("[ProofManager]", "No pilout provided in the provingSchema.");
+
+            const fields = ["pilout", "executors", "prover", "setup"];
+            for (const field of fields) {
+                if (!provingSchema[field]) {
+                    log.error("[ProofManager]", `No ${field} provided in the provingSchema.`);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        async function ValidateFileNameCorrectness(provingSchema) {
+            const piloutFilename =  path.join(__dirname, "..", provingSchema.pilout.piloutFilename);
+            if (!await fileExists(piloutFilename)) {
+                log.error("[ProofManager]", `Pilout ${piloutFilename} does not exist.`);
                 return false;
             }
-    
-            if (!provingSchema.executors) {
-                log.error("[ProofManager]", "No executors provided in the provingSchema.");
+            provingSchema.pilout.piloutFilename = piloutFilename;
+
+            const piloutProto =  path.join(__dirname, "..", provingSchema.pilout.piloutProto);
+            if (!await fileExists(piloutProto)) {
+                log.error("[ProofManager]", `Pilout proto ${piloutProto} does not exist.`);
                 return false;
             }
-            
+            provingSchema.pilout.piloutProto = piloutProto;
+
             for(const executor of provingSchema.executors) {
                 const executorLib =  path.join(__dirname, "..", executor.executorLib);
 
@@ -116,11 +140,6 @@ class ProofManager {
                 executor.executorLib = executorLib;
             }                
     
-            if (!provingSchema.prover) {
-                log.error("[ProofManager]", "No prover provided in the provingSchema.");
-                return false;
-            }
-
             const proverLib =  path.join(__dirname, "..", provingSchema.prover.proverLib);
 
             if (!await fileExists(proverLib)) {
@@ -144,13 +163,13 @@ class ProofManager {
 
             return true;
         }
-    
+
     }
 
-    async initializeProve(provingSchema) {
+    async initializeProve(provingSchema, options) {
         const proofManagerAPI = new ProofManagerAPI(this);
 
-        // TODO Initialize pilout
+        this.pilout = new PilOut(provingSchema.pilout.piloutFilename, provingSchema.pilout.piloutProto, options);
 
         // Initialize the executors
         if (provingSchema.executors.length === 0) {
@@ -178,7 +197,7 @@ class ProofManager {
 
     }
 
-    generateProof(provingSchema) {
+    generateProof(provingSchema, options) {
         log.info("[ProofManager]", `--> Initiating the generation of the proof '${provingSchema.name}'.`
         );
 

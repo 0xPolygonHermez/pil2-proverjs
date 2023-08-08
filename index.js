@@ -5,14 +5,14 @@ async function run(settings) {
     const proofManager = new ProofManager();
     proofManager.initialize("zkEvmProofmanager", settings.options);
 
-    const proof = await proofManager.prove(settings.settings);
+    const proof = await proofManager.prove(settings.settings, settings.options);
     log.info("Proof generated");
 }
 
 settings = {
     settings: {
         name: "zkEvmProof-" + Date.now(),
-        pilout: "pilout",
+        pilout: { piloutFilename: "../pilcom/tmp/pilout.ptb", piloutProto: "../pilcom/src/pilout.proto" },
         executors: [
             { executorLib: "./src/lib/executors/executorA.js", settings: {} },
             { executorLib: "./src/lib/executors/executorB.js", settings: {} },
@@ -22,7 +22,7 @@ settings = {
         setup: "setup",
     },
     options: {
-        debug: false,
+        debug: true,
     },
 };
 
