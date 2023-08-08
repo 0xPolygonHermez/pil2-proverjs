@@ -1,5 +1,3 @@
-const ProofManager = require("./proof_manager.js");
-
 class ProofManagerAPI {
     constructor(proofManager) {
         this.proofManager = proofManager;
@@ -7,6 +5,10 @@ class ProofManagerAPI {
 
     getName() {
         return proofManager.getName();
+    }
+
+    get pilout() {
+        return this.proofManager.pilout;
     }
 }
 

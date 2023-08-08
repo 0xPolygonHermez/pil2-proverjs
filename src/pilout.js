@@ -2,6 +2,29 @@ const fs = require('fs');
 const protobuf = require('protobufjs');
 const log = require("../logger.js");
 
+const AGGREGATION_TYPES = {
+    SUM: 0,
+    PROD: 1,
+};
+
+const SYMBOL_TYPES = {
+    IM_COL: 0,
+    FIXED_COL: 1,
+    PERIODIC_COL: 2,
+    WITNESS_COL: 3,
+    PROOF_VALUE: 4,
+    SUBPROOF_VALUE: 5,
+    PUBLIC_VALUE: 6,
+    PUBLIC_TABLE: 7,
+    CHALLENGE: 8,
+};
+
+const HINT_FIELD_TYPES = {
+    STRING: 0,
+    OPERAND: 1,
+    ARRAY: 2,
+};
+
 class PilOut {
     constructor(piloutFilename, protoFilename, options) {
         log.info("[PilOut]", "Loading pilout.");
@@ -28,4 +51,9 @@ class PilOut {
     }
 }
 
-module.exports = PilOut;
+module.exports = {
+    PilOut,
+    AGGREGATION_TYPES,
+    SYMBOL_TYPES,
+    HINT_FIELD_TYPES,
+};

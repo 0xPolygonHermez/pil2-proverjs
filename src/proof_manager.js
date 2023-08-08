@@ -7,7 +7,7 @@ const ExecutorFactory = require("./executor_factory.js");
 const ProverFactory = require("./prover_factory.js");
 const VerifierFactory = require("./verifier_factory.js");
 const ProofManagerAPI = require("./proof_manager_api.js");
-const PilOut = require("./pilout.js");
+const { PilOut } = require("./pilout.js");
 
 class ProofManager {
     constructor() {
