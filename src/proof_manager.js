@@ -167,8 +167,6 @@ class ProofManager {
     }
 
     async initializeProve(provingSchema, options) {
-        const proofManagerAPI = new ProofManagerAPI(this);
-
         this.pilout = new PilOut(provingSchema.pilout.piloutFilename, provingSchema.pilout.piloutProto, options);
 
         // Initialize the executors
@@ -178,6 +176,7 @@ class ProofManager {
             throw new Error("No executors provided in the provingSchema.");
         }
 
+        const proofManagerAPI = new ProofManagerAPI(this);
         this.executors = new ExecutorComposite(proofManagerAPI);
 
         for(const executor of provingSchema.executors) {
