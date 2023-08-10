@@ -1,7 +1,7 @@
 class VerifierFactory {
-    static async createVerifier(verifierLib, proofManagerAPI) {
+    static async createVerifier(verifierLib, piloutproverAPI) {
         const { default: myClass } = await import(verifierLib);
-        return new myClass(proofManagerAPI);
+        return new myClass(piloutproverAPI);
     }
 }
 

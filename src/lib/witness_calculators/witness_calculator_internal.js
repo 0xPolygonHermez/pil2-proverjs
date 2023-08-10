@@ -1,14 +1,14 @@
 const {
-    ExecutorComponent,
+    WitnessCalculatorComponent,
     WITNESS_ROUND_NOTHING_DONE,
     WITNESS_ROUND_PARTIAL_DONE,
     WITNESS_ROUND_FULLY_DONE,
-} = require("../../executor.js");
+} = require("../../witness_calculator.js");
 const log = require("../../../logger.js");
 
-class ExecutorA extends ExecutorComponent {
-    constructor(proofManagerAPI) {
-        super("Executor Type A", proofManagerAPI);
+class WitnessCalculatorInternal extends WitnessCalculatorComponent {
+    constructor(piloutproverAPI) {
+        super("WCInternal", piloutproverAPI);
         this.initialized = false;
         this.nSteps = 2;
         this.step = 0;
@@ -16,14 +16,14 @@ class ExecutorA extends ExecutorComponent {
     }
 
     initialize() {
-        log.info("[ExecutorA]", `${this.name}: Initializing.`);
+        log.info(`[${this.name}]`, "Initializing.");
 
         this.initialized = true;
     }
 
     checkInitialized() {
         if (!this.initialized) {
-            throw new Error("[ExecutorA]", `${this.name}: not initialized.`);
+            throw new Error(`[${this.name}] Not initialized.`);
         }
     }
 
@@ -35,8 +35,7 @@ class ExecutorA extends ExecutorComponent {
             this.step = 0;
         }
 
-        log.info("[ExecutorA]", `--> ${this.name}: Computing witness for stage ${stageId}.`
-        );
+        log.info(`[${this.name}]`, `--> Computing witness for stage ${stageId}.`);
 
         this.step++;
         let status =
@@ -52,10 +51,10 @@ class ExecutorA extends ExecutorComponent {
         } else if (status === WITNESS_ROUND_NOTHING_DONE) {
             msg = `<-- ${this.name}: Witness computation for stage ${stageId} not started.`
         }
-        log.info("[ExecutorA]", msg);
+        log.info(`[${this.name}]`, msg);
 
         return status;
     }
 }
 
-module.exports = ExecutorA;
+module.exports = WitnessCalculatorInternal;

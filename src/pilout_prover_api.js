@@ -1,14 +1,14 @@
-class ProofManagerAPI {
-    constructor(proofManager) {
-        this.proofManager = proofManager;
+class PiloutproverAPI {
+    constructor(piloutprover) {
+        this.piloutprover = piloutprover;
     }
 
     getName() {
-        return proofManager.getName();
+        return piloutprover.getName();
     }
 
     get pilout() {
-        return this.proofManager.pilout.pilout;
+        return this.piloutprover.pilout.pilout;
     }
 
     //TODO access to pilout baseField ?
@@ -84,4 +84,4 @@ class ProofManagerAPI {
 
 }
 
-module.exports = ProofManagerAPI;
+module.exports = PiloutproverAPI;

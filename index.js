@@ -1,11 +1,11 @@
-const ProofManager = require("./src/proof_manager.js");
+const Piloutprover = require("./src/pilout_prover.js");
 const log = require("./logger.js");
 
 async function run(settings) {
-    const proofManager = new ProofManager();
-    proofManager.initialize("zkEvmProofmanager", settings.options);
+    const piloutProver = new Piloutprover();
+    piloutProver.initialize("zkEvmPiloutprover", settings.options);
 
-    const proof = await proofManager.prove(settings.settings, settings.options);
+    const proof = await piloutProver.prove(settings.settings, settings.options);
     log.info("Proof generated");
 }
 
@@ -13,9 +13,9 @@ settings = {
     settings: {
         name: "zkEvmProof-" + Date.now(),
         pilout: { piloutFilename: "../pilcom/tmp/pilout.ptb", piloutProto: "../pilcom/src/pilout.proto" },
-        executors: [
-            { executorLib: "./src/lib/executors/executorA.js", settings: {} },
-            { executorLib: "./src/lib/executors/executorB.js", settings: {} },
+        witnessCalculators: [
+            { witnessCalculatorLib: "./src/lib/witness_calculators/witness_calculator_internal.js", settings: {} },
+            { witnessCalculatorLib: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {} },
         ],
         prover: { proverLib: "./src/lib/provers/proverA.js", settings: {} },
         verifier: { verifierLib: "./src/lib/verifiers/verifierA.js", settings: {} },

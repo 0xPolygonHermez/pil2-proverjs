@@ -2,8 +2,8 @@ const VerifierComponent = require("../../verifier.js");
 const log = require('../../../logger.js');
 
 class VerifierA extends VerifierComponent {
-    constructor(proofManagerAPI) {
-        super("Fflonk Verifier", proofManagerAPI);
+    constructor(piloutproverAPI) {
+        super("Fflonk Verifier", piloutproverAPI);
         this.initialized = false;
     }
 

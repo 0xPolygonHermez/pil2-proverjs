@@ -2,42 +2,42 @@ const log = require("../logger.js");
 const { fileExists } = require("./utils.js");
 const path = require("path");
 
-const { ExecutorComposite } = require("./executor.js");
-const ExecutorFactory = require("./executor_factory.js");
+const { WitnessCalculatorComposite } = require("./witness_calculator.js");
+const WitnessCalculatorFactory = require("./witness_calculator_factory.js");
 const ProverFactory = require("./prover_factory.js");
 const VerifierFactory = require("./verifier_factory.js");
-const ProofManagerAPI = require("./proof_manager_api.js");
+const PiloutproverAPI = require("./pilout_prover_api.js");
 const { PilOut } = require("./pilout.js");
 
-class ProofManager {
+class PiloutProver {
     constructor() {
         this._initialized = false;
         this._isProving = false;
-        if (ProofManager.instance) {
-            return ProofManager.instance;
+        if (PiloutProver.instance) {
+            return PiloutProver.instance;
         }
 
-        log.info("[ProofManager]", "ProofManager new instance created.");
-        ProofManager.instance = this;
+        log.info("[Piloutprover]", "New instance created.");
+        PiloutProver.instance = this;
     }
 
     initialize(name, settings) {
         if (this._initialized) {
-            log.error("[ProofManager]", "ProofManager already initialized.");
-            throw new Error("ProofManager already initialized.");
+            log.error("[Piloutprover]", "Already initialized.");
+            throw new Error("Piloutprover already initialized.");
         }
 
         this._name = name;
         this._settings = settings;
 
-        log.info("[ProofManager]", `ProofManager ${name} initialized.`);
+        log.info("[Piloutprover]", `${name} initialized.`);
         this._initialized = true;
     }
 
     checkInitialized() {
         if(!this._initialized) {
-            log.error("[ProofManager]", `[ProofManager] ${this.name}: not initialized.`);
-            throw new Error(`[ProofManager] ${this.name}: not initialized.`);
+            log.error("[Piloutprover]", `${this.name}: not initialized.`);
+            throw new Error(`[Piloutprover] ${this.name}: not initialized.`);
         }
     }
 
@@ -48,13 +48,13 @@ class ProofManager {
 
     async prove(provingSchema, options) {
         if (!this._initialized) {
-            log.error("[ProofManager]", "ProofManager not initialized.");
-            throw new Error("ProofManager not initialized.");
+            log.error("[Piloutprover]", "Piloutprover not initialized.");
+            throw new Error("Piloutprover not initialized.");
         }
 
         if (this._isProving) {
-            log.error("[ProofManager]", "ProofManager already generating a proof.");
-            throw new Error("ProofManager already generating a proof.");
+            log.error("[Piloutprover]", "Piloutprover already generating a proof.");
+            throw new Error("Piloutprover already generating a proof.");
         }
 
         // TODO must do it with a semaphore?
@@ -64,7 +64,7 @@ class ProofManager {
          * provingSchema is a JSON object containing the following fields:
          * - name: name of the proof
          * - pilout: pilout of the proof
-         * - executors: array of executor types
+         * - witnessCalculators: array of witnessCalculator types
          * - prover: prover type
          * - setup: setup data
          *
@@ -72,14 +72,14 @@ class ProofManager {
         if (!await provingSchemaIsValid(provingSchema)) {
             this._isProving = false;
 
-            log.error("[ProofManager]", "Invalid provingSchema.");
+            log.error("[Piloutprover]", "Invalid provingSchema.");
             throw new Error("Invalid provingSchema.");
         }
 
         if (!await ValidateFileNameCorrectness(provingSchema)) {
             this._isProving = false;
 
-            log.error("[ProofManager]", "Invalid provingSchema.");
+            log.error("[Piloutprover]", "Invalid provingSchema.");
             throw new Error("Invalid provingSchema.");
         }
 
@@ -89,7 +89,7 @@ class ProofManager {
 
             proof = this.generateProof(provingSchema, options);
         } catch (error) {
-            log.error("[ProofManager]", `[ProofManager] Error while generating proof: ${error}`);
+            log.error("[Piloutprover]", `Error while generating proof: ${error}`);
             throw error;
         } finally {
             this._isProving = false;
@@ -101,13 +101,13 @@ class ProofManager {
         async function provingSchemaIsValid(provingSchema) {
             if (!provingSchema.name) {
                 provingSchema.name = "proof-" + Date.now();
-                log.warn("[ProofManager]", `[ProofManager] No name provided in the provingSchema, assigning a default name ${provingSchema.name}.`);
+                log.warn("[Piloutprover]", `No name provided in the provingSchema, assigning a default name ${provingSchema.name}.`);
             }
 
-            const fields = ["pilout", "executors", "prover", "setup"];
+            const fields = ["pilout", "witnessCalculators", "prover", "setup"];
             for (const field of fields) {
                 if (!provingSchema[field]) {
-                    log.error("[ProofManager]", `No ${field} provided in the provingSchema.`);
+                    log.error("[Piloutprover]", `No ${field} provided in the provingSchema.`);
                     return false;
                 }
             }
@@ -118,45 +118,45 @@ class ProofManager {
         async function ValidateFileNameCorrectness(provingSchema) {
             const piloutFilename =  path.join(__dirname, "..", provingSchema.pilout.piloutFilename);
             if (!await fileExists(piloutFilename)) {
-                log.error("[ProofManager]", `Pilout ${piloutFilename} does not exist.`);
+                log.error("[Piloutprover]", `Pilout ${piloutFilename} does not exist.`);
                 return false;
             }
             provingSchema.pilout.piloutFilename = piloutFilename;
 
             const piloutProto =  path.join(__dirname, "..", provingSchema.pilout.piloutProto);
             if (!await fileExists(piloutProto)) {
-                log.error("[ProofManager]", `Pilout proto ${piloutProto} does not exist.`);
+                log.error("[Piloutprover]", `Pilout proto ${piloutProto} does not exist.`);
                 return false;
             }
             provingSchema.pilout.piloutProto = piloutProto;
 
-            for(const executor of provingSchema.executors) {
-                const executorLib =  path.join(__dirname, "..", executor.executorLib);
+            for(const witnessCalculator of provingSchema.witnessCalculators) {
+                const witnessCalculatorLib =  path.join(__dirname, "..", witnessCalculator.witnessCalculatorLib);
 
-                if (!await fileExists(executorLib)) {
-                    log.error("[ProofManager]", `Executor ${executor.executorLib} does not exist.`);
+                if (!await fileExists(witnessCalculatorLib)) {
+                    log.error("[Piloutprover]", `WitnessCalculator ${witnessCalculator.witnessCalculatorLib} does not exist.`);
                     return false;
                 }
-                executor.executorLib = executorLib;
+                witnessCalculator.witnessCalculatorLib = witnessCalculatorLib;
             }                
     
             const proverLib =  path.join(__dirname, "..", provingSchema.prover.proverLib);
 
             if (!await fileExists(proverLib)) {
-                log.error("[ProofManager]", `Prover ${provingSchema.prover.proverLib} does not exist.`);
+                log.error("[Piloutprover]", `Prover ${provingSchema.prover.proverLib} does not exist.`);
                 return false;
             }
             provingSchema.prover.proverLib = proverLib;
 
             if (!provingSchema.setup) {
-                log.error("[ProofManager]", "No setup provided in the provingSchema.");
+                log.error("[Piloutprover]", "No setup provided in the provingSchema.");
                 return false;
             }
 
             const verifierLib =  path.join(__dirname, "..", provingSchema.verifier.verifierLib);
 
             if (!await fileExists(verifierLib)) {
-                log.error("[ProofManager]", `Verifier ${provingSchema.verifier.verifierLib} does not exist.`);
+                log.error("[Piloutprover]", `Verifier ${provingSchema.verifier.verifierLib} does not exist.`);
                 return false;
             }
             provingSchema.verifier.verifierLib = verifierLib;
@@ -169,27 +169,27 @@ class ProofManager {
     async initializeProve(provingSchema, options) {
         this.pilout = new PilOut(provingSchema.pilout.piloutFilename, provingSchema.pilout.piloutProto, options);
 
-        // Initialize the executors
-        if (provingSchema.executors.length === 0) {
-            log.error("[ProofManager]", "No executors provided in the provingSchema.");
+        // Initialize the witnessCalculators
+        if (provingSchema.witnessCalculators.length === 0) {
+            log.error("[Piloutprover]", "No witnessCalculators provided in the provingSchema.");
             this._isProving = false;
-            throw new Error("No executors provided in the provingSchema.");
+            throw new Error("No witnessCalculators provided in the provingSchema.");
         }
 
-        const proofManagerAPI = new ProofManagerAPI(this);
-        this.executors = new ExecutorComposite(proofManagerAPI);
+        const piloutproverAPI = new PiloutproverAPI(this);
+        this.witnessCalculators = new WitnessCalculatorComposite(piloutproverAPI);
 
-        for(const executor of provingSchema.executors) {
-            const newExecutor = await ExecutorFactory.createExecutor(executor.executorLib, proofManagerAPI);
-            newExecutor.initialize(executor.settings);
+        for(const witnessCalculator of provingSchema.witnessCalculators) {
+            const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(witnessCalculator.witnessCalculatorLib, piloutproverAPI);
+            newWitnessCalculator.initialize(witnessCalculator.settings);
 
-            this.executors.registerExecutor(newExecutor);
+            this.witnessCalculators.registerWitnessCalculator(newWitnessCalculator);
         }
 
-        this.prover = await ProverFactory.createProver(provingSchema.prover.proverLib, proofManagerAPI);
+        this.prover = await ProverFactory.createProver(provingSchema.prover.proverLib, piloutproverAPI);
         this.prover.initialize(provingSchema.prover.settings);
 
-        this.verifier = await VerifierFactory.createVerifier(provingSchema.verifier.verifierLib, proofManagerAPI);
+        this.verifier = await VerifierFactory.createVerifier(provingSchema.verifier.verifierLib, piloutproverAPI);
         this.verifier.initialize(provingSchema.verifier.settings);
 
         // TODO Initialize setup
@@ -197,14 +197,14 @@ class ProofManager {
     }
 
     generateProof(provingSchema, options) {
-        log.info("[ProofManager]", `--> Initiating the generation of the proof '${provingSchema.name}'.`
+        log.info("[Piloutprover]", `--> Initiating the generation of the proof '${provingSchema.name}'.`
         );
 
         const proof = {};
 
         const nMockStages = 3;
         for(let i = 0; i < nMockStages; i++) {
-            this.executors.witnessComputation(i);
+            this.witnessCalculators.witnessComputation(i);
 
             this.prover.commitStage(i, proof);
         }
@@ -215,17 +215,17 @@ class ProofManager {
 
         this.prover.finalizeProof(proof);
 
-        log.info("[ProofManager]", `<-- Proof '${provingSchema.name}' successfully generated.`);
+        log.info("[Piloutprover]", `<-- Proof '${provingSchema.name}' successfully generated.`);
 
         return proof;
     }
 
     finalizeProve(provingSchema, options) {
         // TODO Finalize pilout
-        if (this.executors) delete this.executors;
+        if (this.witnessCalculators) delete this.witnessCalculators;
         // TODO Finalize prover
         // TODO Finalize setup
     }
 }
 
-module.exports = ProofManager;
+module.exports = PiloutProver;
