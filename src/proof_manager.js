@@ -213,7 +213,15 @@ class ProofManager {
         for(let stageId = 1; stageId <= 4; stageId++) {
             log.info("[ProofManager]", `==> STAGE ${stageId}`);
             for(let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
-                this.witnessCalculators.witnessComputation(stageId, subproofId);
+                const subproof = this.pilout.getSubproofById(subproofId);
+
+                log.info("[ProofManager]", `--> Subproof '${subproof.name}' witness computation stage ${stageId}`);
+
+                for(let airId = 0; airId < subproof.airs.length; airId++) {
+                    this.witnessCalculators.witnessComputation(stageId, subproofId, airId);
+                }
+
+                log.info("[ProofManager]", `<-- Subproof '${subproof.name}' witness computation stage ${stageId}`);
             }
 
             this.prover.commitStage(stageId, proof);

@@ -57,6 +57,13 @@ class PilOut {
     get numStages() {
         return this.pilout.numChallenges.length;
     }
+
+    getSubproofById(subproofId) {
+        if(this.pilout.subproofs === undefined) return undefined;
+
+        return this.pilout.subproofs[subproofId];
+    }
+
 }
 
 module.exports = {

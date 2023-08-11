@@ -10,22 +10,69 @@ class WitnessCalculatorComponent {
     constructor(name, proofmanagerAPI) {
         this.name = name;
         this.proofmanagerAPI = proofmanagerAPI;
+
+        this.initialized = false;
     }
 
     initialize() {
-        throw new Error("Method 'initialize' must be implemented in concrete classes.");
+        log.info(`[${this.name}]`, "Initializing.");
+
+        this.initialized = true;
     }
     
-    witnessComputationStage1(subproofId) {
+    checkInitialized() {
+        if(!this.initialized) {
+            log.info(`[${this.name}]`, "Not initialized.");
+            throw new Error(`[${this.name}] Not initialized.`);
+        }
+    }
+
+    witnessComputationStage1(subproofId, airId) {
         return WITNESS_ROUND_NOTHING_TO_DO;
     }
 
-    witnessComputation(stageId, subproofId) {
+    witnessComputation(stageId, subproofId, airId) {
         return WITNESS_ROUND_NOTHING_TO_DO;
     }
 
-    witnessComputationStageQ(subproofId) {
+    witnessComputationStageQ(subproofId, airId) {
         return WITNESS_ROUND_NOTHING_TO_DO;
+    }
+}
+
+class WitnessCalculatorLibComponent extends WitnessCalculatorComponent {
+    constructor(name, proofmanagerAPI) {
+        super(name, proofmanagerAPI);
+
+        this.currentStep = [];
+        
+        this.observers = [];
+    }
+    
+    subscribe(trigger, handlers) {
+        this.observers.push({trigger: trigger, handlers: handlers});
+    }
+
+    witnessComputation(stageId, subproofId, airId) {
+        this.checkInitialized();
+
+        if(this.currentStep[subproofId] === undefined) this.currentStep[subproofId] = [];
+        if(this.currentStep[subproofId][airId] === undefined) this.currentStep[subproofId][airId] = 0;
+
+        const step = this.currentStep[subproofId][airId];
+
+        const toExecute = this.observers[step];
+        if(toExecute === undefined) {
+            log.info(`[${this.name}]`, `--> Nothing to do at stage ${stageId}.`);
+            return WITNESS_ROUND_NOTHING_TO_DO;
+        }
+
+        //this.canHandle(toExecute, stageId, subproofId, airId);
+        toExecute.handlers.forEach(handler => handler(stageId, subproofId, airId));
+
+        this.currentStep[subproofId][airId]++
+
+        return WITNESS_ROUND_FULLY_DONE;
     }
 }
 
@@ -53,11 +100,7 @@ class WitnessCalculatorComposite extends WitnessCalculatorComponent {
         return this.witnesscalculators;
     }
 
-    witnessComputation(stageId, subproofId) {
-        const subproof = this.proofmanagerAPI.getSubproofById(subproofId);
-
-        log.info("[WCComposite]", `--> Subproof '${subproof.name}' witness computation stage ${stageId}`);
-
+    witnessComputation(stageId, subproofId, airId) {
         const numWitnessCalculators = this.witnesscalculators.length;
         let witnesscalculatorStatus = Array(numWitnessCalculators).fill(WITNESS_ROUND_NOTHING_DONE);
         let nPendingToFinish = numWitnessCalculators;
@@ -74,8 +117,8 @@ class WitnessCalculatorComposite extends WitnessCalculatorComponent {
             }
 
             const status = stageId === 1
-                ? this.witnesscalculators[i].witnessComputationStage1(subproofId)
-                : this.witnesscalculators[i].witnessComputation(stageId, subproofId);
+                ? this.witnesscalculators[i].witnessComputationStage1(subproofId, airId)
+                : this.witnesscalculators[i].witnessComputation(stageId, subproofId, airId);
 
             if(witnesscalculatorStatus[i] !== WITNESS_ROUND_NOTHING_TO_DO &&
                witnesscalculatorStatus[i] !== WITNESS_ROUND_NOTHING_DONE &&
@@ -107,13 +150,12 @@ class WitnessCalculatorComposite extends WitnessCalculatorComponent {
             log.error("[WCComposite]", `Unable to compute all witnesses for stage ${stageId}`);
             throw new Error(`Unable to compute all witnesses for stage ${stageId}`);
         }
-
-        log.info("[WCComposite]", `<-- Subproof '${subproof.name}' witness computation stage ${stageId}`);
     }
 }
 
 module.exports = {
-    WitnessCalculatorComponent: WitnessCalculatorComponent,
+    WitnessCalculatorComponent,
+    WitnessCalculatorLibComponent,
     WitnessCalculatorComposite,
     WITNESS_ROUND_NOTHING_TO_DO,
     WITNESS_ROUND_NOTHING_DONE,
