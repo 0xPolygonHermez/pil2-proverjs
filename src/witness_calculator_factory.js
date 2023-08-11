@@ -1,7 +1,7 @@
 class WitnessCalculatorFactory {
-    static async createWitnessCalculator(witnesscalculatorLib, piloutproverAPI) {
+    static async createWitnessCalculator(witnesscalculatorLib, proofmanagerAPI) {
         const { default: myClass } = await import(witnesscalculatorLib);
-        return new myClass(piloutproverAPI);
+        return new myClass(proofmanagerAPI);
     }
 }
 

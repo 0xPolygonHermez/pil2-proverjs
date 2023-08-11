@@ -1,8 +1,8 @@
 // Abstract base class for all Prover components
 class ProverComponent {
-    constructor(name, piloutproverAPI) {
+    constructor(name, proofmanagerAPI) {
         this.name = name;
-        this.piloutproverAPI = piloutproverAPI;
+        this.proofmanagerAPI = proofmanagerAPI;
     }
 
     initialize() {

@@ -1,29 +1,38 @@
 const log = require('../logger.js');
 
-const WITNESS_ROUND_NOTHING_DONE = 1;
-const WITNESS_ROUND_PARTIAL_DONE = 2;
-const WITNESS_ROUND_FULLY_DONE = 3;
+const WITNESS_ROUND_NOTHING_TO_DO = 1;
+const WITNESS_ROUND_NOTHING_DONE = 2;
+const WITNESS_ROUND_PARTIAL_DONE = 3;
+const WITNESS_ROUND_FULLY_DONE = 4;
 
 // Abstract base class for all WitnessCalculator components
 class WitnessCalculatorComponent {
-    constructor(name, piloutproverAPI) {
+    constructor(name, proofmanagerAPI) {
         this.name = name;
-        this.piloutproverAPI = piloutproverAPI;
+        this.proofmanagerAPI = proofmanagerAPI;
     }
 
     initialize() {
         throw new Error("Method 'initialize' must be implemented in concrete classes.");
     }
     
-    witnessComputation(stageId) {
-        throw new Error("Method 'resolve' must be implemented in concrete classes.");
+    witnessComputationStage1(subproofId) {
+        return WITNESS_ROUND_NOTHING_TO_DO;
+    }
+
+    witnessComputation(stageId, subproofId) {
+        return WITNESS_ROUND_NOTHING_TO_DO;
+    }
+
+    witnessComputationStageQ(subproofId) {
+        return WITNESS_ROUND_NOTHING_TO_DO;
     }
 }
 
 // WitnessCalculator class acting as the composite
 class WitnessCalculatorComposite extends WitnessCalculatorComponent {
-    constructor(piloutproverAPI) {
-        super("WitnessCalculatorComposite", piloutproverAPI);
+    constructor(proofmanagerAPI) {
+        super("WitnessCalculatorComposite", proofmanagerAPI);
         this.witnesscalculators = [];
     }
 
@@ -44,8 +53,10 @@ class WitnessCalculatorComposite extends WitnessCalculatorComponent {
         return this.witnesscalculators;
     }
 
-    witnessComputation(stageId) {
-        log.info("[WCComposite]", `--> Starting witness computation stage ${stageId}`);
+    witnessComputation(stageId, subproofId) {
+        const subproof = this.proofmanagerAPI.getSubproofById(subproofId);
+
+        log.info("[WCComposite]", `--> Subproof '${subproof.name}' witness computation stage ${stageId}`);
 
         const numWitnessCalculators = this.witnesscalculators.length;
         let witnesscalculatorStatus = Array(numWitnessCalculators).fill(WITNESS_ROUND_NOTHING_DONE);
@@ -54,18 +65,22 @@ class WitnessCalculatorComposite extends WitnessCalculatorComponent {
         let lastId = -1;
 
         for(let i = 0; x > 0; i = (i+1) % numWitnessCalculators) {
-            if(witnesscalculatorStatus[i] === WITNESS_ROUND_FULLY_DONE) continue;
+            if(witnesscalculatorStatus[i] === WITNESS_ROUND_FULLY_DONE || 
+               witnesscalculatorStatus[i] === WITNESS_ROUND_NOTHING_TO_DO) continue;
 
             if(lastId !== -1 && lastId === i) {
                 log.error("[WCComposite]", `WitnessCalculator ${this.witnesscalculators[i].name} is stuck in witness computation for stage ${stageId}`);
                 throw new Error(`WitnessCalculator ${this.witnesscalculators[i].name} is stuck in witness computation for stage ${stageId}`);
             }
 
-            const status = this.witnesscalculators[i].witnessComputation(stageId);
+            const status = stageId === 1
+                ? this.witnesscalculators[i].witnessComputationStage1(subproofId)
+                : this.witnesscalculators[i].witnessComputation(stageId, subproofId);
 
-            if(witnesscalculatorStatus[i] !== WITNESS_ROUND_NOTHING_DONE &&
-                witnesscalculatorStatus[i] !== WITNESS_ROUND_PARTIAL_DONE &&
-                witnesscalculatorStatus[i] !== WITNESS_ROUND_FULLY_DONE) {
+            if(witnesscalculatorStatus[i] !== WITNESS_ROUND_NOTHING_TO_DO &&
+               witnesscalculatorStatus[i] !== WITNESS_ROUND_NOTHING_DONE &&
+               witnesscalculatorStatus[i] !== WITNESS_ROUND_PARTIAL_DONE &&
+               witnesscalculatorStatus[i] !== WITNESS_ROUND_FULLY_DONE) {
                 log.error("[WCComposite]", `Unknown witnesscalculator status return value: ${witnesscalculatorStatus[i]}`);
                 throw new Error(`Unknown witnesscalculator status return value: ${witnesscalculatorStatus[i]}`);
             }
@@ -77,7 +92,8 @@ class WitnessCalculatorComposite extends WitnessCalculatorComponent {
             }
 
             if (witnesscalculatorStatus[i] === WITNESS_ROUND_NOTHING_DONE) x--;
-            else if (witnesscalculatorStatus[i] === WITNESS_ROUND_FULLY_DONE) {
+            else if (witnesscalculatorStatus[i] === WITNESS_ROUND_FULLY_DONE ||
+                witnesscalculatorStatus[i] === WITNESS_ROUND_NOTHING_TO_DO) {
                 nPendingToFinish--;
                 x = nPendingToFinish;
             }
@@ -92,13 +108,14 @@ class WitnessCalculatorComposite extends WitnessCalculatorComponent {
             throw new Error(`Unable to compute all witnesses for stage ${stageId}`);
         }
 
-        log.info("[WCComposite]", `<-- Witness computation stage ${stageId} finished`);
+        log.info("[WCComposite]", `<-- Subproof '${subproof.name}' witness computation stage ${stageId}`);
     }
 }
 
 module.exports = {
     WitnessCalculatorComponent: WitnessCalculatorComponent,
     WitnessCalculatorComposite,
+    WITNESS_ROUND_NOTHING_TO_DO,
     WITNESS_ROUND_NOTHING_DONE,
     WITNESS_ROUND_PARTIAL_DONE,
     WITNESS_ROUND_FULLY_DONE,

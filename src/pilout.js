@@ -49,6 +49,14 @@ class PilOut {
         if(this.pilout.hints) log.info("[PilOut]", `Pilout #hints: ${this.pilout.hints.length}`);
         if(this.pilout.symbols) log.info("[PilOut]", `Pilout #symbols: ${this.pilout.symbols.length}`);
     }
+
+    get numSubproofs() {
+        return this.pilout.subproofs === undefined ? 0 : this.pilout.subproofs.length;
+    }
+
+    get numStages() {
+        return this.pilout.numChallenges.length;
+    }
 }
 
 module.exports = {

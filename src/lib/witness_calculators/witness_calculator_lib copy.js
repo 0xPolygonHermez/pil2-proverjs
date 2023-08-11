@@ -3,16 +3,16 @@ const {
     WITNESS_ROUND_NOTHING_DONE,
     WITNESS_ROUND_PARTIAL_DONE,
     WITNESS_ROUND_FULLY_DONE,
+    WITNESS_ROUND_NOTHING_TO_DO,
 } = require("../../witness_calculator.js");
 const log = require("../../../logger.js");
 
-class WitnessCalculatorInternal extends WitnessCalculatorComponent {
-    constructor(piloutproverAPI) {
-        super("WCInternal", piloutproverAPI);
+class WitnessCalculatorLib extends WitnessCalculatorComponent {
+    constructor(proofmanagerAPI) {
+        super("WCLib", proofmanagerAPI);
         this.initialized = false;
-        this.nSteps = 2;
+        this.nSteps = 1;
         this.step = 0;
-        this.lastStageId = -1;
     }
 
     initialize() {
@@ -22,26 +22,18 @@ class WitnessCalculatorInternal extends WitnessCalculatorComponent {
     }
 
     checkInitialized() {
-        if (!this.initialized) {
-            throw new Error(`[${this.name}] Not initialized.`);
+        if(!this.initialized) {
+            throw new Error(`[WCLib] ${this.name}: not initialized.`);
         }
     }
 
-    witnessComputation(stageId) {
+    witnessComputation(stageId, subproofId) {
         this.checkInitialized();
-
-        if (stageId !== this.lastStageId) {
-            this.lastStageId = stageId;
-            this.step = 0;
-        }
 
         log.info(`[${this.name}]`, `--> Computing witness for stage ${stageId}.`);
 
         this.step++;
-        let status =
-            this.step >= this.nSteps
-                ? WITNESS_ROUND_FULLY_DONE
-                : WITNESS_ROUND_PARTIAL_DONE;
+        let status = this.step >= this.nSteps ? WITNESS_ROUND_FULLY_DONE : WITNESS_ROUND_PARTIAL_DONE;
 
         let msg;
         if (status === WITNESS_ROUND_FULLY_DONE) {
@@ -57,4 +49,4 @@ class WitnessCalculatorInternal extends WitnessCalculatorComponent {
     }
 }
 
-module.exports = WitnessCalculatorInternal;
+module.exports = WitnessCalculatorLib;

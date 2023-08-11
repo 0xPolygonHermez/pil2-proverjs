@@ -1,17 +1,30 @@
-class PiloutproverAPI {
-    constructor(piloutprover) {
-        this.piloutprover = piloutprover;
+class ProofManagerAPI {
+    constructor(proofManager) {
+        this.proofManager = proofManager;
     }
 
     getName() {
-        return piloutprover.getName();
+        return proofManager.getName();
     }
 
     get pilout() {
-        return this.piloutprover.pilout.pilout;
+        return this.proofManager.pilout.pilout;
     }
 
     //TODO access to pilout baseField ?
+
+    getSubproofById(subproofId) {
+        if(this.pilout.subproofs === undefined) return undefined;
+
+        return this.pilout.subproofs[subproofId];
+    }
+
+    getAirBySubproofIdAirId(subproofId, airId) {
+        if(this.pilout.subproofs === undefined) return undefined;
+        if(this.pilout.subproofs[subproofId].airs === undefined) return undefined;
+
+        return this.pilout.subproofs[subproofId].airs[airId];
+    }
 
     getNumChallenges(stageId) {
         if(this.pilout.numChallenges === undefined) return [];
@@ -39,7 +52,7 @@ class PiloutproverAPI {
     getSymbolsBySubproofId(subproofId) {
         if(this.pilout.symbols === undefined) return [];
 
-        return this.pilout.symbols.filter(symbol => symbol.subProofId === subproofId);
+        return this.pilout.symbols.filter(symbol => symbol.subproofId === subproofId);
     }
 
     getSymbolsByAirId(airId) {
@@ -52,7 +65,7 @@ class PiloutproverAPI {
         if(this.pilout.symbols === undefined) return [];
 
         return this.pilout.symbols.filter(
-            (symbol) => symbol.airId === airId && symbol.subProofId === subproofId
+            (symbol) => symbol.airId === airId && symbol.subproofId === subproofId
         );
     }
 
@@ -65,7 +78,7 @@ class PiloutproverAPI {
     getHintsBySubproofId(subproofId) {
         if(this.pilout.hints === undefined) return [];
 
-        return this.pilout.hints.filter(hint => hint.subProofId === subproofId);
+        return this.pilout.hints.filter(hint => hint.subproofId === subproofId);
     }
 
     getHintsByAirId(airId) {
@@ -78,10 +91,24 @@ class PiloutproverAPI {
         if(this.pilout.hints === undefined) return [];
 
         return this.pilout.hints.filter(
-            (hint) => hint.airId === airId && hint.subProofId === subproofId
+            (hint) => hint.airId === airId && hint.subproofId === subproofId
         );
     }
 
+    // Allocate a new buffer for the given subproof and air with the given numRows.
+    allocateNewBuffer(subproofId, airId, numRows, nPolsBaseField, nPolsExtension) {
+        return this.proofManager.allocateNewBuffer(subproofId, airId, numRows, nPolsBaseField, nPolsExtension);
+    }
+
+    // Reallocate the buffer for the given subproof and air with the given numRows.
+    reallocateBuffer(subproofId, airId, idx, numRows) {
+        return this.proofManager.reallocateBuffer(subproofId, airId, idx, numRows);
+    }
+
+    // Free the buffer for the given subproof and air.
+    freeBuffer(subproofId, airId) {
+        return this.proofManager.freeBuffer(subproofId, airId);
+    }
 }
 
-module.exports = PiloutproverAPI;
+module.exports = ProofManagerAPI;

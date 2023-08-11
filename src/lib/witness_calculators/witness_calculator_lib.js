@@ -3,16 +3,28 @@ const {
     WITNESS_ROUND_NOTHING_DONE,
     WITNESS_ROUND_PARTIAL_DONE,
     WITNESS_ROUND_FULLY_DONE,
+    WITNESS_ROUND_NOTHING_TO_DO,
 } = require("../../witness_calculator.js");
 const log = require("../../../logger.js");
 
 class WitnessCalculatorLib extends WitnessCalculatorComponent {
-    constructor(piloutproverAPI) {
-        super("WCLib", piloutproverAPI);
+    constructor(proofmanagerAPI) {
+        super("WCLib", proofmanagerAPI);
         this.initialized = false;
-        this.nSteps = 1;
-        this.step = 0;
-        this.lastStageId = -1;
+
+        this.ctx = [];
+
+        this.currentStep = [];
+        this.steps = [
+            {
+                whenAvailable: 'challenge1',
+                callback: this.computeH1H2.bind(this)
+            },
+            {
+                whenAvailable: 'challenge2',
+                callback: this.computeZ.bind(this)
+            }
+        ]
     }
 
     initialize() {
@@ -27,25 +39,35 @@ class WitnessCalculatorLib extends WitnessCalculatorComponent {
         }
     }
 
-    witnessComputation(stageId) {
+    witnessComputation(stageId, subproofId) {
         this.checkInitialized();
 
-        log.info(`[${this.name}]`, `--> Computing witness for stage ${stageId}.`);
+        if(this.currentStep[subproofId] === undefined) this.currentStep[subproofId] = [];
 
-        this.step++;
-        let status = this.step >= this.nSteps ? WITNESS_ROUND_FULLY_DONE : WITNESS_ROUND_PARTIAL_DONE;
+        const subproof = this.proofmanagerAPI.getSubproofById(subproofId);
+        for(let i = 0; i < subproof.airs.length; i++) {
+            if(this.currentStep[subproofId][i] === undefined) this.currentStep[subproofId][i] = 0;
 
-        let msg;
-        if (status === WITNESS_ROUND_FULLY_DONE) {
-            msg = `<-- ${this.name}: Witness computation for stage ${stageId} finished.`;
-        } else if (status === WITNESS_ROUND_PARTIAL_DONE) {
-            msg = `<-- ${this.name}: Witness computation for stage ${stageId} in progress.`
-        } else if (status === WITNESS_ROUND_NOTHING_DONE) {
-            msg = `<-- ${this.name}: Witness computation for stage ${stageId} not started.`
+            // This is a mock part...
+            if(this.steps[this.currentStep[subproofId][i]] === undefined) continue;
+
+            const callback = this.steps[this.currentStep[subproofId][i]].callback;
+            callback(stageId, subproofId, i)
+
+            this.currentStep[subproofId][i]++;
         }
-        log.info(`[${this.name}]`, msg);
 
-        return status;
+        return WITNESS_ROUND_FULLY_DONE;
+    }
+
+    computeH1H2(stageId, subproofId, airId) {
+        const air = this.proofmanagerAPI.getAirBySubproofIdAirId(subproofId, airId);
+        log.info(`[${this.name}]`, `··· Air '${air.name}' Computing H1H2 at stage ${stageId}.`);
+    }
+
+    computeZ(stageId, subproofId, airId) {
+        const air = this.proofmanagerAPI.getAirBySubproofIdAirId(subproofId, airId);
+        log.info(`[${this.name}]`, `··· Air '${air.name}' Computing Z at stage ${stageId}.`);
     }
 }
 
