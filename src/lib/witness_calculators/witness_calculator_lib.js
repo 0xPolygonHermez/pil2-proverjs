@@ -10,12 +10,12 @@ class WitnessCalculatorLib extends WitnessCalculatorLibComponent {
     }
 
     computeH1H2(stageId, subproofId, airId) {
-        const air = this.proofmanagerAPI.getAirBySubproofIdAirId(subproofId, airId);
+        const air = this.proofmanagerAPI.getPilout().getAirBySubproofIdAirId(subproofId, airId);
         log.info(`[${this.name}]`, `Air '${air.name}' Computing H1H2 at stage ${stageId}.`);
     }
 
     computeZ(stageId, subproofId, airId) {
-        const air = this.proofmanagerAPI.getAirBySubproofIdAirId(subproofId, airId);
+        const air = this.proofmanagerAPI.getPilout().getAirBySubproofIdAirId(subproofId, airId);
         log.info(`[${this.name}]`, `Air '${air.name}' Computing Z at stage ${stageId}.`);
     }
 }

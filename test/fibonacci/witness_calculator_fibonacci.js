@@ -17,7 +17,7 @@ class WitnessCalculatorFibonacci extends WitnessCalculatorLibComponent {
     witnessComputationStage1(subproofId, airId) {
         this.checkInitialized();
 
-        const air = this.proofmanagerAPI.getAirBySubproofIdAirId(subproofId, airId);
+        const air = this.proofmanagerAPI.getPilout().getAirBySubproofIdAirId(subproofId, airId);
 
         log.info(`[${this.name}]`, `--> Air '${air.name}' Computing witness for stage 1.`);
 

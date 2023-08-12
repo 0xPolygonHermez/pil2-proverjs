@@ -1,44 +1,35 @@
-const log = require("../logger.js");
-const { fileExists } = require("./utils.js");
-const path = require("path");
-
 const WitnessCalculatorManager = require("./witness_calculator_manager.js");
 const WitnessCalculatorFactory = require("./witness_calculator_factory.js");
 const ProverFactory = require("./prover_factory.js");
 const CheckerFactory = require("./checker_factory.js");
 const ProofManagerAPI = require("./proof_manager_api.js");
 const { PilOut } = require("./pilout.js");
+const createProofContexts = require("./global_ctx.js");
+
+const log = require("../logger.js");
+const { fileExists } = require("./utils.js");
+const path = require("path");
 
 class ProofManager {
     constructor() {
-        this._initialized = false;
-        this._isProving = false;
-        if (ProofManager.instance) {
-            return ProofManager.instance;
-        }
-
-        log.info("[ProofManager]", "New instance created.");
-        ProofManager.instance = this;
+        this.initialized = false;
     }
 
     initialize(name, settings) {
-        if (this._initialized) {
+        if (this.initialized) {
             log.error("[ProofManager]", "Already initialized.");
             throw new Error("ProofManager already initialized.");
         }
 
-        this._name = name;
-        this._settings = settings;
+        this.name = name;
+        this.settings = settings;
 
         log.info("[ProofManager]", `${name} initialized.`);
-        this._initialized = true;
-
-        // Buffers are the data structures that will be used to store the subproofs data indexed by [subproofId][airId]
-        this.buffers = [];
+        this.initialized = true;
     }
 
     checkInitialized() {
-        if(!this._initialized) {
+        if(!this.initialized) {
             log.error("[ProofManager]", `Not initialized.`);
             throw new Error(`[ProofManager] Not initialized.`);
         }
@@ -46,22 +37,11 @@ class ProofManager {
 
     getName() {
         this.checkInitialized();
-        return this._name;
+        return this.name;
     }
 
     async prove(provingSchema, options) {
-        if (!this._initialized) {
-            log.error("[ProofManager]", "ProofManager not initialized.");
-            throw new Error("ProofManager not initialized.");
-        }
-
-        if (this._isProving) {
-            log.error("[ProofManager]", "ProofManager already generating a proof.");
-            throw new Error("ProofManager already generating a proof.");
-        }
-
-        // TODO must do it with a semaphore?
-        this._isProving = true;
+        this.checkInitialized();
 
         /*
          * provingSchema is a JSON object containing the following fields:
@@ -73,15 +53,11 @@ class ProofManager {
          *
          */
         if (!await provingSchemaIsValid(provingSchema)) {
-            this._isProving = false;
-
             log.error("[ProofManager]", "Invalid provingSchema.");
             throw new Error("Invalid provingSchema.");
         }
 
-        if (!await ValidateFileNameCorrectness(provingSchema)) {
-            this._isProving = false;
-
+        if (!await validateFileNameCorrectness(provingSchema)) {
             log.error("[ProofManager]", "Invalid provingSchema.");
             throw new Error("Invalid provingSchema.");
         }
@@ -95,7 +71,6 @@ class ProofManager {
             log.error("[ProofManager]", `Error while generating proof: ${error}`);
             throw error;
         } finally {
-            this._isProving = false;
             this.finalizeProve(provingSchema, options);
         }
 
@@ -118,7 +93,7 @@ class ProofManager {
             return true;
         }
 
-        async function ValidateFileNameCorrectness(provingSchema) {
+        async function validateFileNameCorrectness(provingSchema) {
             const piloutFilename =  path.join(__dirname, "..", provingSchema.pilout.piloutFilename);
             if (!await fileExists(piloutFilename)) {
                 log.error("[ProofManager]", `Pilout ${piloutFilename} does not exist.`);
@@ -171,14 +146,14 @@ class ProofManager {
 
     async initializeProve(provingSchema, options) {
         this.pilout = new PilOut(provingSchema.pilout.piloutFilename, provingSchema.pilout.piloutProto, options);
-        // TODO change it, mocked!!!!!
-        this.F = {};
-        this.F.n8 = 32;
+
+        const { proofCtx, subproofsCtx } = createProofContexts(this.pilout);
+        this.proofCtx = proofCtx;
+        this.subproofsCtx = subproofsCtx;
 
         // Initialize the witnessCalculators
         if (provingSchema.witnessCalculators.length === 0) {
             log.error("[ProofManager]", "No witnessCalculators provided in the provingSchema.");
-            this._isProving = false;
             throw new Error("No witnessCalculators provided in the provingSchema.");
         }
 
@@ -254,32 +229,31 @@ class ProofManager {
         if (this.pilout.pilout.subproofs[subproofId] === undefined ||
             this.pilout.pilout.subproofs[subproofId][airId])
             return { result: false, data: undefined };
-        if(this.buffers[subproofId] === undefined) this.buffers[subproofId] = [];
-        if(this.buffers[subproofId][airId] === undefined) this.buffers[subproofId][airId] = [];
+
+        if(this.subproofsCtx[subproofId].airs[airId] === undefined) this.subproofsCtx[subproofId].airs[airId] = [];
 
         // TODO check if this is the best way to compute the reserved buffer size
         // TODO reserve buffer type depending on the baseField
         // TODO in the mear future extension will be provided by pilout, now it's harcoded for testing
-        const extension = 1;
-        const sizeOneRowBytes = (nPolsBaseField + nPolsExtension * extension) * this.F.n8;
+        const sizeOneRowBytes = (nPolsBaseField + nPolsExtension * this.proofCtx.blowupFactor) * this.proofCtx.F.n8;
 
-        const idx = this.buffers[subproofId][airId].length
-        this.buffers[subproofId][airId].push({
+        const idx = this.subproofsCtx[subproofId].airs[airId].length;
+        this.subproofsCtx[subproofId].airs[airId].push({
             idx,
             numRows: numRows,
             buffer: new Uint8Array(sizeOneRowBytes * numRows, { maxByteLength: sizeOneRowBytes * numRows + 1}),
             offset: sizeOneRowBytes,
         });
-        return { result: true, data: this.buffers[subproofId][airId][idx] };
+        return { result: true, data: this.subproofsCtx[subproofId].airs[airId][idx] };
     }
 
     // Reallocate the buffer for the given subproofId and airId with the given numRows.
     reallocateBuffer(subproofId, airId, idx, numRows) {
-        if (this.pilout.pilout.subproofs[subproofId] === undefined ||
-            this.pilout.pilout.subproofs[subproofId][airId])
-            return { result: false, data: undefined };
+        const air = this.pilout.getAirBySubproofIdAirId(subproofId, airId);
 
-        const buffer = this.buffers[subproofId][airId][idx];
+        if(air === undefined) return { result: false, data: undefined };
+
+        const buffer = this.subproofsCtx[subproofId].airs[airId][idx];
         const factor = buffer.numRows / numRows;
         //TODO change this to a more efficient way...resize??? it's not working, why?
         buffer.buffer = buffer.buffer.slice(0, buffer.buffer.byteLength / factor);
@@ -289,14 +263,14 @@ class ProofManager {
 
     // Free the buffer for the given subproofId and airId.
     freeBuffer(subproofId, airId) {
-        if (this.pilout.pilout.subproofs[subproofId] === undefined ||
-            this.pilout.pilout.subproofs[subproofId][airId])
-            return;
+        const air = this.pilout.getAirBySubproofIdAirId(subproofId, airId);
 
-        if(this.buffers[subproofId] === undefined ||
-           this.buffers[subproofId][airId] === undefined) return;
+        if(air === undefined) return;
 
-        delete this.buffers[subproofId][airId];
+        if(this.subproofsCtx[subproofId] === undefined ||
+           this.subproofsCtx[subproofId].airs[airId] === undefined) return;
+
+        delete this.subproofsCtx[subproofId].airs[airId];
         return;
     }
 }
