@@ -1,17 +1,19 @@
+const {
+    WITNESS_ROUND_NOTHING_DONE,
+    WITNESS_ROUND_FULLY_DONE,
+    WITNESS_ROUND_NOTHING_TO_DO,
+    WITNESS_ROUND_PARTIAL_DONE,
+} = require("./witness_calculator_component.js");
 const log = require('../logger.js');
 
-const WITNESS_ROUND_NOTHING_TO_DO = 1;
-const WITNESS_ROUND_NOTHING_DONE = 2;
-const WITNESS_ROUND_PARTIAL_DONE = 3;
-const WITNESS_ROUND_FULLY_DONE = 4;
-
-// Abstract base class for all WitnessCalculator components
-class WitnessCalculatorComponent {
-    constructor(name, proofmanagerAPI) {
-        this.name = name;
+// WitnessCalculator class acting as the composite
+class WitnessCalculatorManager {
+    constructor(proofmanagerAPI) {
+        this.name = "WCManager";
         this.proofmanagerAPI = proofmanagerAPI;
 
         this.initialized = false;
+        this.witnesscalculators = [];
     }
 
     initialize() {
@@ -19,88 +21,26 @@ class WitnessCalculatorComponent {
 
         this.initialized = true;
     }
-    
+
     checkInitialized() {
-        if(!this.initialized) {
+        if (!this.initialized) {
             log.info(`[${this.name}]`, "Not initialized.");
             throw new Error(`[${this.name}] Not initialized.`);
         }
     }
 
-    witnessComputationStage1(subproofId, airId) {
-        return WITNESS_ROUND_NOTHING_TO_DO;
-    }
-
-    witnessComputation(stageId, subproofId, airId) {
-        return WITNESS_ROUND_NOTHING_TO_DO;
-    }
-
-    witnessComputationStageQ(subproofId, airId) {
-        return WITNESS_ROUND_NOTHING_TO_DO;
-    }
-}
-
-class WitnessCalculatorLibComponent extends WitnessCalculatorComponent {
-    constructor(name, proofmanagerAPI) {
-        super(name, proofmanagerAPI);
-
-        this.currentStep = [];
-        
-        this.observers = [];
-    }
-    
-    subscribe(trigger, handlers) {
-        this.observers.push({trigger: trigger, handlers: handlers});
-    }
-
-    witnessComputation(stageId, subproofId, airId) {
+    registerWitnessCalculator(witnesscalculator) {
         this.checkInitialized();
 
-        if(this.currentStep[subproofId] === undefined) this.currentStep[subproofId] = [];
-        if(this.currentStep[subproofId][airId] === undefined) this.currentStep[subproofId][airId] = 0;
-
-        const step = this.currentStep[subproofId][airId];
-
-        const toExecute = this.observers[step];
-        if(toExecute === undefined) {
-            log.info(`[${this.name}]`, `--> Nothing to do at stage ${stageId}.`);
-            return WITNESS_ROUND_NOTHING_TO_DO;
-        }
-
-        //this.canHandle(toExecute, stageId, subproofId, airId);
-        toExecute.handlers.forEach(handler => handler(stageId, subproofId, airId));
-
-        this.currentStep[subproofId][airId]++
-
-        return WITNESS_ROUND_FULLY_DONE;
-    }
-}
-
-// WitnessCalculator class acting as the composite
-class WitnessCalculatorComposite extends WitnessCalculatorComponent {
-    constructor(proofmanagerAPI) {
-        super("WitnessCalculatorComposite", proofmanagerAPI);
-        this.witnesscalculators = [];
-    }
-
-    registerWitnessCalculator(witnesscalculator) {
         const index = this.witnesscalculators.length;
         this.witnesscalculators.push(witnesscalculator);
 
         return index;
     }
 
-    unregisterWitnessCalculator(index) {
-        if (index !== -1) {
-            this.witnesscalculators.splice(index, 1);
-        }
-    }
-
-    getWitnessCalculators() {
-        return this.witnesscalculators;
-    }
-
     witnessComputation(stageId, subproofId, airId) {
+        this.checkInitialized();
+
         const numWitnessCalculators = this.witnesscalculators.length;
         let witnesscalculatorStatus = Array(numWitnessCalculators).fill(WITNESS_ROUND_NOTHING_DONE);
         let nPendingToFinish = numWitnessCalculators;
@@ -153,12 +93,4 @@ class WitnessCalculatorComposite extends WitnessCalculatorComponent {
     }
 }
 
-module.exports = {
-    WitnessCalculatorComponent,
-    WitnessCalculatorLibComponent,
-    WitnessCalculatorComposite,
-    WITNESS_ROUND_NOTHING_TO_DO,
-    WITNESS_ROUND_NOTHING_DONE,
-    WITNESS_ROUND_PARTIAL_DONE,
-    WITNESS_ROUND_FULLY_DONE,
-};
+module.exports = WitnessCalculatorManager;

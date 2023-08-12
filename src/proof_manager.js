@@ -2,7 +2,7 @@ const log = require("../logger.js");
 const { fileExists } = require("./utils.js");
 const path = require("path");
 
-const { WitnessCalculatorComposite } = require("./witness_calculator.js");
+const WitnessCalculatorManager = require("./witness_calculator_manager.js");
 const WitnessCalculatorFactory = require("./witness_calculator_factory.js");
 const ProverFactory = require("./prover_factory.js");
 const CheckerFactory = require("./checker_factory.js");
@@ -183,13 +183,14 @@ class ProofManager {
         }
 
         const proofmanagerAPI = new ProofManagerAPI(this);
-        this.witnessCalculators = new WitnessCalculatorComposite(proofmanagerAPI);
+        this.wcManager = new WitnessCalculatorManager(proofmanagerAPI);
+        this.wcManager.initialize();
 
         for(const witnessCalculator of provingSchema.witnessCalculators) {
             const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(witnessCalculator.witnessCalculatorLib, proofmanagerAPI);
             newWitnessCalculator.initialize(witnessCalculator.settings);
 
-            this.witnessCalculators.registerWitnessCalculator(newWitnessCalculator);
+            this.wcManager.registerWitnessCalculator(newWitnessCalculator);
         }
 
         this.prover = await ProverFactory.createProver(provingSchema.prover.proverLib, proofmanagerAPI);
@@ -212,19 +213,21 @@ class ProofManager {
         //for(let i = 0; i < this.pilout.numStages; i++) {
         for(let stageId = 1; stageId <= 4; stageId++) {
             log.info("[ProofManager]", `==> STAGE ${stageId}`);
+            
             for(let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
                 const subproof = this.pilout.getSubproofById(subproofId);
 
                 log.info("[ProofManager]", `--> Subproof '${subproof.name}' witness computation stage ${stageId}`);
 
                 for(let airId = 0; airId < subproof.airs.length; airId++) {
-                    this.witnessCalculators.witnessComputation(stageId, subproofId, airId);
+                    this.wcManager.witnessComputation(stageId, subproofId, airId);
                 }
 
                 log.info("[ProofManager]", `<-- Subproof '${subproof.name}' witness computation stage ${stageId}`);
             }
 
             this.prover.commitStage(stageId, proof);
+            
             log.info("[ProofManager]", `<== STAGE ${stageId} finished`);
         }
 
@@ -241,7 +244,7 @@ class ProofManager {
 
     finalizeProve(provingSchema, options) {
         // TODO Finalize pilout
-        if (this.witnessCalculators) delete this.witnessCalculators;
+        if (this.wcManager) delete this.wcManager;
         // TODO Finalize prover
         // TODO Finalize setup
     }

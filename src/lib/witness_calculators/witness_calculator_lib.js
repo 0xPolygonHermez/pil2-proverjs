@@ -1,6 +1,4 @@
-const {
-    WitnessCalculatorLibComponent,
-} = require("../../witness_calculator.js");
+const WitnessCalculatorLibComponent = require("../../witness_calculator_lib_component.js");
 const log = require("../../../logger.js");
 
 class WitnessCalculatorLib extends WitnessCalculatorLibComponent {
@@ -22,4 +20,4 @@ class WitnessCalculatorLib extends WitnessCalculatorLibComponent {
     }
 }
 
-module.exports = WitnessCalculatorLibComponent;
+module.exports = WitnessCalculatorLib;

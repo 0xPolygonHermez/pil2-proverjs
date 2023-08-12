@@ -2,7 +2,7 @@ const {
     WitnessCalculatorComponent,
     WITNESS_ROUND_NOTHING_DONE,
     WITNESS_ROUND_FULLY_DONE,
-} = require("../../src/witness_calculator.js");
+} = require("../../src/witness_calculator_component.js");
 const log = require("../../logger.js");
 
 class WitnessCalculatorFibonacci extends WitnessCalculatorComponent {
