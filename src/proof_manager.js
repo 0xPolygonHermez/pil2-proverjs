@@ -4,7 +4,7 @@ const ProverFactory = require("./prover_factory.js");
 const CheckerFactory = require("./checker_factory.js");
 const ProofManagerAPI = require("./proof_manager_api.js");
 const { PilOut } = require("./pilout.js");
-const createProofContexts = require("./global_ctx.js");
+const proofContextsFromPilout = require("./global_ctx.js");
 
 const log = require("../logger.js");
 const { fileExists } = require("./utils.js");
@@ -147,7 +147,7 @@ class ProofManager {
     async initializeProve(provingSchema, options) {
         this.pilout = new PilOut(provingSchema.pilout.piloutFilename, provingSchema.pilout.piloutProto, options);
 
-        const { proofCtx, subproofsCtx } = createProofContexts(this.pilout);
+        const { proofCtx, subproofsCtx } = proofContextFromPilout(this.pilout);
         this.proofCtx = proofCtx;
         this.subproofsCtx = subproofsCtx;
 
