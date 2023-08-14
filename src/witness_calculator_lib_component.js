@@ -18,7 +18,7 @@ class WitnessCalculatorLibComponent extends WitnessCalculatorComponent {
         this.observers.push({ trigger: trigger, handlers: handlers });
     }
 
-    witnessComputation(stageId, subproofId, airId) {
+    witnessComputation(stageId, subproofId, airId, proofCtx, subproofCtx) {
         this.checkInitialized();
 
         if (this.currentStep[subproofId] === undefined) this.currentStep[subproofId] = [];

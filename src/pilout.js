@@ -55,7 +55,7 @@ class PilOut {
     }
 
     get numStages() {
-        return this.pilout.numChallenges.length;
+        return this.pilout.numChallenges?.length ?? 1;
     }
 
     getSubproofById(subproofId) {
@@ -72,10 +72,9 @@ class PilOut {
     }
 
     getNumChallenges(stageId) {
-        if(this.pilout.numChallenges === undefined) return [];
+        if(this.pilout.numChallenges === undefined) return 0;
 
-        // TODO convert stageId to zero-based index?
-        return this.pilout.numChallenges[stageId];
+        return this.pilout.numChallenges[stageId - 1];
     }
 
     //TODO access to pilout numPublicValues ?
@@ -112,6 +111,30 @@ class PilOut {
         return this.pilout.symbols.filter(
             (symbol) => symbol.airId === airId && symbol.subproofId === subproofId
         );
+    }
+
+    getSymbolsByStage(subproofId, airId, stageId, symbolType) {
+        if (!this.pilout.symbols) return [];
+    
+        const symbols = this.pilout.symbols.filter(symbol =>
+            symbol.subproofId === subproofId &&
+            symbol.airId === airId &&
+            symbol.stage === stageId &&
+            (symbolType === undefined || symbol.type === symbolType)
+        );
+    
+        return symbols.sort((a, b) => a.id - b.id);
+    }
+    
+
+    getWitnessSymbolsByStage(subproofId, airId, stageId) {
+        return this.getSymbolsByStage(subproofId, airId, stageId, SYMBOL_TYPES.WITNESS_COL);
+    }
+
+    getSymbolByName(name) {
+        if(this.pilout.symbols === undefined) return undefined;
+
+        return this.pilout.symbols.find(symbol => symbol.name === name);
     }
 
     getHintById(hintId) {

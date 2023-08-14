@@ -12,18 +12,18 @@ class ProofManagerAPI {
     }
 
     // Allocate a new buffer for the given subproof and air with the given numRows.
-    allocateNewBuffer(subproofId, airId, numRows, nPolsBaseField, nPolsExtension) {
-        return this.proofManager.allocateNewBuffer(subproofId, airId, numRows, nPolsBaseField, nPolsExtension);
+    addAirInstance(subproofId, airId, numRows, nPolsBaseField, nPolsExtension) {
+        return this.proofManager.addAirInstance(subproofId, airId, numRows, nPolsBaseField, nPolsExtension);
     }
 
     // Reallocate the buffer for the given subproof and air with the given numRows.
-    reallocateBuffer(subproofId, airId, idx, numRows) {
-        return this.proofManager.reallocateBuffer(subproofId, airId, idx, numRows);
+    resizeAirInstance(subproofId, airId, idx, numRows) {
+        return this.proofManager.resizeAirInstance(subproofId, airId, idx, numRows);
     }
 
     // Free the buffer for the given subproof and air.
-    freeBuffer(subproofId, airId) {
-        return this.proofManager.freeBuffer(subproofId, airId);
+    removeAirInstance(subproofId, airId) {
+        return this.proofManager.resizeAirInstance(subproofId, airId);
     }
 }
 

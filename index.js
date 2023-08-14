@@ -12,9 +12,9 @@ async function run(settings) {
 proveSettings = {
     settings: {
         name: "zkEvmProof-" + Date.now(),
-        pilout: { piloutFilename: "./test/fibonacci/fibonacci.pilout", piloutProto: "../pilcom/src/pilout.proto" },
+        pilout: { piloutFilename: "./test/fibonacci_vadcop/fibonacci_vadcop.pilout", piloutProto: "../pilcom/src/pilout.proto" },
         witnessCalculators: [
-            { witnessCalculatorLib: "./test/fibonacci/witness_calculator_fibonacci.js", settings: {} },
+            { witnessCalculatorLib: "./test/fibonacci_vadcop/executor_fibonacci_vadcop.js", settings: {} },
             { witnessCalculatorLib: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {} },
         ],
         prover: { proverLib: "./src/lib/provers/proverFri.js", settings: {} },

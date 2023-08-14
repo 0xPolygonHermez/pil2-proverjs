@@ -1,4 +1,4 @@
-class GlobalCtxStruct {
+class ProofCtxStruct {
     /**
      * Creates a new GlobalCtxStruct instance.
      * @constructor
@@ -14,29 +14,72 @@ class GlobalCtxStruct {
         this.F = {};
         this.F.n8 = 32;
 
-        // TODO change it when available, mocked!!!!!
-        this.blowupFactor = 3; //pilout.blowupFactor;
+        this.blowupFactor = pilout.blowupFactor;
         this.challenges = [];
+        if (pilout.numChallenges !== undefined) {
+            for (let i = 0; i < pilout.numChallenges.length; i++) {
+                if (pilout.numChallenges[i] === undefined) continue;
+
+                this.challenges.push(
+                    new Array(pilout.numChallenges[i]).fill(null)
+                );
+            }
+        }
         // this.publicTables = []; ???? Can we add it here?
     }
 }
 
 class SubproofCtxStruct {
-    constructor(subproof) {
-        this.name = subproof.name;
+    constructor(pilout, subproofId) {
+        const subproof = pilout.subproofs[subproofId];
 
-        this.airs = [];
+        this.subproofId = subproofId;
+        this.name = subproof.name;
+        this.airsCtx = [];
+        for (let i = 0; i < subproof.airs.length; i++) {
+            let airCtx = {
+                airId: i,
+                defaultNumRows: subproof.airs[i].numRows,
+                // FIXME change it when available, mocked!!!!!
+                nPolsBaseField: 2,
+                nPolsExtension: 1,
+                instances: [],
+            }
+            if (subproof.subproofvalues !== undefined &&
+                subproof.subproofvalues[i] !== undefined) {
+                airCtx.subproofValue = null;
+            }
+
+            this.airsCtx.push(airCtx);
+        }
+    }
+
+    addAirInstance(airId, numRows, buffer, offset) {
+        const airInstance = new AirCtxStruct(this, airId, numRows, buffer, offset);
+        this.airsCtx[airId].instances.push(airInstance);
+        return airInstance;
     }
 }
 
-function proofContextsFromPilout(pilout) {
-    const proofCtx = new GlobalCtxStruct(pilout.pilout);
+class AirCtxStruct {
+    constructor(subproofCtx, airId, numRows, buffer, offset) {
+        this.airId = airId;
+        this.instanceId = subproofCtx.airsCtx[airId].instances.length;
+        this.numRows = numRows;
+        this.buffer = buffer ?? [];
+        this.offset = offset ?? 0;
+    }
+}
+
+function proofContextFromPilout(piloutObj) {
+    const pilout = piloutObj.pilout;
+    const proofCtx = new ProofCtxStruct(pilout);
     const subproofsCtx = [];
-    pilout.pilout.subproofs.forEach((subproof, index) => {
-        subproofsCtx[index] = new SubproofCtxStruct(subproof);
-    });
+    for(let i = 0; i < pilout.subproofs.length; i++) {
+        subproofsCtx[i] = new SubproofCtxStruct(pilout, i);
+    }
 
     return { proofCtx, subproofsCtx };
 }
 
-module.exports = proofContextsFromPilout;
+module.exports = proofContextFromPilout;

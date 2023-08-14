@@ -27,11 +27,11 @@ class WitnessCalculatorComponent {
         }
     }
 
-    witnessComputationStage1(subproofId, airId) {
+    witnessComputationStage1(subproofId, airId, proofCtx, subproofCtx) {
         return WITNESS_ROUND_NOTHING_TO_DO;
     }
 
-    witnessComputation(stageId, subproofId, airId) {
+    witnessComputation(stageId, subproofId, airId, proofCtx, subproofCtx) {
         return WITNESS_ROUND_NOTHING_TO_DO;
     }
 

@@ -38,7 +38,7 @@ class WitnessCalculatorManager {
         return index;
     }
 
-    witnessComputation(stageId, subproofId, airId) {
+    witnessComputation(stageId, subproofId, airId, proofCtx, subproofCtx) {
         this.checkInitialized();
 
         const numWitnessCalculators = this.witnesscalculators.length;
@@ -57,8 +57,10 @@ class WitnessCalculatorManager {
             }
 
             const status = stageId === 1
-                ? this.witnesscalculators[i].witnessComputationStage1(subproofId, airId)
-                : this.witnesscalculators[i].witnessComputation(stageId, subproofId, airId);
+                ? this.witnesscalculators[i].witnessComputationStage1(subproofId, airId,
+                    proofCtx, subproofCtx)
+                : this.witnesscalculators[i].witnessComputation(stageId, subproofId, airId,
+                    proofCtx, subproofCtx);
 
             if(witnesscalculatorStatus[i] !== WITNESS_ROUND_NOTHING_TO_DO &&
                witnesscalculatorStatus[i] !== WITNESS_ROUND_NOTHING_DONE &&

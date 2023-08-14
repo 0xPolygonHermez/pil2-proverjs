@@ -5,7 +5,7 @@ const {
 const WitnessCalculatorLibComponent = require("../../src/witness_calculator_lib_component.js");
 const log = require("../../logger.js");
 
-class WitnessCalculatorFibonacci extends WitnessCalculatorLibComponent {
+class ExecutorFibonacci extends WitnessCalculatorLibComponent {
     constructor(proofmanagerAPI) {
         super("WCFibonacci", proofmanagerAPI);
     }
@@ -14,10 +14,11 @@ class WitnessCalculatorFibonacci extends WitnessCalculatorLibComponent {
         super.initialize();
     }
 
-    witnessComputationStage1(subproofId, airId) {
+    witnessComputationStage1(subproofId, airId, proofCtx, subproofCtx) {
         this.checkInitialized();
 
-        const air = this.proofmanagerAPI.getPilout().getAirBySubproofIdAirId(subproofId, airId);
+        const pilout = this.proofmanagerAPI.getPilout();
+        const air = pilout.getAirBySubproofIdAirId(subproofId, airId);
 
         log.info(`[${this.name}]`, `--> Air '${air.name}' Computing witness for stage 1.`);
 
@@ -28,19 +29,23 @@ class WitnessCalculatorFibonacci extends WitnessCalculatorLibComponent {
         // When finished, try to reduce the buffer size at the half of the witness size
         // If it's possible, try to reduce again the buffer size at the half of the witness size until it's not possible.
 
-        //log.info(`[${this.name}]`, `Requesting new buffer allocation for air '${air.name}' with N=${air.numRows} rows.`);
-        const { result, data } = this.proofmanagerAPI.allocateNewBuffer(subproofId, airId, air.numRows, 2, 0);
+        const { result, airInstance } = this.proofmanagerAPI.addAirInstance(subproofCtx, airId, air.numRows);
+
         if(result === false) {
             log.error(`[${this.name}]`, `New buffer allocation for air '${air.name}' with N=${air.numRows} rows failed.`);
             throw new Error(`[${this.name}]`, `New buffer allocation for air '${air.name}' with N=${air.numRows} rows failed.`);
             return WITNESS_ROUND_NOTHING_DONE; //Unreachable, but needed to avoid eslint error
-        }
-        
+        }        
+
         // NOTE As an example I use the reallocation of the buffer for the subproof 0 and air 0 
         //log.info("[ProofManager]", `Reallocating the buffer for the subproof ${subproofId} and air ${i} with ${air.numRows*2} rows.`);
-        this.proofmanagerAPI.reallocateBuffer(subproofId, airId, data.idx, air.numRows/2);
+        this.proofmanagerAPI.resizeAirInstance(subproofCtx, airId, airInstance.instanceId, air.numRows/2);
 
-        // TODO fill the buffer with the stage1 data
+        // Fill the witnesses data buffers
+        const witnessCols = pilout.getWitnessSymbolsByStage(subproofId, airId, 1);
+        const Fibonacci_l1 = pilout.getSymbolByName("Fibonacci.l1");
+        const Fibonacci_l2 = pilout.getSymbolByName("Fibonacci.l2");
+
 
         log.info(`[${this.name}]`, `<-- Air '${air.name}' witness for stage 1 computed.`);
 
@@ -48,4 +53,4 @@ class WitnessCalculatorFibonacci extends WitnessCalculatorLibComponent {
     }
 }
 
-module.exports = WitnessCalculatorFibonacci;
+module.exports = ExecutorFibonacci;

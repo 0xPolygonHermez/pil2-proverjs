@@ -4,7 +4,7 @@ const ProverFactory = require("./prover_factory.js");
 const CheckerFactory = require("./checker_factory.js");
 const ProofManagerAPI = require("./proof_manager_api.js");
 const { PilOut } = require("./pilout.js");
-const proofContextsFromPilout = require("./global_ctx.js");
+const proofContextFromPilout = require("./global_ctx.js");
 
 const log = require("../logger.js");
 const { fileExists } = require("./utils.js");
@@ -179,15 +179,14 @@ class ProofManager {
     }
 
     generateProof(provingSchema, options) {
-        log.info("[ProofManager]", `--> Initiating the generation of the proof '${provingSchema.name}'.`
-        );
+        log.info("[ProofManager]", `--> Initiating the generation of the proof '${provingSchema.name}'.`);
 
         const proof = {};
 
-        // TODO uncomment this when the compiler is working
-        //for(let i = 0; i < this.pilout.numStages; i++) {
-        for(let stageId = 1; stageId <= 4; stageId++) {
+        for(let stageId = 1; stageId <= this.pilout.numStages; stageId++) {
             log.info("[ProofManager]", `==> STAGE ${stageId}`);
+
+            this.computeChallenges(stageId);
             
             for(let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
                 const subproof = this.pilout.getSubproofById(subproofId);
@@ -195,7 +194,8 @@ class ProofManager {
                 log.info("[ProofManager]", `--> Subproof '${subproof.name}' witness computation stage ${stageId}`);
 
                 for(let airId = 0; airId < subproof.airs.length; airId++) {
-                    this.wcManager.witnessComputation(stageId, subproofId, airId);
+                    this.wcManager.witnessComputation(stageId, subproofId, airId,
+                        this.proofCtx, this.subproofsCtx[subproofId]);
                 }
 
                 log.info("[ProofManager]", `<-- Subproof '${subproof.name}' witness computation stage ${stageId}`);
@@ -224,54 +224,56 @@ class ProofManager {
         // TODO Finalize setup
     }
 
-    // Allocate a new buffer for the given subproofId and airId with the given numRows.
-    allocateNewBuffer(subproofId, airId, numRows, nPolsBaseField, nPolsExtension) {
-        if (this.pilout.pilout.subproofs[subproofId] === undefined ||
-            this.pilout.pilout.subproofs[subproofId][airId])
-            return { result: false, data: undefined };
+    computeChallenges(stageId) {
+        if(this.pilout.getNumChallenges(stageId) === 0) return;
 
-        if(this.subproofsCtx[subproofId].airs[airId] === undefined) this.subproofsCtx[subproofId].airs[airId] = [];
+        // TODO compute challenges...
+        log.info("[ProofManager]", `--> Computing challenges for stage ${stageId}`);
+    }
+
+    // Allocate a new buffer for the given subproofId and airId with the given numRows.
+    addAirInstance(subproofCtx, airId, numRows) {
+        const airCtx = subproofCtx.airsCtx[airId];
+
+        numRows = numRows ?? airCtx.defaultNumRows;
+        
+        if (airCtx === undefined) return { result: false, data: undefined };
 
         // TODO check if this is the best way to compute the reserved buffer size
         // TODO reserve buffer type depending on the baseField
-        // TODO in the mear future extension will be provided by pilout, now it's harcoded for testing
-        const sizeOneRowBytes = (nPolsBaseField + nPolsExtension * this.proofCtx.blowupFactor) * this.proofCtx.F.n8;
+        const sizeOneRowBytes = (airCtx.nPolsBaseField + airCtx.nPolsExtension * this.proofCtx.blowupFactor) * this.proofCtx.F.n8;
 
-        const idx = this.subproofsCtx[subproofId].airs[airId].length;
-        this.subproofsCtx[subproofId].airs[airId].push({
-            idx,
-            numRows: numRows,
-            buffer: new Uint8Array(sizeOneRowBytes * numRows, { maxByteLength: sizeOneRowBytes * numRows + 1}),
-            offset: sizeOneRowBytes,
-        });
-        return { result: true, data: this.subproofsCtx[subproofId].airs[airId][idx] };
+        const buffer = new Uint8Array(sizeOneRowBytes * numRows, { maxByteLength: sizeOneRowBytes * numRows});
+        const offset = sizeOneRowBytes;
+        const airInstanceCtx = subproofCtx.addAirInstance(airId, numRows, buffer, offset);
+
+        return { result: true, airInstanceCtx};
     }
 
     // Reallocate the buffer for the given subproofId and airId with the given numRows.
-    reallocateBuffer(subproofId, airId, idx, numRows) {
-        const air = this.pilout.getAirBySubproofIdAirId(subproofId, airId);
+    resizeAirInstance(subproofCtx, airId, instanceId, numRows) {
+        const airInstance = subproofCtx.airsCtx[airId].instances[instanceId];
 
-        if(air === undefined) return { result: false, data: undefined };
+        if(airInstance === undefined) return { result: false, data: undefined };
 
-        const buffer = this.subproofsCtx[subproofId].airs[airId][idx];
-        const factor = buffer.numRows / numRows;
+        const factor = airInstance.numRows / numRows;
+
         //TODO change this to a more efficient way...resize??? it's not working, why?
-        buffer.buffer = buffer.buffer.slice(0, buffer.buffer.byteLength / factor);
+        airInstance.buffer = airInstance.buffer.slice(0, airInstance.buffer.byteLength / factor);
         //buffer.buffer.resize(buffer.buffer.byteLength / factor);
-        return { result: true, data: buffer };
+        return { result: true, airInstance };
     }
 
     // Free the buffer for the given subproofId and airId.
-    freeBuffer(subproofId, airId) {
-        const air = this.pilout.getAirBySubproofIdAirId(subproofId, airId);
+    removeAirInstance(subproofCtx, airId, instanceId) {
+        if(subproofCtx.airs[airId] === undefined) return false;
 
-        if(air === undefined) return;
+        const airInstance = subproofCtx.airsCtx[airId].instances[instanceId];
+        if(airInstance === undefined) return false;
 
-        if(this.subproofsCtx[subproofId] === undefined ||
-           this.subproofsCtx[subproofId].airs[airId] === undefined) return;
+        subproofCtx.airsCtx[airId].instances.splice(instanceId, 1);
 
-        delete this.subproofsCtx[subproofId].airs[airId];
-        return;
+        return true;
     }
 }
 
