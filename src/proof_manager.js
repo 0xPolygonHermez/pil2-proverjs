@@ -4,7 +4,7 @@ const ProverFactory = require("./prover_factory.js");
 const CheckerFactory = require("./checker_factory.js");
 const ProofManagerAPI = require("./proof_manager_api.js");
 const { PilOut } = require("./pilout.js");
-const proofContextFromPilout = require("./global_ctx.js");
+const proofContextFromPilout = require("./proof_ctx.js");
 
 const log = require("../logger.js");
 const { fileExists } = require("./utils.js");
@@ -235,7 +235,7 @@ class ProofManager {
     addAirInstance(subproofCtx, airId, numRows) {
         const airCtx = subproofCtx.airsCtx[airId];
 
-        numRows = numRows ?? airCtx.defaultNumRows;
+        numRows = numRows ?? airCtx.numRows;
         
         if (airCtx === undefined) return { result: false, data: undefined };
 
