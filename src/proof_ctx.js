@@ -1,3 +1,5 @@
+const log = require("../logger.js");
+
 class ProofCtxStruct {
     /**
      * Creates a new GlobalCtxStruct instance.
@@ -27,6 +29,16 @@ class ProofCtxStruct {
         }
         // this.publicTables = []; ???? Should be added here?
     }
+
+    areChallengesDefined(stageId) {
+        if (stageId > this.challenges.length) return false;
+
+        for(let i = 0; i < this.challenges[stageId].length; i++) {
+            if (this.challenges[stageId][i] === null) return false;
+        }
+
+        return true;
+    }
 }
 
 class SubproofCtxStruct {
@@ -38,6 +50,10 @@ class SubproofCtxStruct {
      * @param {AirInstanceCtxStruct[]} airCtx - An array of air contexts.
      */
     constructor(pilout, subproofId) {
+        if(pilout.subproofs[subproofId] === undefined) {
+            log.error(`Subproof ${subproofId} not found in pilout`);
+            throw new Error(`Subproof ${subproofId} not found in pilout`);
+        }
         const subproof = pilout.subproofs[subproofId];
 
         this.subproofId = subproofId;
@@ -66,8 +82,8 @@ class AirCtxStruct {
     constructor(airId, numRows, hasSubproofValue) {
         this.airId = airId;
         this.numRows = numRows;
+        this.hasSubproofValue = hasSubproofValue;
         this.instances = [];
-        this.subproofValue = null;
 
         // FIXME change it when available, mocked!!!!!
         this.nPolsBaseField = 2;
@@ -92,7 +108,7 @@ class AirCtxStruct {
     addPolCtx(owner, polName, polMapPos) {
         if (this.polCtx[owner] === undefined) this.polCtx[owner] = { pols: [] };
 
-        this.polCtx.pols.push(new LibCtxStruct(polName, polMapPos));
+        this.polCtx.pols.push(new PolCtxStruct(polName, polMapPos));
     }
 }
 
@@ -108,9 +124,8 @@ class AirInstanceCtxStruct {
         this.instanceId = airCtx.instances.length;
         this.numRows = numRows;
         this.buffer = buffer ?? [];
-        // this.polMap = {};//
-        // this.libCtx...
         this.offset = offset ?? 0;
+        if(airCtx.hasSubproofValue)  this.subproofValue = null;
     }
 }
 
@@ -125,7 +140,7 @@ class PolMapStruct {
     }
 }
 
-class LibCtxStruct {
+class PolCtxStruct {
     constructor(name, polMapPos) {
         this.name = name;
         this.polMapPos = polMapPos;
