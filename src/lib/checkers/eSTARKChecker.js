@@ -7,17 +7,8 @@ class CheckerA extends CheckerComponent {
         this.initialized = false;
     }
 
-    checkInitialized() {
-        if(!this.initialized) {
-            log.error(`[${this.name}]`, "Not initialized.");
-            throw new Error(`[Fflonk Checker] ${this.name}: not initialized.`);
-        }
-    }
-
     initialize() {
-        log.info(`[${this.name}]`, "Initializing.");
-
-        this.initialized = true;
+        super.initialize();
     }
 
     check(proof) {

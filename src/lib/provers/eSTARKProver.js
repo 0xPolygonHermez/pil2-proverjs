@@ -4,20 +4,10 @@ const log = require('../../../logger.js');
 class ProverFri extends ProverComponent {
     constructor(proofmanagerAPI) {
         super("FRI Prover", proofmanagerAPI);
-        this.initialized = false;
     }
 
-    checkInitialized() {
-        if(!this.initialized) {
-            log.error(`[${this.name}]`, "Not initialized.");
-            throw new Error(`[${this.name}] Not initialized.`);
-        }
-    }
-
-    initialize() {
-        log.info(`[${this.name}]`, "Initializing.");
-
-        this.initialized = true;
+    setup() {
+        super.initialize();
     }
 
     commitStage(stageId, proof) {
