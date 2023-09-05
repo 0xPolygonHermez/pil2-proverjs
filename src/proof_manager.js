@@ -194,8 +194,11 @@ class ProofManager {
                 log.info("[ProofManager]", `--> Subproof '${subproof.name}' witness computation stage ${stageId}`);
 
                 for(let airId = 0; airId < subproof.airs.length; airId++) {
-                    this.wcManager.witnessComputation(stageId, subproofId, airId,
-                        this.proofCtx, this.subproofsCtx[subproofId]);
+                    const air = this.pilout.getAirBySubproofIdAirId(subproofId, airId);
+
+                    log.info(`[ProofManager]`, ` -> Air '${air.name}' Computing witness for stage 1.`);
+                    this.wcManager.witnessComputation(stageId, subproofId, airId, this.proofCtx, this.subproofsCtx[subproofId]);
+                    log.info(`[ProofManager]`, ` <- Air '${air.name}' Computing witness for stage 1.`);
                 }
 
                 log.info("[ProofManager]", `<-- Subproof '${subproof.name}' witness computation stage ${stageId}`);
@@ -206,11 +209,7 @@ class ProofManager {
             log.info("[ProofManager]", `<== STAGE ${stageId} finished`);
         }
 
-        this.prover.computeQ(proof);
-
-        this.prover.computeOpenings(proof);
-
-        this.prover.finalizeProof(proof);
+        this.prover.prove(proof);
 
         log.info("[ProofManager]", `<-- Proof '${provingSchema.name}' successfully generated.`);
 
@@ -235,17 +234,10 @@ class ProofManager {
     addAirInstance(subproofCtx, airId, numRows) {
         const airCtx = subproofCtx.airsCtx[airId];
 
-        numRows = numRows ?? airCtx.numRows;
-        
         if (airCtx === undefined) return { result: false, data: undefined };
 
-        // TODO check if this is the best way to compute the reserved buffer size
-        // TODO reserve buffer type depending on the baseField
-        const sizeOneRowBytes = (airCtx.nPolsBaseField + airCtx.nPolsExtension * this.proofCtx.blowupFactor) * this.proofCtx.F.n8;
-
-        const buffer = new Uint8Array(sizeOneRowBytes * numRows, { maxByteLength: sizeOneRowBytes * numRows});
-        const offset = sizeOneRowBytes;
-        const airInstanceCtx = subproofCtx.addAirInstance(airId, numRows, buffer, offset);
+        numRows = numRows ?? airCtx.numRows;
+        const airInstanceCtx = subproofCtx.addAirInstance(airId, numRows);
 
         return { result: true, airInstanceCtx};
     }

@@ -12,8 +12,8 @@ class ProofManagerAPI {
     }
 
     // Allocate a new buffer for the given subproof and air with the given numRows.
-    addAirInstance(subproofId, airId, numRows, nPolsBaseField, nPolsExtension) {
-        return this.proofManager.addAirInstance(subproofId, airId, numRows, nPolsBaseField, nPolsExtension);
+    addAirInstance(subproofId, airId, numRows) {
+        return this.proofManager.addAirInstance(subproofId, airId, numRows);
     }
 
     // Reallocate the buffer for the given subproof and air with the given numRows.

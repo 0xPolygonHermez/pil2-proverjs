@@ -20,8 +20,6 @@ class ExecutorFibonacci extends WitnessCalculatorLibComponent {
         const pilout = this.proofmanagerAPI.getPilout();
         const air = pilout.getAirBySubproofIdAirId(subproofId, airId);
 
-        log.info(`[${this.name}]`, `--> Air '${air.name}' Computing witness for stage 1.`);
-
         // Strategy to fill ...
         // Try to fill the witness with the Fibonacci sequence using numRows of the air
         // If the numRows is enough to fill the witness, then return WITNESS_ROUND_FULLY_DONE
@@ -45,10 +43,7 @@ class ExecutorFibonacci extends WitnessCalculatorLibComponent {
         const witnessCols = pilout.getWitnessSymbolsByStage(subproofId, airId, 1);
         const Fibonacci_l1 = pilout.getSymbolByName("Fibonacci.l1");
         const Fibonacci_l2 = pilout.getSymbolByName("Fibonacci.l2");
-
-
-        log.info(`[${this.name}]`, `<-- Air '${air.name}' witness for stage 1 computed.`);
-
+        
         return WITNESS_ROUND_FULLY_DONE;
     }
 }

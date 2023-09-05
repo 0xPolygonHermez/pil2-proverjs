@@ -17,8 +17,8 @@ proveSettings = {
             { witnessCalculatorLib: "./test/fibonacci_vadcop/executor_fibonacci_vadcop.js", settings: {} },
             { witnessCalculatorLib: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {} },
         ],
-        prover: { proverLib: "./src/lib/provers/proverFri.js", settings: {} },
-        checker: { checkerLib: "./src/lib/checkers/checkerFri.js", settings: {} },
+        prover: { proverLib: "./src/lib/provers/eSTARKProver.js", settings: {} },
+        checker: { checkerLib: "./src/lib/checkers/eSTARKChecker.js", settings: {} },
         setup: "setup",
     },
     options: {

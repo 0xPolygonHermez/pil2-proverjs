@@ -24,6 +24,7 @@ class WitnessCalculatorLibComponent extends WitnessCalculatorComponent {
         if (this.currentStep[subproofId] === undefined) this.currentStep[subproofId] = [];
         if (this.currentStep[subproofId][airId] === undefined) this.currentStep[subproofId][airId] = 0;
 
+        // step is used to simulate challenges is ready to be used...
         const step = this.currentStep[subproofId][airId];
 
         const toExecute = this.observers[step];

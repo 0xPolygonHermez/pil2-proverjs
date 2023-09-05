@@ -49,28 +49,30 @@ class SubproofCtxStruct {
      * @param {string} name - The name property.
      * @param {AirInstanceCtxStruct[]} airCtx - An array of air contexts.
      */
-    constructor(pilout, subproofId) {
+    constructor(pilout, subproofId, proofCtx) {
         if(pilout.subproofs[subproofId] === undefined) {
             log.error(`Subproof ${subproofId} not found in pilout`);
             throw new Error(`Subproof ${subproofId} not found in pilout`);
         }
+        this.proofCtx = proofCtx;
+
         const subproof = pilout.subproofs[subproofId];
 
         this.subproofId = subproofId;
         this.name = subproof.name;
+
+        this.blowupFactor = pilout.blowupFactor;
         this.airsCtx = [];
         for (let i = 0; i < subproof.airs.length; i++) {
-            const hasSubproofValue =
-                subproof.subproofvalues !== undefined &&
-                subproof.subproofvalues[i] !== undefined;
-            const airCtx = new AirCtxStruct(i, subproof.airs[i].numRows, hasSubproofValue);
+            const hasSubproofValue = subproof.subproofvalues !== undefined && subproof.subproofvalues[i] !== undefined;
+            const airCtx = new AirCtxStruct(i, this, subproof.airs[i].numRows, hasSubproofValue);
             this.airsCtx.push(airCtx);
         }
 
     }
 
-    addAirInstance(airId, numRows, buffer, offset) {
-        return this.airsCtx[airId].addAirInstance(airId, numRows, buffer, offset);
+    addAirInstance(airId, numRows) {
+        return this.airsCtx[airId].addAirInstance(airId, numRows);
     }
 }
 
@@ -79,8 +81,9 @@ class AirCtxStruct {
      * @param {number} airId - The airId property.
      * @param {number} numRows - The number of rows in the AIR.
     */
-    constructor(airId, numRows, hasSubproofValue) {
+    constructor(airId, subproofCtx, numRows, hasSubproofValue) {
         this.airId = airId;
+        this.subproofCtx = subproofCtx;
         this.numRows = numRows;
         this.hasSubproofValue = hasSubproofValue;
         this.instances = [];
@@ -93,7 +96,15 @@ class AirCtxStruct {
         this.polCtx = {};
     }
 
-    addAirInstance(airId, numRows, buffer, offset) {
+    addAirInstance(airId, numRows) {
+        // TODO check if this is the best way to compute the reserved buffer size
+        // TODO reserve buffer type depending on the baseField
+        const F = this.subproofCtx.proofCtx.F;
+        const sizeOneRowBytes = (this.nPolsBaseField + this.nPolsExtension * this.subproofCtx.blowupFactor) * F.n8;
+
+        const buffer = new Uint8Array(sizeOneRowBytes * numRows, { maxByteLength: sizeOneRowBytes * numRows});
+        const offset = sizeOneRowBytes;
+
         const airInstance = new AirInstanceCtxStruct(this, airId, numRows, buffer, offset);
         this.instances.push(airInstance);
         return airInstance;
@@ -152,7 +163,7 @@ function proofContextFromPilout(piloutObj) {
     const proofCtx = new ProofCtxStruct(pilout);
     const subproofsCtx = [];
     for(let i = 0; i < pilout.subproofs.length; i++) {
-        subproofsCtx[i] = new SubproofCtxStruct(pilout, i);
+        subproofsCtx[i] = new SubproofCtxStruct(pilout, i, proofCtx);
     }
 
     return { proofCtx, subproofsCtx };

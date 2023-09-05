@@ -20,8 +20,6 @@ class ExecutorFibonacciVadcop extends WitnessCalculatorLibComponent {
         const pilout = this.proofmanagerAPI.getPilout();
         const air = pilout.getAirBySubproofIdAirId(subproofId, airId);
 
-        log.info(`[${this.name}]`, `--> Air '${air.name}' Computing witness for stage 1.`);
-
         const subproofMap = {
             'Module': this.computeModuleAir,
             'Fibonacci_16': this.computeFibonacciAir,
@@ -50,8 +48,6 @@ class ExecutorFibonacciVadcop extends WitnessCalculatorLibComponent {
 
         subproofMap[air.name].call(this, proofCtx, subproofCtx, airInstanceCtx, pilout, air);
         
-        log.info(`[${this.name}]`, `<-- Air '${air.name}' witness for stage 1 computed.`);
-
         return WITNESS_ROUND_FULLY_DONE;
     }
 

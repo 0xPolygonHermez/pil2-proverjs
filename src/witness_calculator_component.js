@@ -34,14 +34,6 @@ class WitnessCalculatorComponent {
     witnessComputation(stageId, subproofId, airId, proofCtx, subproofCtx) {
         return WITNESS_ROUND_NOTHING_TO_DO;
     }
-
-    witnessComputationStageQ(subproofId, airId) {
-        return WITNESS_ROUND_NOTHING_TO_DO;
-    }
-    
-    witnessComputationOpenings(subproofId, airId) {
-        return WITNESS_ROUND_NOTHING_TO_DO;
-    }
 }
 
 module.exports = {
