@@ -37,9 +37,14 @@ class WitnessCalculatorManager {
 
         return index;
     }
-
+    
     witnessComputation(stageId, subproofId, airId, proofCtx, subproofCtx) {
         this.checkInitialized();
+
+        if(stageId === 0) {
+            this.witnesscalculators[0].witnessComputationStage0(subproofId, airId, proofCtx, subproofCtx);
+            return;
+        }
 
         const numWitnessCalculators = this.witnesscalculators.length;
         let witnesscalculatorStatus = Array(numWitnessCalculators).fill(WITNESS_ROUND_NOTHING_DONE);

@@ -5,12 +5,15 @@ class CheckerComponent {
     constructor(name, proofmanagerAPI) {
         this.name = name;
         this.proofmanagerAPI = proofmanagerAPI;
+
         this.initialized = false;
+        this.settings = null;
     }
 
-    initialize() {
+    initialize(settings) {
         log.info(`[${this.name}]`, "Initializing.");
 
+        this.settings = settings;
         this.initialized = true;
     }
 

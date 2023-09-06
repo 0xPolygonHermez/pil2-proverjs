@@ -7,8 +7,8 @@ class CheckerA extends CheckerComponent {
         this.initialized = false;
     }
 
-    initialize() {
-        super.initialize();
+    initialize(settings) {
+        super.initialize(settings);
     }
 
     check(proof) {

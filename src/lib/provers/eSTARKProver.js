@@ -1,52 +1,65 @@
 const ProverComponent = require("../../prover.js");
 const log = require('../../../logger.js');
-
+const { generateStarkProof } = require("../../../node_modules/pil2-stark-js/test/stark/helpers.js");
+const path = require("path");
 class ProverFri extends ProverComponent {
     constructor(proofmanagerAPI) {
         super("FRI Prover", proofmanagerAPI);
     }
 
-    setup() {
-        super.initialize();
+    initialize(settings) {
+        super.initialize(settings);
     }
 
-    commitStage(stageId, proof) {
+    commitStage(stageId, subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
+        this.checkInitialized();
+    }
+
+    getProverCallbacks() {
         this.checkInitialized();
 
-        log.info(`[${this.name}]`, `Committing stage ${stageId}.`);
+        return [
+            this.generateStarkProof.bind(this)
+        ];
+
+        return [
+            this.computeQ.bind(this),
+            this.computeOpenings.bind(this),
+            this.FRICommitPhase.bind(this),
+            this.FRIQueryPhase.bind(this),
+        ];
     }
 
-    prove(proof) {
-        this.checkInitialized();
+    async generateStarkProof(subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
+        log.info(`[${this.name}]`, `Generating STARK proof for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
 
-        // TODO Compute Intermediate Polynomials
+        const airInstance = subproofCtx.airsCtx[airId].instances[airInstanceId];
 
-        this.computeQ(proof);
+        const pilout = this.proofmanagerAPI.getPilout();
+        const air = pilout.getAirBySubproofIdAirId(subproofId, airId);
+        //TODO: change
+        air.symbols = pilout.pilout.symbols;
+        log.debug = log.info;
 
-        this.computeOpenings(proof);
-
-        this.FRICommitPhase(proof);
-
-        this.FRIQueryPhase(proof);
-
-        proof.commitments = [];
-        proof.openings = [];
+        const starkStructFilename =  path.join(require.main.path, this.settings.starkStruct);
+        const starkStruct = require(starkStructFilename);
+        await generateStarkProof(airInstance.constPols, airInstance.cmPols, air, starkStruct, {logger: log, F: proofCtx.F, pil1: false, skip: true});
     }
 
-    computeQ(proof) {
-        log.info(`[${this.name}]`, "Computing Q.");
+    computeQ(subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
+        log.info(`[${this.name}]`, `Computing Q for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
     }
 
-    computeOpenings(proof) {
-        log.info(`[${this.name}]`, "Computing Openings.");
+    computeOpenings(subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
+        log.info(`[${this.name}]`, `Computing Openings for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
     }
 
-    FRICommitPhase(proof) {
-        log.info(`[${this.name}]`, "FRI Commit Phase.");
+    FRICommitPhase(subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
+        log.info(`[${this.name}]`, `Computing FRI Commit Phase for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
     }
 
-    FRIQueryPhase(proof) {        
-        log.info(`[${this.name}]`, "FRI Query Phase.");
+    FRIQueryPhase(subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
+        log.info(`[${this.name}]`, `Computing FRI Query Phase for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
     }
 }
 

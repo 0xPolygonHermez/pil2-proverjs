@@ -1,4 +1,6 @@
 const log = require("../logger.js");
+const F3g = require("../node_modules/pil2-stark-js/src/helpers/f3g");
+const { getRoots } = require("../node_modules/pilcom/src/utils.js");
 
 class ProofCtxStruct {
     /**
@@ -11,10 +13,13 @@ class ProofCtxStruct {
      */
     constructor(pilout) {
         this.name = pilout.name;
-        // TODO change it, mocked!!!!!
-        //this.baseField = baseField;
-        this.F = {};
-        this.F.n8 = 32;
+
+        if(pilout.baseField.equals(Buffer.from("FFFFFFFF00000001", "hex"))) {
+            this.F = new F3g("0xFFFFFFFF00000001");
+            this.F.w = getRoots(this.F);
+        } else {
+            throw new Error(`Finite field with this characteristic prime number ${"0x" + pilout.baseField.toString('hex').toUpperCase()} not supported`);
+        }
 
         this.blowupFactor = pilout.blowupFactor;
         this.challenges = [];
@@ -97,16 +102,15 @@ class AirCtxStruct {
     }
 
     addAirInstance(airId, numRows) {
-        // TODO check if this is the best way to compute the reserved buffer size
-        // TODO reserve buffer type depending on the baseField
-        const F = this.subproofCtx.proofCtx.F;
-        const sizeOneRowBytes = (this.nPolsBaseField + this.nPolsExtension * this.subproofCtx.blowupFactor) * F.n8;
+        // const F = this.subproofCtx.proofCtx.F;
+        // const sizeOneRowBytes = (this.nPolsBaseField + this.nPolsExtension * this.subproofCtx.blowupFactor) * F.n8;
 
-        const buffer = new Uint8Array(sizeOneRowBytes * numRows, { maxByteLength: sizeOneRowBytes * numRows});
-        const offset = sizeOneRowBytes;
+        // const buffer = new Uint8Array(sizeOneRowBytes * numRows, { maxByteLength: sizeOneRowBytes * numRows});
+        // const offset = sizeOneRowBytes;
 
-        const airInstance = new AirInstanceCtxStruct(this, airId, numRows, buffer, offset);
+        const airInstance = new AirInstanceCtxStruct(this, airId, numRows);
         this.instances.push(airInstance);
+
         return airInstance;
     }
 
@@ -130,12 +134,11 @@ class AirInstanceCtxStruct {
      * @param {*} buffer
      * @param {*} offset
      */
-    constructor(airCtx, airId, numRows, buffer, offset) {
+    constructor(airCtx, airId, numRows) {
         this.airId = airId;
         this.instanceId = airCtx.instances.length;
         this.numRows = numRows;
-        this.buffer = buffer ?? [];
-        this.offset = offset ?? 0;
+        this.proof = {};
         if(airCtx.hasSubproofValue)  this.subproofValue = null;
     }
 }

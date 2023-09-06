@@ -7,11 +7,13 @@ class ProverComponent {
         this.proofmanagerAPI = proofmanagerAPI;
 
         this.initialized = false;
+        this.settings = null;
     }
 
-    initialize() {
+    initialize(settings) {
         log.info(`[${this.name}]`, "Initializing.");
 
+        this.settings = settings;
         this.initialized = true;
     }
 
@@ -22,10 +24,14 @@ class ProverComponent {
         }
     }
 
-    commitStage(stageId) {
+    commitStage(stageId, subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
         throw new Error("Method 'commitStage' must be implemented in concrete classes.");
     }
 
+    getCallbacks() {
+        throw new Error("Method 'getCallbacks' must be implemented in concrete classes.");
+    }
+    
     prove() {
         throw new Error("Method 'computeQ' must be implemented in concrete classes.");
     }

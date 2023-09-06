@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "npmlog": "^7.0.1",
+    "pil2-stark-js": "github:0xPolygonHermez/pil2-stark-js",
     "protobufjs": "^7.2.4"
   }
 }

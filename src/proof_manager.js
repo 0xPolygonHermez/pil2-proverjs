@@ -10,6 +10,8 @@ const log = require("../logger.js");
 const { fileExists } = require("./utils.js");
 const path = require("path");
 
+const PolsArray = require("./polsarray.js");
+
 class ProofManager {
     constructor() {
         this.initialized = false;
@@ -66,7 +68,7 @@ class ProofManager {
         try {
             await this.initializeProve(provingSchema, options);
 
-            proof = this.generateProof(provingSchema, options);
+            proof = await this.generateProof(provingSchema, options);
         } catch (error) {
             log.error("[ProofManager]", `Error while generating proof: ${error}`);
             throw error;
@@ -109,35 +111,35 @@ class ProofManager {
             provingSchema.pilout.piloutProto = piloutProto;
 
             for(const witnessCalculator of provingSchema.witnessCalculators) {
-                const witnessCalculatorLib =  path.join(__dirname, "..", witnessCalculator.witnessCalculatorLib);
+                const witnessCalculatorLib =  path.join(__dirname, "..", witnessCalculator.filename);
 
                 if (!await fileExists(witnessCalculatorLib)) {
-                    log.error("[ProofManager]", `WitnessCalculator ${witnessCalculator.witnessCalculatorLib} does not exist.`);
+                    log.error("[ProofManager]", `WitnessCalculator ${witnessCalculator.filename} does not exist.`);
                     return false;
                 }
                 witnessCalculator.witnessCalculatorLib = witnessCalculatorLib;
             }                
     
-            const proverLib =  path.join(__dirname, "..", provingSchema.prover.proverLib);
+            const proverFilename =  path.join(__dirname, "..", provingSchema.prover.filename);
 
-            if (!await fileExists(proverLib)) {
-                log.error("[ProofManager]", `Prover ${provingSchema.prover.proverLib} does not exist.`);
+            if (!await fileExists(proverFilename)) {
+                log.error("[ProofManager]", `Prover ${proverFilename} does not exist.`);
                 return false;
             }
-            provingSchema.prover.proverLib = proverLib;
+            provingSchema.prover.filename = proverFilename;
 
             if (provingSchema.setup === undefined) {
                 log.error("[ProofManager]", "No setup provided in the provingSchema.");
                 return false;
             }
 
-            const checkerLib =  path.join(__dirname, "..", provingSchema.checker.checkerLib);
+            const checkerFilename =  path.join(__dirname, "..", provingSchema.checker.filename);
 
-            if (!await fileExists(checkerLib)) {
-                log.error("[ProofManager]", `Checker ${provingSchema.checker.checkerLib} does not exist.`);
+            if (!await fileExists(checkerFilename)) {
+                log.error("[ProofManager]", `Checker ${checkerFilename} does not exist.`);
                 return false;
             }
-            provingSchema.checker.checkerLib = checkerLib;
+            provingSchema.checker.filename = checkerFilename;
 
             return true;
         }
@@ -168,52 +170,84 @@ class ProofManager {
             this.wcManager.registerWitnessCalculator(newWitnessCalculator);
         }
 
-        this.prover = await ProverFactory.createProver(provingSchema.prover.proverLib, proofmanagerAPI);
+        this.prover = await ProverFactory.createProver(provingSchema.prover.filename, proofmanagerAPI);
         this.prover.initialize(provingSchema.prover.settings);
 
-        this.checker = await CheckerFactory.createChecker(provingSchema.checker.checkerLib, proofmanagerAPI);
+        this.checker = await CheckerFactory.createChecker(provingSchema.checker.filename, proofmanagerAPI);
         this.checker.initialize(provingSchema.checker.settings);
 
-        // TODO Initialize setup
+        // Compute trace columns values
+        // TODO: change this ?
+        for(let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
+            const subproof = this.pilout.getSubproofById(subproofId);
 
+            for(let airId = 0; airId < subproof.airs.length; airId++) {
+                this.wcManager.witnessComputation(0, subproofId, airId, this.proofCtx, this.subproofsCtx[subproofId]);
+            }
+        }
     }
 
-    generateProof(provingSchema, options) {
+    async generateProof(provingSchema, options) {
         log.info("[ProofManager]", `--> Initiating the generation of the proof '${provingSchema.name}'.`);
-
-        const proof = {};
 
         for(let stageId = 1; stageId <= this.pilout.numStages; stageId++) {
             log.info("[ProofManager]", `==> STAGE ${stageId}`);
 
             this.computeChallenges(stageId);
             
-            for(let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
-                const subproof = this.pilout.getSubproofById(subproofId);
+            this.computeWitnessStage(stageId);
 
-                log.info("[ProofManager]", `--> Subproof '${subproof.name}' witness computation stage ${stageId}`);
-
-                for(let airId = 0; airId < subproof.airs.length; airId++) {
-                    const air = this.pilout.getAirBySubproofIdAirId(subproofId, airId);
-
-                    log.info(`[ProofManager]`, ` -> Air '${air.name}' Computing witness for stage 1.`);
-                    this.wcManager.witnessComputation(stageId, subproofId, airId, this.proofCtx, this.subproofsCtx[subproofId]);
-                    log.info(`[ProofManager]`, ` <- Air '${air.name}' Computing witness for stage 1.`);
-                }
-
-                log.info("[ProofManager]", `<-- Subproof '${subproof.name}' witness computation stage ${stageId}`);
-            }
-
-            this.prover.commitStage(stageId, proof);
-            
             log.info("[ProofManager]", `<== STAGE ${stageId} finished`);
         }
 
-        this.prover.prove(proof);
+        const proverCallbacks = this.prover.getProverCallbacks();
+
+        for(let i= 0; i < proverCallbacks.length; i++) {
+            for(let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
+                const subproof = this.pilout.getSubproofById(subproofId);
+
+                for(let airId = 0; airId < subproof.airs.length; airId++) {
+                    const airCtx = this.subproofsCtx[subproofId].airsCtx[airId];
+
+                    for(let airInstanceId = 0; airInstanceId < airCtx.instances.length; airInstanceId++) {
+                        await proverCallbacks[i](subproofId, airId, airInstanceId, this.proofCtx, this.subproofsCtx[subproofId]);
+                    }
+                }
+            }
+        };
+
+//        this.prover.prove(proof);
 
         log.info("[ProofManager]", `<-- Proof '${provingSchema.name}' successfully generated.`);
 
-        return proof;
+        return {};
+    }
+
+    computeWitnessStage(stageId) {
+        for (let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
+            const subproof = this.pilout.getSubproofById(subproofId);
+
+            log.info("[ProofManager]", `--> Subproof '${subproof.name}' witness computation stage ${stageId}`);
+
+            for (let airId = 0; airId < subproof.airs.length; airId++) {
+                const air = this.pilout.getAirBySubproofIdAirId(subproofId, airId);
+
+                log.info(`[ProofManager]`, `··· Air '${air.name}' Computing witness for stage 1.`);
+                this.wcManager.witnessComputation(stageId, subproofId, airId, this.proofCtx, this.subproofsCtx[subproofId]);
+            }
+
+            for (let airId = 0; airId < subproof.airs.length; airId++) {
+                const air = this.pilout.getAirBySubproofIdAirId(subproofId, airId);
+                const airCtx = this.subproofsCtx[subproofId].airsCtx[airId];
+
+                for (let airInstanceId = 0; airInstanceId < airCtx.instances.length; airInstanceId++) {
+                    log.info(`[ProofManager]`, `··· Air '${air.name}' Commiting stage 1.`);
+                    this.prover.commitStage(stageId, subproofId, airId, airInstanceId, this.proofCtx, this.subproofsCtx[subproofId]);
+                }
+            }
+
+            log.info("[ProofManager]", `<-- Subproof '${subproof.name}' witness computation stage ${stageId}`);
+        }
     }
 
     finalizeProve(provingSchema, options) {
@@ -238,6 +272,11 @@ class ProofManager {
 
         numRows = numRows ?? airCtx.numRows;
         const airInstanceCtx = subproofCtx.addAirInstance(airId, numRows);
+
+        let air = this.pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
+        let airSymbols = this.pilout.pilout.symbols.filter(symbol => symbol.subproofId === subproofCtx.subproofId && symbol.airId === airId);
+        airInstanceCtx.constPols = this.getFixedPolsPil2(airSymbols, air, subproofCtx.proofCtx.F);
+        airInstanceCtx.cmPols = this.newCommitPolsArrayPil2(airSymbols, air, subproofCtx.proofCtx.F);
 
         return { result: true, airInstanceCtx};
     }
@@ -266,6 +305,71 @@ class ProofManager {
         subproofCtx.airsCtx[airId].instances.splice(instanceId, 1);
 
         return true;
+    }
+
+    getFixedPolsPil2(symbols, pil, F) {
+        const cnstPols = this.newConstantPolsArrayPil2(symbols, pil.numRows, F);
+            
+        for(let i = 0; i < cnstPols.$$defArray.length; ++i) {
+            const def = cnstPols.$$defArray[i];
+            const name = def.name;
+            const [nameSpace, namePol] = name.split(".");
+            const deg = def.polDeg;
+            const fixedCols = pil.fixedCols[i];
+            for(let j = 0; j < deg; ++j) {
+                if(def.idx) {
+                    cnstPols[nameSpace][namePol][def.idx][j] = buf2bint(fixedCols.values[j]);
+                } else {
+                    cnstPols[nameSpace][namePol][j] = buf2bint(fixedCols.values[j]);
+                }
+            }
+        }
+    
+        return cnstPols;
+    }
+    
+    newCommitPolsArrayPil2(symbols, air, F) {
+        const witnessSymbols = [];
+        for (let i = 0; i < symbols.length; ++i) {
+            if(symbols[i].type !== 3) continue;
+            witnessSymbols.push({name: symbols[i].name, idx: symbols[i].id, length: symbols[i].length});
+        }
+    
+        const pa = new PolsArray(witnessSymbols, air.numRows, "commit", F);
+        return pa;
+    }
+    
+    newConstantPolsArrayPil2(symbols, degree, F) {
+        const fixedSymbols = [];
+        for (let i = 0; i < symbols.length; ++i) {
+            if(symbols[i].type !== 1) continue;
+            fixedSymbols.push({name: symbols[i].name, idx: symbols[i].id, length: symbols[i].length});
+        }
+    
+        const pa = new PolsArray(fixedSymbols, degree, "constant", F);
+        return pa;
+    }
+    
+    buf2bint(buf) {
+        let value = 0n;
+        let offset = 0;
+        while ((buf.length - offset) >= 8) {
+            value = (value << 64n) + (offset ? buf.readBigUInt64BE(offset):buf.readBigInt64BE(offset));
+            offset += 8;
+        }
+        while ((buf.length - offset) >= 4) {
+            value = (value << 32n) + (offset ? BigInt(buf.readUInt32BE(offset)) :BigInt(buf.readInt32BE(offset)));
+            offset += 4;
+        }
+        while ((buf.length - offset) >= 2) {
+            value = (value << 16n) + (offset ? BigInt(buf.readUInt16BE(offset)) : BigInt(buf.readInt16BE(offset)));
+            offset += 2;
+        }
+        while ((buf.length - offset) >= 1) {
+            value += (value << 8n) + (offset ? BigInt(buf.readUInt8(offset)) : BigInt(buf.readInt8(offset)));
+            offset += 1;
+        }
+        return value;
     }
 }
 
