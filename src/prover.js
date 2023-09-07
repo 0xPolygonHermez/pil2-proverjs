@@ -24,7 +24,7 @@ class ProverComponent {
         }
     }
 
-    async setupProof() {
+    async setupProof(subproofCtx, airId, airInstanceId) {
         throw new Error("Method 'setupProof' must be implemented in concrete classes.");
     }
 

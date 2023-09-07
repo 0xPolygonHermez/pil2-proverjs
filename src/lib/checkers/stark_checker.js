@@ -1,6 +1,6 @@
 const CheckerComponent = require("../../checker.js");
 const log = require("../../../logger.js");
-const starkVerify = require("../../../node_modules/pil2-stark-js/src/stark/stark_verify.js");
+const starkVerify = require("pil2-stark-js/src/stark/stark_verify.js");
 
 class CheckerA extends CheckerComponent {
     constructor(proofmanagerAPI) {

@@ -6,11 +6,11 @@ const { initProverStark,
     computeFRIStark,
     genProofStark,
     setChallengesStark
-} = require("../../../node_modules/pil2-stark-js/src/stark/stark_gen_helpers");
-const { callCalculateExps } = require("../../../node_modules/pil2-stark-js/src/prover/prover_helpers.js");
-const { extendAndMerkelize } = require("../../../node_modules/pil2-stark-js/src/stark/stark_gen_helpers");
+} = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
+const { callCalculateExps } = require("pil2-stark-js/src/prover/prover_helpers.js");
+const { extendAndMerkelize } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 
-const starkSetup = require("../../../node_modules/pil2-stark-js/src/stark/stark_setup.js");
+const starkSetup = require("pil2-stark-js/src/stark/stark_setup.js");
 const path = require("path");
 
 class ProverFri extends ProverComponent {
@@ -32,10 +32,10 @@ class ProverFri extends ProverComponent {
         await extendAndMerkelize(stageId, airInstanceCtx, log);
     }
 
-    async setupProof(subproofCtx, subproofId, airId, airInstanceId) {
+    async setupProof(subproofCtx, airId, airInstanceId) {
         const airInstance = subproofCtx.airsCtx[airId].instances[airInstanceId];
         const pilout = this.proofmanagerAPI.getPilout();
-        const air = pilout.getAirBySubproofIdAirId(subproofId, airId);
+        const air = pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
         //TODO: change
         air.symbols = pilout.pilout.symbols;
         log.debug = log.info;

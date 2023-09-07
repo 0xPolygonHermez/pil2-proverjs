@@ -22,10 +22,10 @@ proveSettings = {
             { filename: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {},},
         ],
         prover: {
-            filename: "./src/lib/provers/eSTARKProver.js",
+            filename: "./src/lib/provers/stark_prover.js",
             settings: { starkStruct: "./test/simple/simple1/simple1_stark_struct.json", parallelExec: false, useThreads: false },
         },
-        checker: { filename: "./src/lib/checkers/eSTARKChecker.js", settings: {} },
+        checker: { filename: "./src/lib/checkers/stark_checker.js", settings: {} },
         setup: "setup",
     },
     options: {
@@ -42,8 +42,8 @@ proveSettings = {
 //             { file: "./test/fibonacci_vadcop/executor_fibonacci_vadcop.js", settings: {} },
 //             { file: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {} },
 //         ],
-//         prover: { filename: "./src/lib/provers/eSTARKProver.js", settings: {} },
-//         checker: { filename: "./src/lib/checkers/eSTARKChecker.js", settings: {} },
+//         prover: { filename: "./src/lib/provers/stark_prover.js", settings: {} },
+//         checker: { filename: "./src/lib/checkers/stark_checker.js", settings: {} },
 //         setup: "setup",
 //     },
 //     options: {

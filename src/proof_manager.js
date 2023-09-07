@@ -199,17 +199,7 @@ class ProofManager {
         log.info("[ProofManager]", `<== STAGE 0`);
 
         // [Prover] Proof setup
-        for(let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
-            const subproof = this.pilout.getSubproofById(subproofId);
-
-            for(let airId = 0; airId < subproof.airs.length; airId++) {
-                const airCtx = this.subproofsCtx[subproofId].airsCtx[airId];
-
-                for(let airInstanceId = 0; airInstanceId < airCtx.instances.length; airInstanceId++) {
-                    await this.prover.setupProof(this.subproofsCtx[subproofId], subproofId, airId, airInstanceId);
-                }
-            }
-        }
+        await this.proofSetup();
 
         // [Executor] Compute witness for all stages
         for(let stageId = 1; stageId <= this.pilout.numStages; stageId++) {
@@ -217,19 +207,7 @@ class ProofManager {
             
             await this.computeWitnessStage(stageId);
 
-            for (let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
-                const subproof = this.pilout.getSubproofById(subproofId);
-    
-                for (let airId = 0; airId < subproof.airs.length; airId++) {
-                    const air = this.pilout.getAirBySubproofIdAirId(subproofId, airId);
-                    const airCtx = this.subproofsCtx[subproofId].airsCtx[airId];
-
-                    for (let airInstanceId = 0; airInstanceId < airCtx.instances.length; airInstanceId++) {
-                        log.info(`[ProofManager]`, `··· Air '${air.name}' Commiting stage ${stageId}.`);
-                        await this.prover.commitStage(stageId, subproofId, airId, airInstanceId, this.proofCtx, this.subproofsCtx[subproofId]);
-                    }
-                }
-            }
+            await this.commitStage(stageId);
 
             // [Prover Manager] Compute challenges for all witness computations stages
             this.proofCtx.challenges[stageId - 1] = await this.computeChallenges(stageId);
@@ -241,17 +219,7 @@ class ProofManager {
         const proverCallbacks = this.prover.getProverCallbacks();
 
         for(let i= 0; i < proverCallbacks.length; i++) {
-            for(let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
-                const subproof = this.pilout.getSubproofById(subproofId);
-
-                for(let airId = 0; airId < subproof.airs.length; airId++) {
-                    const airCtx = this.subproofsCtx[subproofId].airsCtx[airId];
-
-                    for(let airInstanceId = 0; airInstanceId < airCtx.instances.length; airInstanceId++) {
-                        await proverCallbacks[i](subproofId, airId, airInstanceId, this.proofCtx, this.subproofsCtx[subproofId]);
-                    }
-                }
-            }
+            await this.callProverCallback(proverCallbacks[i]);
 
             // [Prover Manager] Compute challenges for all stages except the last one
             if(i !== proverCallbacks.length - 1) {
@@ -263,20 +231,63 @@ class ProofManager {
         log.info("[ProofManager]", `<-- Proof '${provingSchema.name}' successfully generated.`);
     }
 
-    async computeWitnessStage(stageId) {
-        for (let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
-            const subproof = this.pilout.getSubproofById(subproofId);
-
-            log.info("[ProofManager]", `--> Subproof '${subproof.name}' witness computation stage ${stageId}`);
-
-            for (let airId = 0; airId < subproof.airs.length; airId++) {
-                const air = this.pilout.getAirBySubproofIdAirId(subproofId, airId);
-
-                log.info(`[ProofManager]`, `··· Air '${air.name}' Computing witness for stage ${stageId}.`);
-                await this.wcManager.witnessComputation(stageId, subproofId, airId, this.proofCtx, this.subproofsCtx[subproofId]);
+    async proofSetup() {
+        for (const subproofCtx of this.subproofsCtx) {
+            for (const airCtx of subproofCtx.airsCtx) {
+                for (const airInstanceCtx of airCtx.instances) {
+                    await this.prover.setupProof(subproofCtx, airCtx.airId, airInstanceCtx.instanceId);
+                }
             }
+        }
+    }
 
-            log.info("[ProofManager]", `<-- Subproof '${subproof.name}' witness computation stage ${stageId}`);
+    async computeWitnessStage(stageId) {
+        for (const subproofCtx of this.subproofsCtx) {
+            log.info("[ProofManager]", `--> Subproof '${subproofCtx.name}' witness computation stage ${stageId}`);
+            for (const airCtx of subproofCtx.airsCtx) {
+                if(stageId === 0) {
+                    await this.wcManager.witnessComputation(
+                        stageId,
+                        subproofCtx.subproofId, airCtx.airId, null,
+                        this.proofCtx, subproofCtx
+                    );
+                } else {
+                    for (const airInstanceCtx of airCtx.instances) {
+                        log.info(`[ProofManager]`, `··· Air '${airCtx.name}' Computing witness for stage ${stageId}.`);
+                        await this.wcManager.witnessComputation(
+                            stageId,
+                            subproofCtx.subproofId, airCtx.airId, airInstanceCtx.instanceId,
+                            this.proofCtx, subproofCtx
+                        );
+                    }
+                }
+            }
+            log.info("[ProofManager]", `<-- Subproof '${subproofCtx.name}' witness computation stage ${stageId}`);
+        }
+    }
+
+    async commitStage(stageId) {
+        for (const subproofCtx of this.subproofsCtx) {
+            for (const airCtx of subproofCtx.airsCtx) {
+                for (const airInstanceCtx of airCtx.instances) {
+                    log.info(`[ProofManager]`, `··· Air '${airCtx.name}' Commiting stage ${stageId}.`);
+                    await this.prover.commitStage(
+                        stageId,
+                        subproofCtx.subproofId, airCtx.airId, airInstanceCtx.instanceId,
+                        this.proofCtx, subproofCtx
+                    );
+                }
+            }
+        }
+    }
+
+    async callProverCallback(proverCallback) {
+        for (const subproofCtx of this.subproofsCtx) {
+            for (const airCtx of subproofCtx.airsCtx) {
+                for (const airInstanceCtx of airCtx.instances) {
+                    await proverCallback(subproofCtx.subproofId, airCtx.airId, airInstanceCtx.instanceId, this.proofCtx, subproofCtx);
+                }
+            }
         }
     }
 

@@ -114,17 +114,6 @@ class AirCtxStruct {
         return airInstance;
     }
 
-    addPolMap(name, stage, dim, relPos, genPos, dom) {
-        const polMap = new PolMapStruct(name, stage, dim, relPos, genPos, dom);
-        this.polMap.push(polMap);
-        return polMap;
-    }
-
-    addPolCtx(owner, polName, polMapPos) {
-        if (this.polCtx[owner] === undefined) this.polCtx[owner] = { pols: [] };
-
-        this.polCtx.pols.push(new PolCtxStruct(polName, polMapPos));
-    }
 }
 
 class AirInstanceCtxStruct {

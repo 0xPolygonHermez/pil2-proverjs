@@ -15,10 +15,10 @@ async function runTest(prefix) {
                 { filename: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {},},
             ],
             prover: {
-                filename: "./src/lib/provers/eSTARKProver.js",
+                filename: "./src/lib/provers/stark_prover.js",
                 settings: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json` },
             },
-            checker: { filename: "./src/lib/checkers/eSTARKChecker.js", settings: {} },
+            checker: { filename: "./src/lib/checkers/stark_checker.js", settings: {} },
             setup: "setup",
         },
         options: {

@@ -16,10 +16,7 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
     async witnessComputationStage0(subproofId, airId, proofCtx, subproofCtx) {
         this.checkInitialized();
 
-        const { result, airInstanceCtx } = this.proofmanagerAPI.addAirInstance(
-            subproofCtx,
-            airId
-        );
+        const { result, airInstanceCtx } = this.proofmanagerAPI.addAirInstance(subproofCtx, airId);
 
         if (result === false) {
             log.error(
@@ -45,10 +42,10 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
         return WITNESS_ROUND_FULLY_DONE;
     }
 
-    async witnessComputationStage1(subproofId, airId, proofCtx, subproofCtx) {
+    async witnessComputationStage1(subproofId, airId, instanceId, proofCtx, subproofCtx) {
         this.checkInitialized();
 
-        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[0].ctx;
+        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[instanceId].ctx;
 
         log.info(`[${this.name}]`, "··· Compute Trace Column Polynomials");
 
@@ -63,8 +60,8 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
         return WITNESS_ROUND_FULLY_DONE;
     }
 
-    async witnessComputationStage(stageId, subproofId, airId, proofCtx, subproofCtx) {
-        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[0].ctx;
+    async witnessComputationStage(stageId, subproofId, airId, instanceId, proofCtx, subproofCtx) {
+        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[instanceId].ctx;
 
         setChallengesStark(stageId, airInstanceCtx, proofCtx.challenges[stageId], log);
 
