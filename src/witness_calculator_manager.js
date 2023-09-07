@@ -38,11 +38,11 @@ class WitnessCalculatorManager {
         return index;
     }
     
-    witnessComputation(stageId, subproofId, airId, proofCtx, subproofCtx) {
+    async witnessComputation(stageId, subproofId, airId, proofCtx, subproofCtx) {
         this.checkInitialized();
 
         if(stageId === 0) {
-            this.witnesscalculators[0].witnessComputationStage0(subproofId, airId, proofCtx, subproofCtx);
+            await this.witnesscalculators[0].witnessComputationStage0(subproofId, airId, proofCtx, subproofCtx);
             return;
         }
 
@@ -62,9 +62,9 @@ class WitnessCalculatorManager {
             }
 
             const status = stageId === 1
-                ? this.witnesscalculators[i].witnessComputationStage1(subproofId, airId,
+                ? await this.witnesscalculators[i].witnessComputationStage1(subproofId, airId,
                     proofCtx, subproofCtx)
-                : this.witnesscalculators[i].witnessComputation(stageId, subproofId, airId,
+                : await this.witnesscalculators[i].witnessComputation(stageId, subproofId, airId,
                     proofCtx, subproofCtx);
 
             if(witnesscalculatorStatus[i] !== WITNESS_ROUND_NOTHING_TO_DO &&

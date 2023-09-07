@@ -14,7 +14,7 @@ class ExecutorFibonacciVadcop extends WitnessCalculatorLibComponent {
         super.initialize();
     }
 
-    witnessComputationStage1(subproofId, airId, proofCtx, subproofCtx) {
+    async witnessComputationStage1(subproofId, airId, proofCtx, subproofCtx) {
         this.checkInitialized();
 
         const pilout = this.proofmanagerAPI.getPilout();

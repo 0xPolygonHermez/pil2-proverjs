@@ -18,18 +18,19 @@ proveSettings = {
         },
         witnessCalculators: [
             // First witness calculator is the main executor
-            { filename: "./test/simple/simple1/simple1_executor.js", type: "main", settings: {} },
+            { filename: "./test/simple/simple1/simple1_executor.js", type: "main", settings: {parallelExec: false, useThreads: false} },
             { filename: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {},},
         ],
         prover: {
             filename: "./src/lib/provers/eSTARKProver.js",
-            settings: { starkStruct: "./test/simple/simple1/simple1_stark_struct.json" },
+            settings: { starkStruct: "./test/simple/simple1/simple1_stark_struct.json", parallelExec: false, useThreads: false },
         },
         checker: { filename: "./src/lib/checkers/eSTARKChecker.js", settings: {} },
         setup: "setup",
     },
     options: {
         debug: true,
+        verify: true
     },
 };
 

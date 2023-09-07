@@ -12,11 +12,13 @@ class WitnessCalculatorComponent {
         this.proofmanagerAPI = proofmanagerAPI;
 
         this.initialized = false;
+        this.settings = null;
     }
 
-    initialize() {
+    initialize(settings) {
         log.info(`[${this.name}]`, "Initializing.");
 
+        this.settings = settings;
         this.initialized = true;
     }
 
@@ -27,11 +29,11 @@ class WitnessCalculatorComponent {
         }
     }
 
-    witnessComputationStage1(subproofId, airId, proofCtx, subproofCtx) {
+    async witnessComputationStage1(subproofId, airId, proofCtx, subproofCtx) {
         return WITNESS_ROUND_NOTHING_TO_DO;
     }
 
-    witnessComputation(stageId, subproofId, airId, proofCtx, subproofCtx) {
+    async witnessComputation(stageId, subproofId, airId, proofCtx, subproofCtx) {
         return WITNESS_ROUND_NOTHING_TO_DO;
     }
 }

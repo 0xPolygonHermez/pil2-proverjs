@@ -1,22 +1,34 @@
 const CheckerComponent = require("../../checker.js");
-const log = require('../../../logger.js');
+const log = require("../../../logger.js");
+const starkVerify = require("../../../node_modules/pil2-stark-js/src/stark/stark_verify.js");
 
 class CheckerA extends CheckerComponent {
     constructor(proofmanagerAPI) {
         super("FRI Checker", proofmanagerAPI);
-        this.initialized = false;
     }
 
-    initialize(settings) {
-        super.initialize(settings);
-    }
-
-    check(proof) {
+    async checkProof(proof, airId, airInstanceId, proofCtx, subproofCtx) {
         this.checkInitialized();
 
-        log.info(`[${this.name}]`, "Checking.");
-        return true;
+        log.info(`[${this.name}]`, "Checking...");
 
+        const airInstance = subproofCtx.airsCtx[airId].instances[airInstanceId];
+        const isValid = await starkVerify(
+            proof.proof,
+            proof.publics,
+            airInstance.setup.constRoot,
+            airInstance.setup.starkInfo,
+            { logger: log }
+        );
+
+        if (isValid == false) {
+            log.error(
+                `[${this.name}]`,
+                `STARK proof for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId} is invalid`
+            );
+        }
+
+        return isValid;
     }
 }
 

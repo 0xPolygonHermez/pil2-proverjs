@@ -5,12 +5,13 @@ const CheckerFactory = require("./checker_factory.js");
 const ProofManagerAPI = require("./proof_manager_api.js");
 const { PilOut } = require("./pilout.js");
 const proofContextFromPilout = require("./proof_ctx.js");
+const PolsArray = require("./polsarray.js");
+const { calculateChallengeStark } = require("../node_modules/pil2-stark-js/src/stark/stark_gen_helpers.js");
 
-const log = require("../logger.js");
 const { fileExists } = require("./utils.js");
 const path = require("path");
 
-const PolsArray = require("./polsarray.js");
+const log = require("../logger.js");
 
 class ProofManager {
     constructor() {
@@ -69,6 +70,18 @@ class ProofManager {
             await this.initializeProve(provingSchema, options);
 
             proof = await this.generateProof(provingSchema, options);
+
+            if(options.verify) {
+                const airInstance = this.subproofsCtx[0].airsCtx[0].instances[0];
+
+                const isValid = await this.checker.checkProof(airInstance.proof, 0, 0, this.proofCtx, this.subproofsCtx[0]);
+
+                if(isValid == false) {
+                    log.error(`[${this.name}]`, `STARK proof for subproof ${this.subproofsCtx[0].name} is invalid`);        
+                } else {
+                    log.info(`[${this.name}]`, `STARK proof for subproof ${this.subproofsCtx[0].name} is valid`);
+                }
+            }
         } catch (error) {
             log.error("[ProofManager]", `Error while generating proof: ${error}`);
             throw error;
@@ -174,32 +187,47 @@ class ProofManager {
         this.prover.initialize(provingSchema.prover.settings);
 
         this.checker = await CheckerFactory.createChecker(provingSchema.checker.filename, proofmanagerAPI);
-        this.checker.initialize(provingSchema.checker.settings);
-
-        // Compute trace columns values
-        // TODO: change this ?
-        for(let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
-            const subproof = this.pilout.getSubproofById(subproofId);
-
-            for(let airId = 0; airId < subproof.airs.length; airId++) {
-                this.wcManager.witnessComputation(0, subproofId, airId, this.proofCtx, this.subproofsCtx[subproofId]);
-            }
-        }
+        this.checker.initialize(provingSchema.checker.settings);        
     }
 
     async generateProof(provingSchema, options) {
         log.info("[ProofManager]", `--> Initiating the generation of the proof '${provingSchema.name}'.`);
 
+        // [Executor] Compute trace columns values
+        for(let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
+            const subproof = this.pilout.getSubproofById(subproofId);
+
+            for(let airId = 0; airId < subproof.airs.length; airId++) {
+                await this.wcManager.witnessComputation(0, subproofId, airId, this.proofCtx, this.subproofsCtx[subproofId]);
+            }
+        }
+
+        // [Prover] Proof setup
+        for(let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
+            const subproof = this.pilout.getSubproofById(subproofId);
+
+            for(let airId = 0; airId < subproof.airs.length; airId++) {
+                const airCtx = this.subproofsCtx[subproofId].airsCtx[airId];
+
+                for(let airInstanceId = 0; airInstanceId < airCtx.instances.length; airInstanceId++) {
+                    await this.prover.setupProof(this.subproofsCtx[subproofId], subproofId, airId, airInstanceId);
+                }
+            }
+        }
+
+        // [Executor] Compute witness for all stages
         for(let stageId = 1; stageId <= this.pilout.numStages; stageId++) {
             log.info("[ProofManager]", `==> STAGE ${stageId}`);
-
-            this.computeChallenges(stageId);
             
-            this.computeWitnessStage(stageId);
+            await this.computeWitnessStage(stageId);
+
+            // [Prover Manager] Compute challenges for all witness computations stages
+            this.proofCtx.challenges[stageId - 1] = await this.computeChallenges(stageId);
 
             log.info("[ProofManager]", `<== STAGE ${stageId} finished`);
         }
 
+        // [Prover] Call essential functions post-witness computation to produce a proof
         const proverCallbacks = this.prover.getProverCallbacks();
 
         for(let i= 0; i < proverCallbacks.length; i++) {
@@ -214,16 +242,18 @@ class ProofManager {
                     }
                 }
             }
+
+            // [Prover Manager] Compute challenges for all stages except the last one
+            if(i !== proverCallbacks.length - 1) {
+                const nStage = this.pilout.numStages + i;
+                this.proofCtx.challenges[nStage] = await this.computeChallenges(nStage + 1);
+            }
         };
 
-//        this.prover.prove(proof);
-
         log.info("[ProofManager]", `<-- Proof '${provingSchema.name}' successfully generated.`);
-
-        return {};
     }
 
-    computeWitnessStage(stageId) {
+    async computeWitnessStage(stageId) {
         for (let subproofId = 0; subproofId < this.pilout.numSubproofs; subproofId++) {
             const subproof = this.pilout.getSubproofById(subproofId);
 
@@ -233,7 +263,7 @@ class ProofManager {
                 const air = this.pilout.getAirBySubproofIdAirId(subproofId, airId);
 
                 log.info(`[ProofManager]`, `··· Air '${air.name}' Computing witness for stage 1.`);
-                this.wcManager.witnessComputation(stageId, subproofId, airId, this.proofCtx, this.subproofsCtx[subproofId]);
+                await this.wcManager.witnessComputation(stageId, subproofId, airId, this.proofCtx, this.subproofsCtx[subproofId]);
             }
 
             for (let airId = 0; airId < subproof.airs.length; airId++) {
@@ -257,11 +287,12 @@ class ProofManager {
         // TODO Finalize setup
     }
 
-    computeChallenges(stageId) {
-        if(this.pilout.getNumChallenges(stageId) === 0) return;
-
-        // TODO compute challenges...
+    async computeChallenges(stageId) {
         log.info("[ProofManager]", `--> Computing challenges for stage ${stageId}`);
+
+        const airInstance = this.subproofsCtx[0].airsCtx[0].instances[0];
+        
+        return await calculateChallengeStark(stageId, airInstance.ctx);
     }
 
     // Allocate a new buffer for the given subproofId and airId with the given numRows.
@@ -328,6 +359,7 @@ class ProofManager {
         return cnstPols;
     }
     
+    // TODO: export it to feature/pil2_polsArray
     newCommitPolsArrayPil2(symbols, air, F) {
         const witnessSymbols = [];
         for (let i = 0; i < symbols.length; ++i) {

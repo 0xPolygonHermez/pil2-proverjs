@@ -24,17 +24,17 @@ class ProverComponent {
         }
     }
 
+    async setupProof() {
+        throw new Error("Method 'setupProof' must be implemented in concrete classes.");
+    }
+
     commitStage(stageId, subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
         throw new Error("Method 'commitStage' must be implemented in concrete classes.");
     }
 
-    getCallbacks() {
-        throw new Error("Method 'getCallbacks' must be implemented in concrete classes.");
-    }
-    
-    prove() {
-        throw new Error("Method 'computeQ' must be implemented in concrete classes.");
-    }
+    getProverCallbacks() {
+        throw new Error("Method 'getProverCallbacks' must be implemented in concrete classes.");
+    }    
 }
 
 module.exports = ProverComponent;

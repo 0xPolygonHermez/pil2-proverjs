@@ -24,7 +24,7 @@ class CheckerComponent {
         }
     }
 
-    check() {
+    checkProof() {
         throw new Error("Method 'check' must be implemented in concrete classes.");
     }
 }
