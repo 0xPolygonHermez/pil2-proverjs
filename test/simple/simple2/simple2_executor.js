@@ -5,7 +5,6 @@ const {
 } = require("../../../src/witness_calculator_component.js");
 
 const { calculatePublics, callCalculateExps, setPol } = require("../../../node_modules/pil2-stark-js/src/prover/prover_helpers.js");
-const { extendAndMerkelize } = require("../../../node_modules/pil2-stark-js/src/stark/stark_gen_helpers");
 
 const log = require("../../../logger.js");
 
@@ -51,23 +50,15 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
 
         const airInstanceCtx = subproofCtx.airsCtx[airId].instances[0].ctx;
 
-        log.info(`[${this.name}]`, "> STAGE 1. Compute Trace Column Polynomials");
+        log.info(`[${this.name}]`, "··· Compute Trace Column Polynomials");
 
         calculatePublics(airInstanceCtx);
 
         if (airInstanceCtx.pilInfo.nLibStages === 0) {
-            log.info(`[${this.name}]`, "> Calculating intermediate polynomials");
+            log.info(`[${this.name}]`, "··· Calculating intermediate polynomials");
 
-            await callCalculateExps(
-                "stage1",
-                "n",
-                airInstanceCtx,
-                this.settings.parallelExec,
-                this.settings.useThreads
-            );
+            await callCalculateExps("stage1", "n", airInstanceCtx, this.settings.parallelExec, this.settings.useThreads);
         }
-
-        await extendAndMerkelize(1, airInstanceCtx);
 
         return WITNESS_ROUND_FULLY_DONE;
     }
@@ -99,8 +90,6 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
                 setPol(airInstanceCtx, outputIdx, outputs[j], "n");
             }
         }
-
-        await extendAndMerkelize(stageId, ctx, log);
     }
 }
 

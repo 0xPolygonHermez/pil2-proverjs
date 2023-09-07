@@ -8,6 +8,7 @@ const { initProverStark,
     setChallengesStark
 } = require("../../../node_modules/pil2-stark-js/src/stark/stark_gen_helpers");
 const { callCalculateExps } = require("../../../node_modules/pil2-stark-js/src/prover/prover_helpers.js");
+const { extendAndMerkelize } = require("../../../node_modules/pil2-stark-js/src/stark/stark_gen_helpers");
 
 const starkSetup = require("../../../node_modules/pil2-stark-js/src/stark/stark_setup.js");
 const path = require("path");
@@ -24,8 +25,11 @@ class ProverFri extends ProverComponent {
         this.starkStruct = require(starkStructFilename);
     }
 
-    commitStage(stageId, subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
+    async commitStage(stageId, subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
         this.checkInitialized();
+
+        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[airInstanceId].ctx;
+        await extendAndMerkelize(stageId, airInstanceCtx, log);
     }
 
     async setupProof(subproofCtx, subproofId, airId, airInstanceId) {
@@ -54,11 +58,7 @@ class ProverFri extends ProverComponent {
     getProverCallbacks() {
         this.checkInitialized();
 
-        return [
-            this.computeQ.bind(this),
-            this.computeOpenings.bind(this),
-            this.computeFRI.bind(this)
-        ];
+        return [this.computeQ.bind(this), this.computeOpenings.bind(this), this.computeFRI.bind(this) ];
     }
 
     async computeQ(subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
@@ -91,13 +91,8 @@ class ProverFri extends ProverComponent {
 
         const airInstanceCtx = subproofCtx.airsCtx[airId].instances[airInstanceId].ctx;
         let challenge = proofCtx.challenges[airInstanceCtx.pilInfo.nLibStages + 2];
-        const options = {
-            parallelExec: false,
-            useThreads: false,
-            logger: log
-        };
+        const options = { parallelExec: false, useThreads: false, logger: log };
 
-        // STAGE 6. Compute FRI
         await computeFRIStark(airInstanceCtx, challenge, options);
 
         subproofCtx.airsCtx[airId].instances[airInstanceId].proof = await genProofStark(airInstanceCtx, log);

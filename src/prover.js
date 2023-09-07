@@ -28,7 +28,7 @@ class ProverComponent {
         throw new Error("Method 'setupProof' must be implemented in concrete classes.");
     }
 
-    commitStage(stageId, subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
+    async commitStage(stageId, subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
         throw new Error("Method 'commitStage' must be implemented in concrete classes.");
     }
 
