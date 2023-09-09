@@ -70,7 +70,7 @@ class SubproofCtxStruct {
         this.airsCtx = [];
         for (let i = 0; i < subproof.airs.length; i++) {
             const hasSubproofValue = subproof.subproofvalues !== undefined && subproof.subproofvalues[i] !== undefined;
-            const airCtx = new AirCtxStruct(i, this, subproof.airs[i].numRows, hasSubproofValue);
+            const airCtx = new AirCtxStruct(i, this, subproof.airs[i], hasSubproofValue);
             this.airsCtx.push(airCtx);
         }
 
@@ -86,19 +86,17 @@ class AirCtxStruct {
      * @param {number} airId - The airId property.
      * @param {number} numRows - The number of rows in the AIR.
     */
-    constructor(airId, subproofCtx, numRows, hasSubproofValue) {
+    constructor(airId, subproofCtx, air, hasSubproofValue) {
         this.airId = airId;
+        this.name = air.name;
         this.subproofCtx = subproofCtx;
-        this.numRows = numRows;
+        this.numRows = air.numRows;
         this.hasSubproofValue = hasSubproofValue;
         this.instances = [];
 
         // FIXME change it when available, mocked!!!!!
         this.nPolsBaseField = 2;
         this.nPolsExtension = 1;
-
-        this.polMap = [];
-        this.polCtx = {};
     }
 
     addAirInstance(airId, numRows) {
@@ -129,24 +127,6 @@ class AirInstanceCtxStruct {
         this.numRows = numRows;
         this.proof = {};
         if(airCtx.hasSubproofValue)  this.subproofValue = null;
-    }
-}
-
-class PolMapStruct {
-    constructor(name, stage, dim, relPos, genPos, dom) {
-        this.name = name;
-        this.stage = stage;
-        this.dim = dim;
-        this.relPos = relPos;
-        this.genPos = genPos;
-        this.dom = dom;
-    }
-}
-
-class PolCtxStruct {
-    constructor(name, polMapPos) {
-        this.name = name;
-        this.polMapPos = polMapPos;
     }
 }
 

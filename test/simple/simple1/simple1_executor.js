@@ -3,11 +3,14 @@ const {
     WITNESS_ROUND_FULLY_DONE,
     WitnessCalculatorComponent
 } = require("../../../src/witness_calculator_component.js");
+
+const { calculatePublics, callCalculateExps, applyHints } = require("../../../node_modules/pil2-stark-js/src/prover/prover_helpers.js");
+const { computeQStark } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 const log = require("../../../logger.js");
 
 class ExecutorSimple1 extends WitnessCalculatorComponent {
     constructor(proofmanagerAPI) {
-        super("WCSimple1", proofmanagerAPI);
+        super("WCSimple2", proofmanagerAPI);
     }
 
     async witnessComputationStage0(subproofId, airId, proofCtx, subproofCtx) {
@@ -15,64 +18,50 @@ class ExecutorSimple1 extends WitnessCalculatorComponent {
 
         const { result, airInstanceCtx } = this.proofmanagerAPI.addAirInstance(subproofCtx, airId);
 
-        if(result === false) {
-            log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
-            throw new Error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
+        if (result === false) {
+            log.error(
+                `[${this.name}]`,
+                `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`
+            );
+            throw new Error(
+                `[${this.name}]`,
+                `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`
+            );
             return WITNESS_ROUND_NOTHING_DONE; //Unreachable, but needed to avoid eslint error
         }
-        //const pilout = this.proofmanagerAPI.getPilout();
-        // let air = pilout.getAirBySubproofIdAirId(subproofId, airId);
-
-        // const constPols = getFixedPolsPil2(pilout.pilout.symbols, air, proofCtx.F);
-        // const cmPols = newCommitPolsArrayPil2(pilout.pilout.symbols, air.symbols, air.numRows, proofCtx.F);
 
         const air = this.proofmanagerAPI.getPilout().getAirBySubproofIdAirId(subproofId, airId);
+
         for (let i = 0; i < air.numRows; i++) {
-            airInstanceCtx.cmPols.Simple1.a[i] = BigInt(i);
+            const v = BigInt(i);
+
+            airInstanceCtx.cmPols.Simple1.a[i] = v;
+            airInstanceCtx.cmPols.Simple1.b[i] = proofCtx.F.square(v);
         }
 
         return WITNESS_ROUND_FULLY_DONE;
     }
 
-    async witnessComputationStage1(subproofId, airId, proofCtx, subproofCtx) {
-        this.checkInitialized();
+    async witnessComputation(stageId, subproofId, airId, instanceId, proofCtx, subproofCtx) {
+        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[instanceId].ctx;
 
-        const pilout = this.proofmanagerAPI.getPilout();
-        const air = pilout.getAirBySubproofIdAirId(subproofId, airId);
-
-        const subproofMap = {
-            'Simple1': this.computeSimple1Air,
-        };
-
-        if(subproofMap[air.name] === undefined) {
-            log.error(`[${this.name}]`, `Air '${air.name}' not found.`);
-            throw new Error(`[${this.name}]`, `Air '${air.name}' not found.`);
+        if(stageId === 1) {
+            await calculatePublics(airInstanceCtx);
         }
-
-        // Strategy to create air instances
-        // In some cases, the witness size is not enough to fill the witness buffer
-        // In this case, a new air instance will be created with the defaukt numRows size provided by the air
-        // We will adjust the last air instance numRows size dividing it by 2 until witness data doesn't fit in the witness buffer
-        // To create a new Air instance: this.proofmanagerAPI.addAirInstance(subproofCtx, airId, numRows) 
-        // To resize an existing Air instance: this.proofmanagerAPI.addAirInstance(subproofCtx, airId, instanceId, newNumRows) 
-        // To remove an existing Air instance: this.proofmanagerAPI.removeAirInstance(subproofCtx, airId, instanceId) 
-
-        // const { result, airInstanceCtx } = this.proofmanagerAPI.addAirInstance(subproofCtx, airId, air.numRows);
-        // if(result === false) {
-        //     log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
-        //     throw new Error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
-        //     return WITNESS_ROUND_NOTHING_DONE; //Unreachable, but needed to avoid eslint error
-        // }        
-
-        // subproofMap[air.name].call(this, proofCtx, subproofCtx, airInstanceCtx, pilout, air);
         
+        const qStage = airInstanceCtx.pilInfo.numChallenges.length + 1;
+
+        const dom = stageId === airInstanceCtx.pilInfo.numChallenges.length + 1 ? "ext" : "n";
+
+        await callCalculateExps(`stage${stageId}`, dom, airInstanceCtx, this.settings.parallelExec, this.settings.useThreads);
+    
+        await applyHints(stageId, airInstanceCtx);
+
+        if(stageId === qStage) {
+            await computeQStark(airInstanceCtx, log);
+        }
+
         return WITNESS_ROUND_FULLY_DONE;
-    }
-
-
-    computeSimple1Air(proofCtx, subproofCtx, airInstanceCtx, pilout, air) {
-        // Fill the witnesses data buffers
-        const witnessCols = pilout.getWitnessSymbolsByStage(subproofCtx.subproofId, airInstanceCtx.airId, 1);
     }
 }
 

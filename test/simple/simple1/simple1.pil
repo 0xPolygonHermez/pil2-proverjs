@@ -1,5 +1,6 @@
 subproof Simple1(2**3) {
-    col witness a;
-    
-    a === a;
+
+    col witness a,b;
+
+    a*a === b; 
 }

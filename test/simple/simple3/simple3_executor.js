@@ -33,12 +33,19 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
         const air = this.proofmanagerAPI.getPilout().getAirBySubproofIdAirId(subproofId, airId);
 
         const N = air.numRows;
+        const F = proofCtx.F;
         for (let i = 0; i < N; i++) {
             const v = BigInt(i);
 
-            airInstanceCtx.cmPols.Simple2.a[i] = v;
-            airInstanceCtx.cmPols.Simple2.c[(i + 3) % N] = v + 1n;
-            airInstanceCtx.cmPols.Simple2.b[(i + N - 2) % N] = proofCtx.F.mul(v, v + 1n);
+            airInstanceCtx.cmPols.Simple3.a[0][0][i] = v;
+            airInstanceCtx.cmPols.Simple3.a[0][1][i] = v + 1n;
+            airInstanceCtx.cmPols.Simple3.a[0][2][i] = v + 2n;
+            airInstanceCtx.cmPols.Simple3.b[0][i] = F.mul(v, F.mul(v + 1n, v + 2n));
+
+            airInstanceCtx.cmPols.Simple3.a[1][0][i] = v;
+            airInstanceCtx.cmPols.Simple3.a[1][1][i] = v - 1n;
+            airInstanceCtx.cmPols.Simple3.a[1][2][i] = v - 2n;
+            airInstanceCtx.cmPols.Simple3.b[1][i] = F.mul(v, F.mul(v - 1n, v - 2n));
         }
 
         return WITNESS_ROUND_FULLY_DONE;

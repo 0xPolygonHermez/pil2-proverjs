@@ -3,10 +3,6 @@ class ProofManagerAPI {
         this.proofManager = proofManager;
     }
 
-    getName() {
-        return proofManager.getName();
-    }
-
     getPilout() {
         return this.proofManager.pilout;
     }

@@ -5,8 +5,8 @@ const CheckerFactory = require("./checker_factory.js");
 const ProofManagerAPI = require("./proof_manager_api.js");
 const { PilOut } = require("./pilout.js");
 const proofContextFromPilout = require("./proof_ctx.js");
-const PolsArray = require("./polsarray.js");
-const { calculateChallengeStark } = require("../node_modules/pil2-stark-js/src/stark/stark_gen_helpers.js");
+const { newCommitPolsArrayPil2 } = require("../node_modules/pilcom/src/polsarray.js");
+const { getFixedPolsPil2 } = require("../node_modules/pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
 
 const { fileExists } = require("./utils.js");
 const path = require("path");
@@ -14,62 +14,148 @@ const path = require("path");
 const log = require("../logger.js");
 
 class ProofManager {
-    constructor() {
+    constructor(name) {
         this.initialized = false;
+
+        this.name = name ?? "ProofManager";
     }
 
-    initialize(name, settings) {
+    async initialize(proofManagerConfig) {
         if (this.initialized) {
-            log.error("[ProofManager]", "Already initialized.");
+            log.error("`[${this.name}]`", "Already initialized.");
             throw new Error("ProofManager already initialized.");
         }
 
-        this.name = name;
-        this.settings = settings;
+        /*
+         * settings is a JSON object containing the following fields:
+         * - name: name of the proof
+         * - pilout: pilout of the proof
+         * - witnessCalculators: array of witnessCalculator types
+         * - prover: prover 
+         * - checker: prover type
+         * - setup: setup data
+         */
+        if (!await proofManagerConfigIsValid(proofManagerConfig)) {
+            log.error(`[${this.name}]`, "Invalid proofManagerConfig.");
+            throw new Error("Invalid proofManagerConfig.");
+        }
+        this.proofManagerConfig = proofManagerConfig;
 
-        log.info("[ProofManager]", `${name} initialized.`);
+        const proofmanagerAPI = new ProofManagerAPI(this);
+        this.wcManager = new WitnessCalculatorManager(proofmanagerAPI);
+        this.wcManager.initialize();
+
+        for(const witnessCalculator of proofManagerConfig.witnessCalculators) {
+            const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(witnessCalculator.witnessCalculatorLib, proofmanagerAPI);
+            newWitnessCalculator.initialize(witnessCalculator.settings);
+
+            this.wcManager.registerWitnessCalculator(newWitnessCalculator);
+        }
+
+        this.prover = await ProverFactory.createProver(proofManagerConfig.prover.filename, proofmanagerAPI);
+        this.prover.initialize(proofManagerConfig.prover.settings);
+
+        this.checker = await CheckerFactory.createChecker(proofManagerConfig.checker.filename, proofmanagerAPI);
+        this.checker.initialize(proofManagerConfig.checker.settings);        
+
         this.initialized = true;
+        log.info(`[${this.name}]`, `${this.name} initialized.`);
+
+        return;
+
+        async function proofManagerConfigIsValid(proofManagerConfig) {
+            const fields = ["pilout", "witnessCalculators", "prover", "setup"];
+            for (const field of fields) {
+                if (proofManagerConfig[field] === undefined) {
+                    log.error(`[${this.name}]`, `No ${field} provided in the proofManagerConfig.`);
+                    return false;
+                }
+            }
+
+            if (proofManagerConfig.name === undefined) {
+                proofManagerConfig.name = "proof-" + Date.now();
+                log.warn(`[${this.name}]`, `No name provided in the proofManagerConfig, assigning a default name ${proofManagerConfig.name}.`);
+            }
+
+            if (proofManagerConfig.witnessCalculators.length === 0) {
+                log.error(`[${this.name}]`, "No witnessCalculators provided in the proofManagerConfig.");
+                return false;
+            }
+    
+            if (!await validateFileNameCorrectness(proofManagerConfig)) {
+                log.error(`[${this.name}]`, "Invalid proofManagerConfig.");
+                return false;
+            }
+    
+            return true;
+        }
+
+        async function validateFileNameCorrectness(proofManagerConfig) {
+            const piloutFilename =  path.join(__dirname, "..", proofManagerConfig.pilout.piloutFilename);
+            if (!await fileExists(piloutFilename)) {
+                log.error(`[${this.name}]`, `Pilout ${piloutFilename} does not exist.`);
+                return false;
+            }
+            proofManagerConfig.pilout.piloutFilename = piloutFilename;
+
+            const piloutProto =  path.join(__dirname, "..", proofManagerConfig.pilout.piloutProto);
+            if (!await fileExists(piloutProto)) {
+                log.error(`[${this.name}]`, `Pilout proto ${piloutProto} does not exist.`);
+                return false;
+            }
+            proofManagerConfig.pilout.piloutProto = piloutProto;
+
+            for(const witnessCalculator of proofManagerConfig.witnessCalculators) {
+                const witnessCalculatorLib =  path.join(__dirname, "..", witnessCalculator.filename);
+
+                if (!await fileExists(witnessCalculatorLib)) {
+                    log.error(`[${this.name}]`, `WitnessCalculator ${witnessCalculator.filename} does not exist.`);
+                    return false;
+                }
+                witnessCalculator.witnessCalculatorLib = witnessCalculatorLib;
+            }                
+    
+            const proverFilename =  path.join(__dirname, "..", proofManagerConfig.prover.filename);
+
+            if (!await fileExists(proverFilename)) {
+                log.error(`[${this.name}]`, `Prover ${proverFilename} does not exist.`);
+                return false;
+            }
+            proofManagerConfig.prover.filename = proverFilename;
+
+            if (proofManagerConfig.setup === undefined) {
+                log.error(`[${this.name}]`, "No setup provided in the proofManagerConfig.");
+                return false;
+            }
+
+            const checkerFilename =  path.join(__dirname, "..", proofManagerConfig.checker.filename);
+
+            if (!await fileExists(checkerFilename)) {
+                log.error(`[${this.name}]`, `Checker ${checkerFilename} does not exist.`);
+                return false;
+            }
+            proofManagerConfig.checker.filename = checkerFilename;
+
+            return true;
+        }
     }
 
     checkInitialized() {
         if(!this.initialized) {
-            log.error("[ProofManager]", `Not initialized.`);
+            log.error(`[${this.name}]`, `Not initialized.`);
             throw new Error(`[ProofManager] Not initialized.`);
         }
     }
 
-    getName() {
+    async prove(options) {
         this.checkInitialized();
-        return this.name;
-    }
-
-    async prove(provingSchema, options) {
-        this.checkInitialized();
-
-        /*
-         * provingSchema is a JSON object containing the following fields:
-         * - name: name of the proof
-         * - pilout: pilout of the proof
-         * - witnessCalculators: array of witnessCalculator types
-         * - prover: prover type
-         * - setup: setup data
-         *
-         */
-        if (!await provingSchemaIsValid(provingSchema)) {
-            log.error("[ProofManager]", "Invalid provingSchema.");
-            throw new Error("Invalid provingSchema.");
-        }
-
-        if (!await validateFileNameCorrectness(provingSchema)) {
-            log.error("[ProofManager]", "Invalid provingSchema.");
-            throw new Error("Invalid provingSchema.");
-        }
 
         let proof;
-        try {
-            await this.initializeProve(provingSchema, options);
 
-            proof = await this.generateProof(provingSchema, options);
+        try {
+            await this.initializeProve(options);
+
+            proof = await this.generateProof(options);
 
             if(options.verify) {
                 const airInstance = this.subproofsCtx[0].airsCtx[0].instances[0];
@@ -83,136 +169,62 @@ class ProofManager {
                 }
             }
         } catch (error) {
-            log.error("[ProofManager]", `Error while generating proof: ${error}`);
+            log.error(`[${this.name}]`, `Error while generating proof: ${error}`);
             throw error;
         } finally {
-            this.finalizeProve(provingSchema, options);
+            this.finalizeProve(options);
         }
 
         return proof;
-
-        async function provingSchemaIsValid(provingSchema) {
-            if (provingSchema.name === undefined) {
-                provingSchema.name = "proof-" + Date.now();
-                log.warn("[ProofManager]", `No name provided in the provingSchema, assigning a default name ${provingSchema.name}.`);
-            }
-
-            const fields = ["pilout", "witnessCalculators", "prover", "setup"];
-            for (const field of fields) {
-                if (provingSchema[field] === undefined) {
-                    log.error("[ProofManager]", `No ${field} provided in the provingSchema.`);
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        async function validateFileNameCorrectness(provingSchema) {
-            const piloutFilename =  path.join(__dirname, "..", provingSchema.pilout.piloutFilename);
-            if (!await fileExists(piloutFilename)) {
-                log.error("[ProofManager]", `Pilout ${piloutFilename} does not exist.`);
-                return false;
-            }
-            provingSchema.pilout.piloutFilename = piloutFilename;
-
-            const piloutProto =  path.join(__dirname, "..", provingSchema.pilout.piloutProto);
-            if (!await fileExists(piloutProto)) {
-                log.error("[ProofManager]", `Pilout proto ${piloutProto} does not exist.`);
-                return false;
-            }
-            provingSchema.pilout.piloutProto = piloutProto;
-
-            for(const witnessCalculator of provingSchema.witnessCalculators) {
-                const witnessCalculatorLib =  path.join(__dirname, "..", witnessCalculator.filename);
-
-                if (!await fileExists(witnessCalculatorLib)) {
-                    log.error("[ProofManager]", `WitnessCalculator ${witnessCalculator.filename} does not exist.`);
-                    return false;
-                }
-                witnessCalculator.witnessCalculatorLib = witnessCalculatorLib;
-            }                
-    
-            const proverFilename =  path.join(__dirname, "..", provingSchema.prover.filename);
-
-            if (!await fileExists(proverFilename)) {
-                log.error("[ProofManager]", `Prover ${proverFilename} does not exist.`);
-                return false;
-            }
-            provingSchema.prover.filename = proverFilename;
-
-            if (provingSchema.setup === undefined) {
-                log.error("[ProofManager]", "No setup provided in the provingSchema.");
-                return false;
-            }
-
-            const checkerFilename =  path.join(__dirname, "..", provingSchema.checker.filename);
-
-            if (!await fileExists(checkerFilename)) {
-                log.error("[ProofManager]", `Checker ${checkerFilename} does not exist.`);
-                return false;
-            }
-            provingSchema.checker.filename = checkerFilename;
-
-            return true;
-        }
-
     }
 
-    async initializeProve(provingSchema, options) {
-        this.pilout = new PilOut(provingSchema.pilout.piloutFilename, provingSchema.pilout.piloutProto, options);
+    async initializeProve(options) {
+        this.pilout = new PilOut(this.proofManagerConfig.pilout.piloutFilename, this.proofManagerConfig.pilout.piloutProto, options);
 
+        // TODO change this, I did it to maintain compatibility with pil2-stark code
+        for( let i = 0; i < this.pilout.pilout.subproofs.length; i++) {
+            for( let j = 0; j < this.pilout.pilout.subproofs[i].airs.length; j++) {
+                this.pilout.pilout.subproofs[i].airs[j].symbols = this.pilout.pilout.symbols.filter(symbol => symbol.subproofId === i && symbol.airId === j);
+                this.pilout.pilout.subproofs[i].airs[j].numChallenges = this.pilout.pilout.numChallenges;
+            }
+        }
+        
+        // TODO change this
         const { proofCtx, subproofsCtx } = proofContextFromPilout(this.pilout);
         this.proofCtx = proofCtx;
         this.subproofsCtx = subproofsCtx;
-
-        // Initialize the witnessCalculators
-        if (provingSchema.witnessCalculators.length === 0) {
-            log.error("[ProofManager]", "No witnessCalculators provided in the provingSchema.");
-            throw new Error("No witnessCalculators provided in the provingSchema.");
-        }
-
-        const proofmanagerAPI = new ProofManagerAPI(this);
-        this.wcManager = new WitnessCalculatorManager(proofmanagerAPI);
-        this.wcManager.initialize();
-
-        for(const witnessCalculator of provingSchema.witnessCalculators) {
-            const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(witnessCalculator.witnessCalculatorLib, proofmanagerAPI);
-            newWitnessCalculator.initialize(witnessCalculator.settings);
-
-            this.wcManager.registerWitnessCalculator(newWitnessCalculator);
-        }
-
-        this.prover = await ProverFactory.createProver(provingSchema.prover.filename, proofmanagerAPI);
-        this.prover.initialize(provingSchema.prover.settings);
-
-        this.checker = await CheckerFactory.createChecker(provingSchema.checker.filename, proofmanagerAPI);
-        this.checker.initialize(provingSchema.checker.settings);        
     }
 
-    async generateProof(provingSchema, options) {
-        log.info("[ProofManager]", `--> Initiating the generation of the proof '${provingSchema.name}'.`);
+    async generateProof(options) {
+        log.info(`[${this.name}]`, `--> Initiating the generation of the proof '${this.proofManagerConfig.name}'.`);
 
         // [Executor] Compute trace columns values
-        log.info("[ProofManager]", `==> STAGE 0`);
+        log.info(`[${this.name}]`, `==> STAGE 0`);
         await this.computeWitnessStage(0);
-        log.info("[ProofManager]", `<== STAGE 0`);
+        log.info(`[${this.name}]`, `<== STAGE 0`);
 
         // [Prover] Proof setup
-        await this.proofSetup();
+        await this.setupProof();
 
         // [Executor] Compute witness for all stages
-        for(let stageId = 1; stageId <= this.pilout.numStages; stageId++) {
-            log.info("[ProofManager]", `==> STAGE ${stageId}`);
+        for(let stageId = 1; stageId <= this.pilout.numStages + 1; stageId++) {
+            log.info(`[${this.name}]`, `==> STAGE ${stageId}`);
             
+            if(stageId !== 1) {
+                this.setChallengesStark(stageId, this.proofCtx.challenges[stageId - 2]);
+            }
+
             await this.computeWitnessStage(stageId);
 
-            await this.commitStage(stageId);
+            // TODO change... this is not the right place to do this
+            if(stageId !== (this.pilout.numStages + 1)) {
+                await this.commitStage(stageId);
+            }
 
             // [Prover Manager] Compute challenges for all witness computations stages
             this.proofCtx.challenges[stageId - 1] = await this.computeChallenges(stageId);
 
-            log.info("[ProofManager]", `<== STAGE ${stageId} finished`);
+            log.info(`[${this.name}]`, `<== STAGE ${stageId} finished`);
         }
 
         // [Prover] Call essential functions post-witness computation to produce a proof
@@ -222,16 +234,18 @@ class ProofManager {
             await this.callProverCallback(proverCallbacks[i]);
 
             // [Prover Manager] Compute challenges for all stages except the last one
+            //TODO...callbacks for all instances
             if(i !== proverCallbacks.length - 1) {
-                const nStage = this.pilout.numStages + i;
-                this.proofCtx.challenges[nStage] = await this.computeChallenges(nStage + 1);
+                const airInstanceCtx = this.subproofsCtx[0].airsCtx[0].instances[0].ctx;
+                const challengeIdx = airInstanceCtx.pilInfo.numChallenges.length + i + 2;
+                this.proofCtx.challenges[challengeIdx-1] = await this.computeChallenges(challengeIdx);
             }
         };
 
-        log.info("[ProofManager]", `<-- Proof '${provingSchema.name}' successfully generated.`);
+        log.info(`[${this.name}]`, `<-- Proof '${this.proofManagerConfig.name}' successfully generated.`);
     }
 
-    async proofSetup() {
+    async setupProof() {
         for (const subproofCtx of this.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
                 for (const airInstanceCtx of airCtx.instances) {
@@ -243,7 +257,7 @@ class ProofManager {
 
     async computeWitnessStage(stageId) {
         for (const subproofCtx of this.subproofsCtx) {
-            log.info("[ProofManager]", `--> Subproof '${subproofCtx.name}' witness computation stage ${stageId}`);
+            log.info(`[${this.name}]`, `--> Subproof '${subproofCtx.name}' witness computation stage ${stageId}`);
             for (const airCtx of subproofCtx.airsCtx) {
                 if(stageId === 0) {
                     await this.wcManager.witnessComputation(
@@ -262,7 +276,7 @@ class ProofManager {
                     }
                 }
             }
-            log.info("[ProofManager]", `<-- Subproof '${subproofCtx.name}' witness computation stage ${stageId}`);
+            log.info(`[${this.name}]`, `<-- Subproof '${subproofCtx.name}' witness computation stage ${stageId}`);
         }
     }
 
@@ -271,11 +285,7 @@ class ProofManager {
             for (const airCtx of subproofCtx.airsCtx) {
                 for (const airInstanceCtx of airCtx.instances) {
                     log.info(`[ProofManager]`, `··· Air '${airCtx.name}' Commiting stage ${stageId}.`);
-                    await this.prover.commitStage(
-                        stageId,
-                        subproofCtx.subproofId, airCtx.airId, airInstanceCtx.instanceId,
-                        this.proofCtx, subproofCtx
-                    );
+                    await this.prover.commitStage(stageId, subproofCtx.subproofId, airCtx.airId, airInstanceCtx.instanceId, this.proofCtx, subproofCtx);
                 }
             }
         }
@@ -291,7 +301,7 @@ class ProofManager {
         }
     }
 
-    finalizeProve(provingSchema, options) {
+    finalizeProve(options) {
         // TODO Finalize pilout
         if (this.wcManager) delete this.wcManager;
         // TODO Finalize prover
@@ -299,11 +309,29 @@ class ProofManager {
     }
 
     async computeChallenges(stageId) {
-        log.info("[ProofManager]", `··· Computing challenges for stage ${stageId}`);
+        log.info(`[${this.name}]`, `··· Computing challenges for stage ${stageId}`);
 
-        const airInstance = this.subproofsCtx[0].airsCtx[0].instances[0];
-        
-        return await calculateChallengeStark(stageId, airInstance.ctx);
+        for (const subproofCtx of this.subproofsCtx) {
+            for (const airCtx of subproofCtx.airsCtx) {
+                for (const airInstanceCtx of airCtx.instances) {
+                    // return this.prover.calculateChallengeStark(stageId, airInstanceCtx.ctx);
+                    return await this.prover.computeChallenges(stageId, airCtx.airId, airInstanceCtx.instanceId, subproofCtx);
+                }
+            }
+        }
+    }
+
+    setChallengesStark(stageId, challenge) {
+        log.info(`[${this.name}]`, `··· Setting challenges for stage ${stageId}`);
+
+        for (const subproofCtx of this.subproofsCtx) {
+            for (const airCtx of subproofCtx.airsCtx) {
+                for (const airInstanceCtx of airCtx.instances) {
+                    this.prover.setChallenges(stageId, airCtx.airId, airInstanceCtx.instanceId, challenge, subproofCtx);
+                    // setChallengesStark(stageId, airInstanceCtx.ctx, challenge, log);
+                }
+            }
+        }
     }
 
     // Allocate a new buffer for the given subproofId and airId with the given numRows.
@@ -317,8 +345,9 @@ class ProofManager {
 
         let air = this.pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
         let airSymbols = this.pilout.pilout.symbols.filter(symbol => symbol.subproofId === subproofCtx.subproofId && symbol.airId === airId);
-        airInstanceCtx.constPols = this.getFixedPolsPil2(airSymbols, air, subproofCtx.proofCtx.F);
-        airInstanceCtx.cmPols = this.newCommitPolsArrayPil2(airSymbols, air, subproofCtx.proofCtx.F);
+
+        airInstanceCtx.constPols = getFixedPolsPil2(air, subproofCtx.proofCtx.F);
+        airInstanceCtx.cmPols = newCommitPolsArrayPil2(airSymbols, air.numRows, subproofCtx.proofCtx.F);
 
         return { result: true, airInstanceCtx};
     }
@@ -347,72 +376,6 @@ class ProofManager {
         subproofCtx.airsCtx[airId].instances.splice(instanceId, 1);
 
         return true;
-    }
-
-    getFixedPolsPil2(symbols, pil, F) {
-        const cnstPols = this.newConstantPolsArrayPil2(symbols, pil.numRows, F);
-            
-        for(let i = 0; i < cnstPols.$$defArray.length; ++i) {
-            const def = cnstPols.$$defArray[i];
-            const name = def.name;
-            const [nameSpace, namePol] = name.split(".");
-            const deg = def.polDeg;
-            const fixedCols = pil.fixedCols[i];
-            for(let j = 0; j < deg; ++j) {
-                if(def.idx) {
-                    cnstPols[nameSpace][namePol][def.idx][j] = buf2bint(fixedCols.values[j]);
-                } else {
-                    cnstPols[nameSpace][namePol][j] = buf2bint(fixedCols.values[j]);
-                }
-            }
-        }
-    
-        return cnstPols;
-    }
-    
-    // TODO: export it to feature/pil2_polsArray
-    newCommitPolsArrayPil2(symbols, air, F) {
-        const witnessSymbols = [];
-        for (let i = 0; i < symbols.length; ++i) {
-            if(symbols[i].type !== 3) continue;
-            witnessSymbols.push({name: symbols[i].name, idx: symbols[i].id, length: symbols[i].length});
-        }
-    
-        const pa = new PolsArray(witnessSymbols, air.numRows, "commit", F);
-        return pa;
-    }
-    
-    newConstantPolsArrayPil2(symbols, degree, F) {
-        const fixedSymbols = [];
-        for (let i = 0; i < symbols.length; ++i) {
-            if(symbols[i].type !== 1) continue;
-            fixedSymbols.push({name: symbols[i].name, idx: symbols[i].id, length: symbols[i].length});
-        }
-    
-        const pa = new PolsArray(fixedSymbols, degree, "constant", F);
-        return pa;
-    }
-    
-    buf2bint(buf) {
-        let value = 0n;
-        let offset = 0;
-        while ((buf.length - offset) >= 8) {
-            value = (value << 64n) + (offset ? buf.readBigUInt64BE(offset):buf.readBigInt64BE(offset));
-            offset += 8;
-        }
-        while ((buf.length - offset) >= 4) {
-            value = (value << 32n) + (offset ? BigInt(buf.readUInt32BE(offset)) :BigInt(buf.readInt32BE(offset)));
-            offset += 4;
-        }
-        while ((buf.length - offset) >= 2) {
-            value = (value << 16n) + (offset ? BigInt(buf.readUInt16BE(offset)) : BigInt(buf.readInt16BE(offset)));
-            offset += 2;
-        }
-        while ((buf.length - offset) >= 1) {
-            value += (value << 8n) + (offset ? BigInt(buf.readUInt8(offset)) : BigInt(buf.readInt8(offset)));
-            offset += 1;
-        }
-        return value;
     }
 }
 

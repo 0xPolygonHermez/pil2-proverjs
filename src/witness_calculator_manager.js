@@ -61,9 +61,10 @@ class WitnessCalculatorManager {
                 throw new Error(`WitnessCalculator ${this.witnesscalculators[i].name} is stuck in witness computation for stage ${stageId}`);
             }
 
-            const status = stageId === 1
-                ? await this.witnesscalculators[i].witnessComputationStage1(subproofId, airId, instanceId, proofCtx, subproofCtx)
-                : await this.witnesscalculators[i].witnessComputation(stageId, subproofId, airId, instanceId, proofCtx, subproofCtx);
+            const status = await this.witnesscalculators[i].witnessComputation(stageId, subproofId, airId, instanceId, proofCtx, subproofCtx);
+            // const status = stageId === 1
+            //     ? await this.witnesscalculators[i].witnessComputationStage1(subproofId, airId, instanceId, proofCtx, subproofCtx)
+            //     : await this.witnesscalculators[i].witnessComputation(stageId, subproofId, airId, instanceId, proofCtx, subproofCtx);
 
             if(witnesscalculatorStatus[i] !== WITNESS_ROUND_NOTHING_TO_DO &&
                witnesscalculatorStatus[i] !== WITNESS_ROUND_NOTHING_DONE &&

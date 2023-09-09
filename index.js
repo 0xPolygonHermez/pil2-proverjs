@@ -9,7 +9,7 @@ async function run(settings) {
     log.info("Proof generated");
 }
 
-proveSettings = {
+proofSettings = {
     settings: {
         name: "zkEvmProof-" + Date.now(),
         pilout: {
@@ -34,7 +34,7 @@ proveSettings = {
     },
 };
 
-// proveSettings = {
+// proofSettings = {
 //     settings: {
 //         name: "zkEvmProof-" + Date.now(),
 //         pilout: { piloutFilename: "./test/fibonacci_vadcop/fibonacci_vadcop.pilout", piloutProto: "../pilcom/src/pilout.proto" },
@@ -51,7 +51,7 @@ proveSettings = {
 //     },
 // };
 
-run(proveSettings).then(
+run(proofSettings).then(
     () => {
         process.exit(0);
     },
