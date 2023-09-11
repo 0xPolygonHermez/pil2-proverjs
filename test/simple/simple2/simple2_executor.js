@@ -19,7 +19,7 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
         super("WCSimple2", proofmanagerAPI);
     }
 
-    async witnessComputationStage0(subproofId, airId, proofCtx, subproofCtx) {
+    async witnessComputationStage0(subproofId, airId, subproofCtx) {
         this.checkInitialized();
 
         const { result, airInstanceCtx } = this.proofmanagerAPI.addAirInstance(subproofCtx, airId);
@@ -32,7 +32,7 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
 
         const air = this.proofmanagerAPI.getPilout().getAirBySubproofIdAirId(subproofId, airId);
 
-        getFixedPolsPil2(air, airInstanceCtx.cnstPols, subproofCtx.proofCtx.F);
+        getFixedPolsPil2(air, airInstanceCtx.cnstPols, subproofCtx.F);
 
         const N = air.numRows;
         for (let i = 0; i < N; i++) {
@@ -40,13 +40,13 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
 
             airInstanceCtx.cmmtPols.Simple2.a[i] = v;
             airInstanceCtx.cmmtPols.Simple2.c[(i + 3) % N] = v + 1n;
-            airInstanceCtx.cmmtPols.Simple2.b[(i + N - 2) % N] = proofCtx.F.mul(v, v + 1n);
+            airInstanceCtx.cmmtPols.Simple2.b[(i + N - 2) % N] = subproofCtx.F.mul(v, v + 1n);
         }
 
         return WITNESS_ROUND_FULLY_DONE;
     }
 
-    async witnessComputation(stageId, subproofId, airId, instanceId, proofCtx, subproofCtx) {
+    async witnessComputation(stageId, subproofId, airId, instanceId, subproofCtx) {
         const airInstanceCtx = subproofCtx.airsCtx[airId].instances[instanceId].ctx;
 
         if(stageId === 1) {

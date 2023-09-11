@@ -7,6 +7,10 @@ class ProofManagerAPI {
         return this.proofManager.pilout;
     }
 
+    getChallenge(stageId) {
+        return this.proofManager.proofCtx.challenges[stageId];
+    }
+
     // Allocate a new buffer for the given subproof and air with the given numRows.
     addAirInstance(subproofId, airId, numRows) {
         return this.proofManager.addAirInstance(subproofId, airId, numRows);

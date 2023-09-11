@@ -195,10 +195,7 @@ class ProofManager {
     }
 
     async generateProof(options) {
-        log.info(
-            `[${this.name}]`,
-            `--> Initiating the generation of the proof '${this.proofManagerConfig.name}'.`
-        );
+        log.info(`[${this.name}]`, `--> Initiating the generation of the proof '${this.proofManagerConfig.name}'.`);
 
         // [Executor] Compute trace columns values
         log.info(`[${this.name}]`, `==> STAGE 0`);
@@ -262,19 +259,11 @@ class ProofManager {
             log.info(`[${this.name}]`, `--> Subproof '${subproofCtx.name}' witness computation stage ${stageId}`);
             for (const airCtx of subproofCtx.airsCtx) {
                 if(stageId === 0) {
-                    await this.wcManager.witnessComputation(
-                        stageId,
-                        subproofCtx.subproofId, airCtx.airId, null,
-                        this.proofCtx, subproofCtx
-                    );
+                    await this.wcManager.witnessComputation(stageId, subproofCtx.subproofId, airCtx.airId, null, subproofCtx);
                 } else {
                     for (const airInstanceCtx of airCtx.instances) {
                         log.info(`[ProofManager]`, `··· Air '${airCtx.name}' Computing witness for stage ${stageId}.`);
-                        await this.wcManager.witnessComputation(
-                            stageId,
-                            subproofCtx.subproofId, airCtx.airId, airInstanceCtx.instanceId,
-                            this.proofCtx, subproofCtx
-                        );
+                        await this.wcManager.witnessComputation(stageId, subproofCtx.subproofId, airCtx.airId, airInstanceCtx.instanceId, subproofCtx);
                     }
                 }
             }
@@ -287,7 +276,7 @@ class ProofManager {
             for (const airCtx of subproofCtx.airsCtx) {
                 for (const airInstanceCtx of airCtx.instances) {
                     log.info(`[ProofManager]`, `··· Air '${airCtx.name}' Commiting stage ${stageId}.`);
-                    await this.prover.commitStage(stageId, subproofCtx.subproofId, airCtx.airId, airInstanceCtx.instanceId, this.proofCtx, subproofCtx);
+                    await this.prover.commitStage(stageId, airInstanceCtx);
                 }
             }
         }
@@ -297,7 +286,7 @@ class ProofManager {
         for (const subproofCtx of this.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
                 for (const airInstanceCtx of airCtx.instances) {
-                    await proverCallback(stageId, subproofCtx.subproofId, airCtx.airId, airInstanceCtx.instanceId, this.proofCtx, subproofCtx);
+                    await proverCallback(stageId, airInstanceCtx);
                 }
             }
         }
@@ -316,7 +305,7 @@ class ProofManager {
         for (const subproofCtx of this.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
                 for (const airInstanceCtx of airCtx.instances) {
-                    return await this.prover.computeChallenges(stageId, airCtx.airId, airInstanceCtx.instanceId, subproofCtx);
+                    return await this.prover.computeChallenges(stageId, airInstanceCtx);
                 }
             }
         }
@@ -328,7 +317,7 @@ class ProofManager {
         for (const subproofCtx of this.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
                 for (const airInstanceCtx of airCtx.instances) {
-                    this.prover.setChallenges(stageId, airCtx.airId, airInstanceCtx.instanceId, challenge, subproofCtx);
+                    this.prover.setChallenges(stageId, airInstanceCtx, challenge);
                 }
             }
         }
@@ -346,8 +335,8 @@ class ProofManager {
         let air = this.pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
         let airSymbols = this.pilout.pilout.symbols.filter(symbol => symbol.subproofId === subproofCtx.subproofId && symbol.airId === airId);
 
-        airInstanceCtx.cnstPols = newConstantPolsArrayPil2(airSymbols, air.numRows, subproofCtx.proofCtx.F);
-        airInstanceCtx.cmmtPols = newCommitPolsArrayPil2(airSymbols, air.numRows, subproofCtx.proofCtx.F);
+        airInstanceCtx.cnstPols = newConstantPolsArrayPil2(airSymbols, air.numRows, subproofCtx.F);
+        airInstanceCtx.cmmtPols = newCommitPolsArrayPil2(airSymbols, air.numRows, subproofCtx.F);
 
         return { result: true, airInstanceCtx};
     }

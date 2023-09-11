@@ -36,7 +36,7 @@ class ProverFri extends ProverComponent {
         log.debug = log.info;
 
         const options = {
-            F: subproofCtx.proofCtx.F,
+            F: subproofCtx.F,
             pil1: false,
             parallelExec: false,
             useThreads: false
@@ -50,31 +50,22 @@ class ProverFri extends ProverComponent {
         airInstance.cmmtPols.writeToBigBuffer(airInstance.ctx.cm1_n, airInstance.ctx.pilInfo.mapSectionsN.cm1);
     }
 
-    async commitStage(stageId, subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
+    async commitStage(stageId, airInstanceCtx) {
         this.checkInitialized();
 
-        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[airInstanceId].ctx;
-        await extendAndMerkelize(stageId, airInstanceCtx, log);
+        await extendAndMerkelize(stageId, airInstanceCtx.ctx, log);
     }
 
-    async computeChallenges(stageId, airId, airInstanceId, subproofCtx) {
+    async computeChallenges(stageId, airInstanceCtx) {
         this.checkInitialized();
 
-        log.info(`[${this.name}]`, `··· Computing challenges for stage ${stageId}`);
-
-        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[airInstanceId].ctx;
-
-        return await calculateChallengeStark(stageId, airInstanceCtx);
+        return await calculateChallengeStark(stageId, airInstanceCtx.ctx);
     }
 
-    setChallenges(stageId, airId, airInstanceId, challenge, subproofCtx) {
+    setChallenges(stageId, airInstanceCtx, challenge) {
         this.checkInitialized();
 
-        log.info(`[${this.name}]`, `··· Setting challenges for stage ${stageId}`);
-
-        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[airInstanceId].ctx;
-
-        setChallengesStark(stageId, airInstanceCtx, challenge, log);
+        setChallengesStark(stageId, airInstanceCtx.ctx, challenge, log);
     }
 
     getProverCallbacks() {
@@ -87,37 +78,41 @@ class ProverFri extends ProverComponent {
         ];
     }
 
-    async computeOpenings(stageId, subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
+    async computeOpenings(stageId, airInstanceCtx) {
+        const airId = airInstanceCtx.airId;
+        const airInstanceId = airInstanceCtx.instanceId;
+        const subproofCtx = airInstanceCtx.airCtx.subproofCtx;
+
         log.info(`[${this.name}]`, `Computing Openings for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
 
-        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[airInstanceId].ctx;
+        let challenge = this.proofmanagerAPI.getChallenge(stageId + 2);
 
-        let challenge = proofCtx.challenges[stageId + 2];
-
-        await computeEvalsStark(airInstanceCtx, challenge, log);
+        await computeEvalsStark(airInstanceCtx.ctx, challenge, log);
     }
 
-    async computeFRI(stageId, subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
-        log.info(`[${this.name}]`, `Computing FRI for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
+    async computeFRI(stageId, airInstanceCtx) {
+        const airId = airInstanceCtx.airId;
+        const airInstanceId = airInstanceCtx.instanceId;
+        const subproofCtx = airInstanceCtx.airCtx.subproofCtx;
 
-        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[airInstanceId].ctx;
+        log.info(`[${this.name}]`, `Computing FRI for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
 
         const options = { parallelExec: false, useThreads: false, logger: log };
 
-        await computeFRIStark(airInstanceCtx, options);
+        await computeFRIStark(airInstanceCtx.ctx, options);
 
         let challenge;
-        for (let step = 0; step < airInstanceCtx.pilInfo.starkStruct.steps.length; step++) {
+        for (let step = 0; step < airInstanceCtx.ctx.pilInfo.starkStruct.steps.length; step++) {
 
-            challenge = computeFRIChallenge(step, airInstanceCtx, log);
-            await computeFRIFolding(step, airInstanceCtx, challenge);
+            challenge = computeFRIChallenge(step, airInstanceCtx.ctx, log);
+            await computeFRIFolding(step, airInstanceCtx.ctx, challenge);
         }
     
-        const friQueries = computeFRIChallenge(airInstanceCtx.pilInfo.starkStruct.steps.length, airInstanceCtx, log);
+        const friQueries = computeFRIChallenge(airInstanceCtx.ctx.pilInfo.starkStruct.steps.length, airInstanceCtx.ctx, log);
     
-        computeFRIQueries(airInstanceCtx, friQueries);
+        computeFRIQueries(airInstanceCtx.ctx, friQueries);
 
-        subproofCtx.airsCtx[airId].instances[airInstanceId].proof = await genProofStark(airInstanceCtx, log);
+        subproofCtx.airsCtx[airId].instances[airInstanceId].proof = await genProofStark(airInstanceCtx.ctx, log);
     }    
 }
 

@@ -27,9 +27,7 @@ class ProofCtxStruct {
             for (let i = 0; i < pilout.numChallenges.length; i++) {
                 if (pilout.numChallenges[i] === undefined) continue;
 
-                this.challenges.push(
-                    new Array(pilout.numChallenges[i]).fill(null)
-                );
+                this.challenges.push(new Array(pilout.numChallenges[i]).fill(null));
             }
         }
         // this.publicTables = []; ???? Should be added here?
@@ -59,8 +57,8 @@ class SubproofCtxStruct {
             log.error(`Subproof ${subproofId} not found in pilout`);
             throw new Error(`Subproof ${subproofId} not found in pilout`);
         }
-        this.proofCtx = proofCtx;
 
+        this.F = proofCtx.F;
         const subproof = pilout.subproofs[subproofId];
 
         this.subproofId = subproofId;
@@ -89,23 +87,14 @@ class AirCtxStruct {
     constructor(airId, subproofCtx, air, hasSubproofValue) {
         this.airId = airId;
         this.name = air.name;
+        // Pointer to subproofCtx
         this.subproofCtx = subproofCtx;
         this.numRows = air.numRows;
         this.hasSubproofValue = hasSubproofValue;
         this.instances = [];
-
-        // FIXME change it when available, mocked!!!!!
-        this.nPolsBaseField = 2;
-        this.nPolsExtension = 1;
     }
 
     addAirInstance(airId, numRows) {
-        // const F = this.subproofCtx.proofCtx.F;
-        // const sizeOneRowBytes = (this.nPolsBaseField + this.nPolsExtension * this.subproofCtx.blowupFactor) * F.n8;
-
-        // const buffer = new Uint8Array(sizeOneRowBytes * numRows, { maxByteLength: sizeOneRowBytes * numRows});
-        // const offset = sizeOneRowBytes;
-
         const airInstance = new AirInstanceCtxStruct(this, airId, numRows);
         this.instances.push(airInstance);
 
@@ -124,6 +113,8 @@ class AirInstanceCtxStruct {
     constructor(airCtx, airId, numRows) {
         this.airId = airId;
         this.instanceId = airCtx.instances.length;
+        // Pointer to airCtx
+        this.airCtx = airCtx;
         this.numRows = numRows;
         this.proof = {};
         if(airCtx.hasSubproofValue)  this.subproofValue = null;
