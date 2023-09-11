@@ -1,6 +1,6 @@
 const log = require("../logger.js");
-const F3g = require("../node_modules/pil2-stark-js/src/helpers/f3g");
-const { getRoots } = require("../node_modules/pilcom/src/utils.js");
+const F3g = require("pil2-stark-js/src/helpers/f3g");
+const { getRoots } = require("pilcom/src/utils.js");
 
 class ProofCtxStruct {
     /**

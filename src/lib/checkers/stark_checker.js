@@ -11,12 +11,13 @@ class CheckerA extends CheckerComponent {
         this.checkInitialized();
 
         log.info(`[${this.name}]`, "Checking...");
-
+        
         const airInstance = subproofCtx.airsCtx[airId].instances[airInstanceId];
         const isValid = await starkVerify(
             proof.proof,
             proof.publics,
             airInstance.setup.constRoot,
+            [],
             airInstance.setup.starkInfo,
             { logger: log }
         );

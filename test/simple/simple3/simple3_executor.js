@@ -4,7 +4,11 @@ const {
     WitnessCalculatorComponent
 } = require("../../../src/witness_calculator_component.js");
 
-const { calculatePublics, callCalculateExps, applyHints } = require("../../../node_modules/pil2-stark-js/src/prover/prover_helpers.js");
+const {
+    calculatePublics,
+    callCalculateExps,
+    applyHints,
+} = require("pil2-stark-js/src/prover/prover_helpers.js");
 const { computeQStark } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 const log = require("../../../logger.js");
 

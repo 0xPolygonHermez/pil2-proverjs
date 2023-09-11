@@ -1,19 +1,20 @@
 const ProverComponent = require("../../prover.js");
-const log = require('../../../logger.js');
+const starkSetup = require("pil2-stark-js/src/stark/stark_setup.js");
 const { initProverStark,
     computeEvalsStark,
     computeFRIStark,
-    computeFRIProof,
     genProofStark,
     setChallengesStark,
     calculateChallengeStark,
-    computeQStark
+    extendAndMerkelize,
+    computeFRIChallenge,
+    computeFRIFolding,
+    computeFRIQueries
 } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
-const { callCalculateExps } = require("pil2-stark-js/src/prover/prover_helpers.js");
-const { extendAndMerkelize } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 
-const starkSetup = require("pil2-stark-js/src/stark/stark_setup.js");
 const path = require("path");
+
+const log = require('../../../logger.js');
 
 class ProverFri extends ProverComponent {
     constructor(proofmanagerAPI) {
@@ -79,57 +80,42 @@ class ProverFri extends ProverComponent {
     getProverCallbacks() {
         this.checkInitialized();
 
-        return [/*this.computeQ.bind(this),*/ this.computeOpenings.bind(this), this.computeFRI.bind(this) ];
-    }
-
-    async computeQ(subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
-        log.info(`[${this.name}]`, `Computing Q for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
-
-        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[airInstanceId].ctx;
-        let challenge = proofCtx.challenges[airInstanceCtx.pilInfo.nLibStages];
+        return [
+            this.computeOpenings.bind(this),
+            this.computeFRI.bind(this),
             
-        // Compute challenge a
-        const qStage = airInstanceCtx.pilInfo.nLibStages + 2;
-        setChallengesStark(qStage, airInstanceCtx, challenge, log);
-        
-        // STEP 4.2 - Compute stage 4 polynomial --> Q polynomial
-        await callCalculateExps("Q", "ext", airInstanceCtx, this.settings.parallelExec, this.settings.useThreads);
-    
-        await computeQStark(airInstanceCtx, log);
+        ];
     }
 
-    async computeOpenings(subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
+    async computeOpenings(stageId, subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
         log.info(`[${this.name}]`, `Computing Openings for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
 
         const airInstanceCtx = subproofCtx.airsCtx[airId].instances[airInstanceId].ctx;
 
-        setChallengesStark(
-            airInstanceCtx.pilInfo.numChallenges.length + 2,
-            airInstanceCtx,
-            proofCtx.challenges[ airInstanceCtx.pilInfo.numChallenges.length ],
-            log);
-
-        let challenge = proofCtx.challenges[airInstanceCtx.pilInfo.numChallenges.length + 2];
+        let challenge = proofCtx.challenges[stageId + 2];
 
         await computeEvalsStark(airInstanceCtx, challenge, log);
     }
 
-    async computeFRI(subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
+    async computeFRI(stageId, subproofId, airId, airInstanceId, proofCtx, subproofCtx) {
         log.info(`[${this.name}]`, `Computing FRI for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
 
         const airInstanceCtx = subproofCtx.airsCtx[airId].instances[airInstanceId].ctx;
 
-        setChallengesStark(
-            airInstanceCtx.pilInfo.numChallenges.length + 3,
-            airInstanceCtx,
-            proofCtx.challenges[ airInstanceCtx.pilInfo.numChallenges.length + 1 ],
-            log);
-
         const options = { parallelExec: false, useThreads: false, logger: log };
 
         await computeFRIStark(airInstanceCtx, options);
-        
-        await computeFRIProof(airInstanceCtx);
+
+        let challenge;
+        for (let step = 0; step < airInstanceCtx.pilInfo.starkStruct.steps.length; step++) {
+
+            challenge = computeFRIChallenge(step, airInstanceCtx, log);
+            await computeFRIFolding(step, airInstanceCtx, challenge);
+        }
+    
+        const friQueries = computeFRIChallenge(airInstanceCtx.pilInfo.starkStruct.steps.length, airInstanceCtx, log);
+    
+        computeFRIQueries(airInstanceCtx, friQueries);
 
         subproofCtx.airsCtx[airId].instances[airInstanceId].proof = await genProofStark(airInstanceCtx, log);
     }    
