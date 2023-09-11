@@ -42,12 +42,12 @@ class ProverFri extends ProverComponent {
             useThreads: false
         };
     
-        airInstance.setup = await starkSetup(airInstance.constPols, air, this.starkStruct, options);
+        airInstance.setup = await starkSetup(airInstance.cnstPols, air, this.starkStruct, options);
     
-        airInstance.ctx = await initProverStark(airInstance.setup.starkInfo, airInstance.constPols, airInstance.setup.constTree, options);
+        airInstance.ctx = await initProverStark(airInstance.setup.starkInfo, airInstance.cnstPols, airInstance.setup.constTree, options);
         
         // Read committed polynomials
-        airInstance.cmPols.writeToBigBuffer(airInstance.ctx.cm1_n, airInstance.ctx.pilInfo.mapSectionsN.cm1);
+        airInstance.cmmtPols.writeToBigBuffer(airInstance.ctx.cm1_n, airInstance.ctx.pilInfo.mapSectionsN.cm1);
     }
 
     async commitStage(stageId, subproofId, airId, airInstanceId, proofCtx, subproofCtx) {

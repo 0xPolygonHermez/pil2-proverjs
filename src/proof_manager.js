@@ -5,8 +5,7 @@ const CheckerFactory = require("./checker_factory.js");
 const ProofManagerAPI = require("./proof_manager_api.js");
 const { PilOut } = require("./pilout.js");
 const proofContextFromPilout = require("./proof_ctx.js");
-const { newCommitPolsArrayPil2 } = require("pilcom/src/polsarray.js");
-const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
+const { newCommitPolsArrayPil2, newConstantPolsArrayPil2 } = require("pilcom/src/polsarray.js");
 
 const { fileExists } = require("./utils.js");
 const path = require("path");
@@ -163,9 +162,9 @@ class ProofManager {
                 const isValid = await this.checker.checkProof(airInstance.proof, 0, 0, this.proofCtx, this.subproofsCtx[0]);
 
                 if(isValid == false) {
-                    log.error(`[${this.name}]`, `STARK proof for subproof ${this.subproofsCtx[0].name} is invalid`);        
+                    log.error(`[${this.name}]`, `Proof for subproof ${this.subproofsCtx[0].name} is invalid`);        
                 } else {
-                    log.info(`[${this.name}]`, `STARK proof for subproof ${this.subproofsCtx[0].name} is valid`);
+                    log.info(`[${this.name}]`, `Proof for subproof ${this.subproofsCtx[0].name} is valid`);
                 }
             }
         } catch (error) {
@@ -347,8 +346,8 @@ class ProofManager {
         let air = this.pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
         let airSymbols = this.pilout.pilout.symbols.filter(symbol => symbol.subproofId === subproofCtx.subproofId && symbol.airId === airId);
 
-        airInstanceCtx.constPols = getFixedPolsPil2(air, subproofCtx.proofCtx.F);
-        airInstanceCtx.cmPols = newCommitPolsArrayPil2(airSymbols, air.numRows, subproofCtx.proofCtx.F);
+        airInstanceCtx.cnstPols = newConstantPolsArrayPil2(airSymbols, air.numRows, subproofCtx.proofCtx.F);
+        airInstanceCtx.cmmtPols = newCommitPolsArrayPil2(airSymbols, air.numRows, subproofCtx.proofCtx.F);
 
         return { result: true, airInstanceCtx};
     }

@@ -10,6 +10,8 @@ const {
     applyHints,
 } = require("pil2-stark-js/src/prover/prover_helpers.js");
 const { computeQStark } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
+const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
+
 const log = require("../../../logger.js");
 
 class ExecutorSimple2 extends WitnessCalculatorComponent {
@@ -23,26 +25,22 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
         const { result, airInstanceCtx } = this.proofmanagerAPI.addAirInstance(subproofCtx, airId);
 
         if (result === false) {
-            log.error(
-                `[${this.name}]`,
-                `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`
-            );
-            throw new Error(
-                `[${this.name}]`,
-                `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`
-            );
+            log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
+            throw new Error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
             return WITNESS_ROUND_NOTHING_DONE; //Unreachable, but needed to avoid eslint error
         }
 
         const air = this.proofmanagerAPI.getPilout().getAirBySubproofIdAirId(subproofId, airId);
 
+        getFixedPolsPil2(air, airInstanceCtx.cnstPols, subproofCtx.proofCtx.F);
+
         const N = air.numRows;
         for (let i = 0; i < N; i++) {
             const v = BigInt(i);
 
-            airInstanceCtx.cmPols.Simple2.a[i] = v;
-            airInstanceCtx.cmPols.Simple2.c[(i + 3) % N] = v + 1n;
-            airInstanceCtx.cmPols.Simple2.b[(i + N - 2) % N] = proofCtx.F.mul(v, v + 1n);
+            airInstanceCtx.cmmtPols.Simple2.a[i] = v;
+            airInstanceCtx.cmmtPols.Simple2.c[(i + 3) % N] = v + 1n;
+            airInstanceCtx.cmmtPols.Simple2.b[(i + N - 2) % N] = proofCtx.F.mul(v, v + 1n);
         }
 
         return WITNESS_ROUND_FULLY_DONE;

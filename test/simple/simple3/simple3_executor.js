@@ -10,6 +10,8 @@ const {
     applyHints,
 } = require("pil2-stark-js/src/prover/prover_helpers.js");
 const { computeQStark } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
+const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
+
 const log = require("../../../logger.js");
 
 class ExecutorSimple2 extends WitnessCalculatorComponent {
@@ -23,33 +25,29 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
         const { result, airInstanceCtx } = this.proofmanagerAPI.addAirInstance(subproofCtx, airId);
 
         if (result === false) {
-            log.error(
-                `[${this.name}]`,
-                `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`
-            );
-            throw new Error(
-                `[${this.name}]`,
-                `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`
-            );
+            log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
+            throw new Error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
             return WITNESS_ROUND_NOTHING_DONE; //Unreachable, but needed to avoid eslint error
         }
 
         const air = this.proofmanagerAPI.getPilout().getAirBySubproofIdAirId(subproofId, airId);
+
+        getFixedPolsPil2(air, airInstanceCtx.cnstPols, subproofCtx.proofCtx.F);
 
         const N = air.numRows;
         const F = proofCtx.F;
         for (let i = 0; i < N; i++) {
             const v = BigInt(i);
 
-            airInstanceCtx.cmPols.Simple3.a[0][0][i] = v;
-            airInstanceCtx.cmPols.Simple3.a[0][1][i] = v + 1n;
-            airInstanceCtx.cmPols.Simple3.a[0][2][i] = v + 2n;
-            airInstanceCtx.cmPols.Simple3.b[0][i] = F.mul(v, F.mul(v + 1n, v + 2n));
+            airInstanceCtx.cmmtPols.Simple3.a[0][0][i] = v;
+            airInstanceCtx.cmmtPols.Simple3.a[0][1][i] = v + 1n;
+            airInstanceCtx.cmmtPols.Simple3.a[0][2][i] = v + 2n;
+            airInstanceCtx.cmmtPols.Simple3.b[0][i] = F.mul(v, F.mul(v + 1n, v + 2n));
 
-            airInstanceCtx.cmPols.Simple3.a[1][0][i] = v;
-            airInstanceCtx.cmPols.Simple3.a[1][1][i] = v - 1n;
-            airInstanceCtx.cmPols.Simple3.a[1][2][i] = v - 2n;
-            airInstanceCtx.cmPols.Simple3.b[1][i] = F.mul(v, F.mul(v - 1n, v - 2n));
+            airInstanceCtx.cmmtPols.Simple3.a[1][0][i] = v;
+            airInstanceCtx.cmmtPols.Simple3.a[1][1][i] = v - 1n;
+            airInstanceCtx.cmmtPols.Simple3.a[1][2][i] = v - 2n;
+            airInstanceCtx.cmmtPols.Simple3.b[1][i] = F.mul(v, F.mul(v - 1n, v - 2n));
         }
 
         return WITNESS_ROUND_FULLY_DONE;

@@ -24,13 +24,13 @@
     "url": "https://github.com/0xPolygonHermez/pil2-proofman-js/issues"
   },
   "homepage": "https://github.com/0xPolygonHermez/pil2-proofman-js#readme",
+  "dependencies": {
+    "npmlog": "^7.0.1",
+    "pil2-stark-js": "https://github.com/0xPolygonHermez/pil2-stark-js.git#xavi-pinsach/cnstpols",
+    "protobufjs": "^7.2.4"
+  },
   "devDependencies": {
     "chai": "^4.3.8",
     "mocha": "^10.2.0"
-  },
-  "dependencies": {
-    "npmlog": "^7.0.1",
-    "pil2-stark-js": "github:0xPolygonHermez/pil2-stark-js",
-    "protobufjs": "^7.2.4"
   }
 }
