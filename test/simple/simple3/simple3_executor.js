@@ -9,12 +9,11 @@ const {
     callCalculateExps,
     applyHints,
 } = require("pil2-stark-js/src/prover/prover_helpers.js");
-const { computeQStark } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
 
 const log = require("../../../logger.js");
 
-class ExecutorSimple2 extends WitnessCalculatorComponent {
+class ExecutorSimple3 extends WitnessCalculatorComponent {
     constructor(proofmanagerAPI) {
         super("WCSimple2", proofmanagerAPI);
     }
@@ -68,12 +67,8 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
     
         await applyHints(stageId, airInstanceCtx);
 
-        if(stageId === qStage) {
-            await computeQStark(airInstanceCtx, log);
-        }
-
         return WITNESS_ROUND_FULLY_DONE;
     }
 }
 
-module.exports = ExecutorSimple2;
+module.exports = ExecutorSimple3;

@@ -14,7 +14,7 @@ async function runTest(prefix) {
             // { filename: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {},},
         ],
         prover: {
-            filename: "./src/lib/provers/stark_prover.js",
+            filename: "./src/lib/provers/stark_fri_prover.js",
             settings: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json`, parallelExec: false, useThreads: false },
         },
         checker: { filename: "./src/lib/checkers/stark_checker.js", settings: {} },

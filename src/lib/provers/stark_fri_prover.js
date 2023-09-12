@@ -9,14 +9,15 @@ const { initProverStark,
     extendAndMerkelize,
     computeFRIChallenge,
     computeFRIFolding,
-    computeFRIQueries
+    computeFRIQueries,
+    computeQStark
 } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 
 const path = require("path");
 
 const log = require('../../../logger.js');
 
-class ProverFri extends ProverComponent {
+class StarkFriProver extends ProverComponent {
     constructor(proofmanagerAPI) {
         super("FRI Prover", proofmanagerAPI);
     }
@@ -53,7 +54,13 @@ class ProverFri extends ProverComponent {
     async commitStage(stageId, airInstanceCtx) {
         this.checkInitialized();
 
-        await extendAndMerkelize(stageId, airInstanceCtx.ctx, log);
+        const pilout = this.proofmanagerAPI.getPilout();
+        
+        if (stageId === pilout.numStages + 1)  {
+            await computeQStark(airInstanceCtx.ctx, log);
+        } else {
+            await extendAndMerkelize(stageId, airInstanceCtx.ctx, log);
+        }
     }
 
     async computeChallenges(stageId, airInstanceCtx) {
@@ -101,10 +108,9 @@ class ProverFri extends ProverComponent {
 
         await computeFRIStark(airInstanceCtx.ctx, options);
 
-        let challenge;
         for (let step = 0; step < airInstanceCtx.ctx.pilInfo.starkStruct.steps.length; step++) {
+            const challenge = computeFRIChallenge(step, airInstanceCtx.ctx, log);
 
-            challenge = computeFRIChallenge(step, airInstanceCtx.ctx, log);
             await computeFRIFolding(step, airInstanceCtx.ctx, challenge);
         }
     
@@ -116,4 +122,4 @@ class ProverFri extends ProverComponent {
     }    
 }
 
-module.exports = ProverFri;
+module.exports = StarkFriProver;

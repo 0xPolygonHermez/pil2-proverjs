@@ -210,16 +210,12 @@ class ProofManager {
         for (stageId = 1; stageId <= this.pilout.numStages + 1; stageId++) {
             log.info(`[${this.name}]`, `==> STAGE ${stageId}`);
 
-            if (stageId !== 1) {
-                this.setChallenges(stageId, this.proofCtx.challenges[stageId - 2]);
-            }
+            if (stageId > 1) this.setChallenges(stageId, this.proofCtx.challenges[stageId - 2]);
 
             await this.computeWitnessStage(stageId);
 
-            // TODO change... this is not the right place to do this
-            if (stageId !== this.pilout.numStages + 1) {
-                await this.commitStage(stageId);
-            }
+            // TODO change... this is not the right place to do this    
+            await this.commitStage(stageId);
 
             // [Prover Manager] Compute challenges for all witness computations stages
             this.proofCtx.challenges[stageId - 1] = await this.computeChallenges(stageId);
@@ -237,7 +233,7 @@ class ProofManager {
 
             // [Prover Manager] Compute challenges for all stages except the last one
             if (i !== proverCallbacks.length - 1) {
-                this.proofCtx.challenges[stageId - 1] = await this.computeChallenges(stageId + i);
+                this.proofCtx.challenges[stageId + i - 1] = await this.computeChallenges(stageId + i);
             }
         }
 

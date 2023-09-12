@@ -7,6 +7,10 @@ class ProofManagerAPI {
         return this.proofManager.pilout;
     }
 
+    setChallenge(stageId, challenge) {
+        return this.proofManager.proofCtx.setChallenge(stageId, challenge);
+    }
+
     getChallenge(stageId) {
         return this.proofManager.proofCtx.challenges[stageId];
     }

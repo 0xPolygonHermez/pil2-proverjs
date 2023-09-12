@@ -33,6 +33,24 @@ class ProofCtxStruct {
         // this.publicTables = []; ???? Should be added here?
     }
 
+    setChallenge(stageId, challenge) {
+        if (stageId >= this.challenges.length) {
+            log.error(`The requested challenge is not within the valid bounds of proof challenges.`);
+            throw new Error(`The requested challenge is not within the valid bounds of proof challenges.`);
+        }
+
+        this.challenges[stageId] = challenge;
+    }
+
+    getChallenge(stageId) {
+        if (stageId >= this.challenges.length) {
+            log.error(`The requested challenge is not within the valid bounds of proof challenges.`);
+            throw new Error(`The requested challenge is not within the valid bounds of proof challenges.`);
+        }
+
+        return this.challenges[stageId];
+    }
+
     areChallengesDefined(stageId) {
         if (stageId > this.challenges.length) return false;
 
