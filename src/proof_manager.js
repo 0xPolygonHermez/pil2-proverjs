@@ -19,11 +19,13 @@ class ProofManager {
         this.name = name ?? "ProofManager";
     }
 
-    async initialize(proofManagerConfig) {
+    async initialize(proofManagerConfig, options) {
         if (this.initialized) {
             log.error("`[${this.name}]`", "Already initialized.");
             throw new Error("ProofManager already initialized.");
         }
+
+        this.options = options;
 
         /*
          * settings is a JSON object containing the following fields:
@@ -46,7 +48,7 @@ class ProofManager {
 
         for(const witnessCalculator of proofManagerConfig.witnessCalculators) {
             const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(witnessCalculator.witnessCalculatorLib, proofmanagerAPI);
-            newWitnessCalculator.initialize(witnessCalculator.settings);
+            newWitnessCalculator.initialize(witnessCalculator.settings, this.options);
 
             this.wcManager.registerWitnessCalculator(newWitnessCalculator);
         }
@@ -146,17 +148,44 @@ class ProofManager {
         }
     }
 
-    async prove(options) {
+    async verifyPilCommand() {
+        this.checkInitialized();
+
+        try {
+            await this.initializeProve();
+
+            // [Executor] Compute trace columns values
+            log.info(`[${this.name}]`, `==> STAGE 0`);
+            await this.computeWitnessStage(0);
+            log.info(`[${this.name}]`, `<== STAGE 0`);
+
+            for (const subproofCtx of this.subproofsCtx) {
+                for (const airCtx of subproofCtx.airsCtx) {
+                    for (const airInstanceCtx of airCtx.instances) {
+                        await this.prover.pilVerify(subproofCtx, airCtx.airId, airInstanceCtx.instanceId);
+                    }
+                }
+            }
+    
+        } catch (error) {
+            log.error(`[${this.name}]`, `Error while verifying PIL: ${error}`);
+            throw error;
+        } finally {
+            this.finalizeProve();
+        }
+    }
+
+    async prove() {
         this.checkInitialized();
 
         let proof;
 
         try {
-            await this.initializeProve(options);
+            await this.initializeProve();
 
-            proof = await this.generateProof(options);
+            proof = await this.generateProof();
 
-            if(options.verify) {
+            if(this.options.verify) {
                 const airInstance = this.subproofsCtx[0].airsCtx[0].instances[0];
 
                 const isValid = await this.checker.checkProof(airInstance.proof, 0, 0, this.proofCtx, this.subproofsCtx[0]);
@@ -171,14 +200,14 @@ class ProofManager {
             log.error(`[${this.name}]`, `Error while generating proof: ${error}`);
             throw error;
         } finally {
-            this.finalizeProve(options);
+            this.finalizeProve();
         }
 
         return proof;
     }
 
-    async initializeProve(options) {
-        this.pilout = new PilOut(this.proofManagerConfig.pilout.piloutFilename, this.proofManagerConfig.pilout.piloutProto, options);
+    async initializeProve() {
+        this.pilout = new PilOut(this.proofManagerConfig.pilout.piloutFilename, this.proofManagerConfig.pilout.piloutProto, this.options);
 
         // TODO change this, I did it to maintain compatibility with pil2-stark code
         for( let i = 0; i < this.pilout.pilout.subproofs.length; i++) {
@@ -194,7 +223,7 @@ class ProofManager {
         this.subproofsCtx = subproofsCtx;
     }
 
-    async generateProof(options) {
+    async generateProof() {
         log.info(`[${this.name}]`, `--> Initiating the generation of the proof '${this.proofManagerConfig.name}'.`);
 
         // [Executor] Compute trace columns values
@@ -240,7 +269,7 @@ class ProofManager {
         //TODO remove foloowing line
         proverCallbacks = proverCallbacks[0];
         for (let i = 0; i < proverCallbacks.length; i++) {
-            await this.callProverCallback(proverCallbacks[i], stageId + i);
+            await this.callProverCallback(stageId + i, proverCallbacks[i]);
 
             if (i < proverCallbacks.length - 1) this.computeProofChallenge(stageId + i);
         }
@@ -302,7 +331,7 @@ class ProofManager {
     }
 
 
-    async callProverCallback(proverCallback, stageId) {
+    async callProverCallback(stageId, proverCallback) {
         const callback = proverCallback.callback;
         const params = proverCallback.params;
 
@@ -315,7 +344,7 @@ class ProofManager {
         }
     }
 
-    finalizeProve(options) {
+    finalizeProve() {
         // TODO Finalize pilout
         if (this.wcManager) delete this.wcManager;
         // TODO Finalize prover

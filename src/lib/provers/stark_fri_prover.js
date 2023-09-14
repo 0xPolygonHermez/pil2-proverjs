@@ -1,5 +1,6 @@
 const ProverComponent = require("../../prover.js");
 const starkSetup = require("pil2-stark-js/src/stark/stark_setup.js");
+const starkGen = require("pil2-stark-js/src/stark/stark_gen.js");
 const { initProverStark,
     computeEvalsStark,
     computeFRIStark,
@@ -12,6 +13,7 @@ const { initProverStark,
     computeFRIQueries,
     computeQStark
 } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
+const pilInfo = require("pil2-stark-js/src/pil_info/pil_info.js");
 
 const path = require("path");
 
@@ -29,6 +31,29 @@ class StarkFriProver extends ProverComponent {
         this.starkStruct = require(starkStructFilename);
     }
 
+    async pilVerify(subproofCtx, airId, airInstanceId) {
+        const pil1 = false;
+        const stark = true;
+        const debug = true;
+
+        log.debug = log.info;
+        const airInstance = subproofCtx.airsCtx[airId].instances[airInstanceId];
+        const pilout = this.proofmanagerAPI.getPilout();
+        const air = pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
+        air.hints = pilout.pilout.hints;
+        air.numChallenges = pilout.pilout.numChallenges;
+        air.symbols = pilout.pilout.symbols;
+
+        const starkInfo = pilInfo(subproofCtx.F, air, stark, pil1, debug, {});
+
+        const verificationHashType = "GL";
+        const splitLinearHash = false;
+        const optionsPilVerify = {logger:log, debug, useThreads: false, parallelExec: false, verificationHashType, splitLinearHash};
+
+        const pilVerification = await starkGen(airInstance.cmmtPols, airInstance.cnstPols, {}, starkInfo, optionsPilVerify);
+        //assert(pilVerification==true);
+    }
+
     async setupProof(subproofCtx, airId, airInstanceId) {
         const airInstance = subproofCtx.airsCtx[airId].instances[airInstanceId];
         const pilout = this.proofmanagerAPI.getPilout();
@@ -40,7 +65,8 @@ class StarkFriProver extends ProverComponent {
             F: subproofCtx.F,
             pil1: false,
             parallelExec: false,
-            useThreads: false
+            useThreads: false,
+            logger: log,
         };
     
         airInstance.setup = await starkSetup(airInstance.cnstPols, air, this.starkStruct, options);
