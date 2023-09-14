@@ -30,10 +30,10 @@ class ProofCtxStruct {
     }
 
     setChallenge(stageId, challenge) {
-        if (stageId >= this.challenges.length) {
-            log.error(`The requested challenge is not within the valid bounds of proof challenges.`);
-            throw new Error(`The requested challenge is not within the valid bounds of proof challenges.`);
-        }
+        // if (stageId >= this.challenges.length) {
+        //     log.error(`The requested challenge is not within the valid bounds of proof challenges.`);
+        //     throw new Error(`The requested challenge is not within the valid bounds of proof challenges.`);
+        // }
 
         this.challenges[stageId] = challenge;
     }

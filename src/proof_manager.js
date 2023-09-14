@@ -210,49 +210,39 @@ class ProofManager {
         for (stageId = 1; stageId <= this.pilout.numStages + 1; stageId++) {
             log.info(`[${this.name}]`, `==> STAGE ${stageId}`);
 
-            if (stageId > 1) this.setChallenges(stageId, this.proofCtx.challenges[stageId - 1]);
+            if (stageId > 1) {
+                this.setChallenges(stageId, this.proofCtx.getChallenge(stageId - 1));
+            }
 
             await this.computeWitnessStage(stageId);
 
             await this.commitStage(stageId);
 
-            this.proofCtx.challenges[stageId] = await this.computeChallenges(stageId);
+            await this.computeAirChallenges(stageId);
+            
+            this.computeProofChallenge(stageId);
 
             log.info(`[${this.name}]`, `<== STAGE ${stageId} finished`);
         }
 
         // [Prover] Call essential functions post-witness computation to produce a proof
-        // TODO get prover callbacks for each airInstance...
         let proverCallbacks = [];
         for (const subproofCtx of this.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
                 for (const airInstanceCtx of airCtx.instances) {
-                    proverCallbacks.push(this.prover.getProverCallbacksNew(airInstanceCtx));
+                    proverCallbacks.push(this.prover.getProverCallbacks(airInstanceCtx));
                 }
             }
         }
 
-        // TODO: check callbacks, if there is any item of array type, then ask to the prover to sort these callbacks
-        // for each airInstance 
-        // SOrt callbacks
+        // TODO: check callbacks, if there is any item of array type, then ask to the prover to sort these callbacks for each airInstance 
 
         //TODO remove foloowing line
         proverCallbacks = proverCallbacks[0];
         for (let i = 0; i < proverCallbacks.length; i++) {
-            if(stageId + i < 5) {
-                this.setChallenges(stageId + i, this.proofCtx.challenges[stageId + i - 1]);
-            }
+            await this.callProverCallback(proverCallbacks[i], stageId + i);
 
-            const callback = proverCallbacks[i].callback;
-            const airInstanceCtx = proverCallbacks[i].airInstanceCtx;
-            const params = proverCallbacks[i].params;
-            await callback(stageId + i, airInstanceCtx, params);
-
-            // [Prover Manager] Compute challenges for all stages except the last one
-            //TODO remove this
-            if (i !== proverCallbacks.length - 1) {
-                this.proofCtx.challenges[stageId + i] = await this.computeChallenges(stageId + i);
-            }
+            if (i < proverCallbacks.length - 1) this.computeProofChallenge(stageId + i);
         }
 
         log.info(`[${this.name}]`, `<-- Proof '${this.proofManagerConfig.name}' successfully generated.`);
@@ -296,11 +286,30 @@ class ProofManager {
         }
     }
 
+    computeProofChallenge(stageId) {
+        //TODO !!!
+        const challenge = this.subproofsCtx[0].airsCtx[0].instances[0].ctx.challenges[stageId];
+        this.proofCtx.setChallenge(stageId, challenge);
+
+        // for (const subproofCtx of this.subproofsCtx) {
+        //     for (const airCtx of subproofCtx.airsCtx) {
+        //         for (const airInstanceCtx of airCtx.instances) {
+        //             log.info(`[ProofManager]`, `··· Air '${airCtx.name}' Computing proof challenge for stage ${stageId}.`);
+        //             this.proofCtx.setChallenge(stageId, this.prover.computeProofChallenge(stageId, airInstanceCtx));
+        //         }
+        //     }
+        // }
+    }
+
+
     async callProverCallback(proverCallback, stageId) {
+        const callback = proverCallback.callback;
+        const params = proverCallback.params;
+
         for (const subproofCtx of this.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
                 for (const airInstanceCtx of airCtx.instances) {
-                    await proverCallback(stageId, airInstanceCtx);
+                    await callback(stageId, airInstanceCtx, params);
                 }
             }
         }
@@ -313,13 +322,13 @@ class ProofManager {
         // TODO Finalize setup
     }
 
-    async computeChallenges(stageId) {
+    async computeAirChallenges(stageId) {
         log.info(`[${this.name}]`, `··· Computing challenges for stage ${stageId}`);
 
         for (const subproofCtx of this.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
                 for (const airInstanceCtx of airCtx.instances) {
-                    return await this.prover.computeChallenges(stageId, airInstanceCtx);
+                    return await this.prover.computeAirChallenges(stageId, airInstanceCtx);
                 }
             }
         }

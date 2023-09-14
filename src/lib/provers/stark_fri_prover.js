@@ -63,17 +63,10 @@ class StarkFriProver extends ProverComponent {
         }
     }
 
-    async computeChallenges(stageId, airInstanceCtx) {
+    async computeAirChallenges(stageId, airInstanceCtx) {
         this.checkInitialized();
 
-        if(stageId >= 7) {
-            return computeFRIChallenge(airInstanceCtx.ctx.pilInfo.starkStruct.steps.length, airInstanceCtx.ctx, log);
-        } else if(stageId >= 4) {
-            return computeFRIChallenge(stageId-4, airInstanceCtx.ctx, log);
-        } else {
-            return await calculateChallengeStark(stageId, airInstanceCtx.ctx);
-        }
-
+        airInstanceCtx.ctx.challenges[stageId] = await calculateChallengeStark(stageId, airInstanceCtx.ctx);
     }
 
     setChallenges(stageId, airInstanceCtx, challenge) {
@@ -82,7 +75,7 @@ class StarkFriProver extends ProverComponent {
         setChallengesStark(stageId, airInstanceCtx.ctx, challenge, log);
     }
 
-    getProverCallbacksNew(airInstanceCtx) {
+    getProverCallbacks(airInstanceCtx) {
         this.checkInitialized();
 
         let callbacks = [
@@ -111,7 +104,12 @@ class StarkFriProver extends ProverComponent {
 
         log.info(`[${this.name}]`, `Computing Openings for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
 
+        const challenge = this.proofmanagerAPI.getChallenge(stageId - 1);
+        setChallengesStark(stageId, airInstanceCtx.ctx, challenge, log);
+
         await computeEvalsStark(airInstanceCtx.ctx, log);
+
+        airInstanceCtx.ctx.challenges[stageId] = await calculateChallengeStark(stageId, airInstanceCtx.ctx);
     }
 
     async computeFRIStark(stageId, airInstanceCtx, params) {
@@ -123,13 +121,20 @@ class StarkFriProver extends ProverComponent {
 
         const options = { parallelExec: false, useThreads: false, logger: log };
 
+        const challenge = this.proofmanagerAPI.getChallenge(stageId - 1);
+        setChallengesStark(stageId, airInstanceCtx.ctx, challenge, log);
+
         await computeFRIStark(airInstanceCtx.ctx, options);
+
+        airInstanceCtx.ctx.challenges[stageId] = computeFRIChallenge(stageId - 4, airInstanceCtx.ctx, log);
     }
 
     async computeFRIFolding(stageId, airInstanceCtx, params) {
         const challenge = this.proofmanagerAPI.getChallenge(stageId - 1);
 
         await computeFRIFolding(params.step, airInstanceCtx.ctx, challenge);
+
+        airInstanceCtx.ctx.challenges[stageId] = computeFRIChallenge(stageId - 4, airInstanceCtx.ctx, log);
     }
 
     async computeFRIQueries(stageId, airInstanceCtx, params) {
