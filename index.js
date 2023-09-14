@@ -51,13 +51,43 @@ proofSettings = {
 //     },
 // };
 
-run(proofSettings).then(
-    () => {
-        process.exit(0);
-    },
-    (err) => {
-        console.log(err.message);
-        console.log(err.stack);
-        process.exit(1);
+// run(proofSettings).then(
+//     () => {
+//         process.exit(0);
+//     },
+//     (err) => {
+//         console.log(err.message);
+//         console.log(err.stack);
+//         process.exit(1);
+//     }
+// );
+
+function mergeOrderedArrays(arr1, arr2) {
+    const isAscending = arr1[0] < arr1[arr1.length - 1];
+    const result = [];
+  
+    while (arr1.length > 0 && arr2.length > 0) {
+      if ((isAscending && arr1[0] <= arr2[0]) || (!isAscending && arr1[0] >= arr2[0])) {
+        result.push(arr1.shift());
+      } else {
+        result.push(arr2.shift());
+      }
     }
-);
+  
+    // If there are any remaining elements in arr1 or arr2, add them to the result.
+    while (arr1.length > 0) {
+      result.push(arr1.shift());
+    }
+    while (arr2.length > 0) {
+      result.push(arr2.shift());
+    }
+  
+    return result;
+  }
+  
+  // Example usage:
+  const arr1 = [25, 24, 20, 16, 12];
+  const arr2 = [19, 16, 12];
+  const mergedArray = mergeOrderedArrays(arr1, arr2);
+  
+  console.log(mergedArray); // Output will be [25, 24, 20, 19, 16, 16, 12, 12]

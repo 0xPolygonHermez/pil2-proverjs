@@ -4,12 +4,9 @@ const { getRoots } = require("pilcom/src/utils.js");
 
 class ProofCtxStruct {
     /**
-     * Creates a new GlobalCtxStruct instance.
+     * Creates a new ProofCtxStruct instance.
      * @constructor
-     * @param {string} name - The name property.
-     * @param {FiniteField} F - A finite field class.
-     * @param {int} blowupFactor - The blowup factor, determining the multiplication factor applied to the base field's size for enhanced security
-     * @param {BaseFieldElement[]} challenges - An array of proof challenges.
+     * @param {pilout} pilout - The pilout proto.
      */
     constructor(pilout) {
         this.name = pilout.name;
@@ -21,7 +18,6 @@ class ProofCtxStruct {
             throw new Error(`Finite field with this characteristic prime number ${"0x" + pilout.baseField.toString('hex').toUpperCase()} not supported`);
         }
 
-        this.blowupFactor = pilout.blowupFactor;
         this.challenges = [];
         if (pilout.numChallenges !== undefined) {
             for (let i = 0; i < pilout.numChallenges.length; i++) {
@@ -77,19 +73,18 @@ class SubproofCtxStruct {
         }
 
         this.F = proofCtx.F;
-        const subproof = pilout.subproofs[subproofId];
 
         this.subproofId = subproofId;
+
+        const subproof = pilout.subproofs[subproofId];
         this.name = subproof.name;
 
-        this.blowupFactor = pilout.blowupFactor;
         this.airsCtx = [];
         for (let i = 0; i < subproof.airs.length; i++) {
             const hasSubproofValue = subproof.subproofvalues !== undefined && subproof.subproofvalues[i] !== undefined;
             const airCtx = new AirCtxStruct(i, this, subproof.airs[i], hasSubproofValue);
             this.airsCtx.push(airCtx);
         }
-
     }
 
     addAirInstance(airId, numRows) {
@@ -133,7 +128,6 @@ class AirInstanceCtxStruct {
         this.instanceId = airCtx.instances.length;
         // Pointer to airCtx
         this.airCtx = airCtx;
-        this.numRows = numRows;
         this.proof = {};
         if(airCtx.hasSubproofValue)  this.subproofValue = null;
     }

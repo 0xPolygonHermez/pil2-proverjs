@@ -66,7 +66,14 @@ class StarkFriProver extends ProverComponent {
     async computeChallenges(stageId, airInstanceCtx) {
         this.checkInitialized();
 
-        return await calculateChallengeStark(stageId, airInstanceCtx.ctx);
+        if(stageId >= 7) {
+            return computeFRIChallenge(airInstanceCtx.ctx.pilInfo.starkStruct.steps.length, airInstanceCtx.ctx, log);
+        } else if(stageId >= 4) {
+            return computeFRIChallenge(stageId-4, airInstanceCtx.ctx, log);
+        } else {
+            return await calculateChallengeStark(stageId, airInstanceCtx.ctx);
+        }
+
     }
 
     setChallenges(stageId, airInstanceCtx, challenge) {
@@ -75,14 +82,26 @@ class StarkFriProver extends ProverComponent {
         setChallengesStark(stageId, airInstanceCtx.ctx, challenge, log);
     }
 
-    getProverCallbacks() {
+    getProverCallbacksNew(airInstanceCtx) {
         this.checkInitialized();
 
-        return [
-            this.computeOpenings.bind(this),
-            this.computeFRI.bind(this),
-            
+        let callbacks = [
+            { callback: this.computeOpenings.bind(this), airInstanceCtx, params: {}},
+            { callback: this.computeFRIStark.bind(this), airInstanceCtx, params: {} },
         ];
+
+        for (let step = 0; step < airInstanceCtx.ctx.pilInfo.starkStruct.steps.length; step++) {
+            const callbackItem = {
+                callback: this.computeFRIFolding.bind(this),
+                airInstanceCtx,
+                params: { step }
+            }
+            callbacks.push(callbackItem);
+        }
+
+        callbacks.push({ callback: this.computeFRIQueries.bind(this), airInstanceCtx, params: {}});
+
+        return callbacks;
     }
 
     async computeOpenings(stageId, airInstanceCtx) {
@@ -92,34 +111,39 @@ class StarkFriProver extends ProverComponent {
 
         log.info(`[${this.name}]`, `Computing Openings for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
 
-        let challenge = this.proofmanagerAPI.getChallenge(stageId + 2);
-
-        await computeEvalsStark(airInstanceCtx.ctx, challenge, log);
+        await computeEvalsStark(airInstanceCtx.ctx, log);
     }
 
-    async computeFRI(stageId, airInstanceCtx) {
+    async computeFRIStark(stageId, airInstanceCtx, params) {
         const airId = airInstanceCtx.airId;
         const airInstanceId = airInstanceCtx.instanceId;
         const subproofCtx = airInstanceCtx.airCtx.subproofCtx;
 
-        log.info(`[${this.name}]`, `Computing FRI for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
+        log.info(`[${this.name}]`, `Computing FRI Stark for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
 
         const options = { parallelExec: false, useThreads: false, logger: log };
 
         await computeFRIStark(airInstanceCtx.ctx, options);
+    }
 
-        for (let step = 0; step < airInstanceCtx.ctx.pilInfo.starkStruct.steps.length; step++) {
-            const challenge = computeFRIChallenge(step, airInstanceCtx.ctx, log);
+    async computeFRIFolding(stageId, airInstanceCtx, params) {
+        const challenge = this.proofmanagerAPI.getChallenge(stageId - 1);
 
-            await computeFRIFolding(step, airInstanceCtx.ctx, challenge);
-        }
+        await computeFRIFolding(params.step, airInstanceCtx.ctx, challenge);
+    }
+
+    async computeFRIQueries(stageId, airInstanceCtx, params) {
+        const airId = airInstanceCtx.airId;
+        const airInstanceId = airInstanceCtx.instanceId;
+        const subproofCtx = airInstanceCtx.airCtx.subproofCtx;
+
+        const challenge = this.proofmanagerAPI.getChallenge(stageId - 1);
     
-        const friQueries = computeFRIChallenge(airInstanceCtx.ctx.pilInfo.starkStruct.steps.length, airInstanceCtx.ctx, log);
-    
-        computeFRIQueries(airInstanceCtx.ctx, friQueries);
+        computeFRIQueries(airInstanceCtx.ctx, challenge);
 
         subproofCtx.airsCtx[airId].instances[airInstanceId].proof = await genProofStark(airInstanceCtx.ctx, log);
     }    
+
 }
 
 module.exports = StarkFriProver;

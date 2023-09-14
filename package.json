@@ -27,6 +27,7 @@
   "dependencies": {
     "npmlog": "^7.0.1",
     "pil2-stark-js": "https://github.com/0xPolygonHermez/pil2-stark-js.git",
+    "pilcom2": "https://github.com/0xPolygonHermez/pilcom.git#feature/pil2",
     "protobufjs": "^7.2.4"
   },
   "devDependencies": {
