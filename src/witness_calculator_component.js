@@ -31,10 +31,6 @@ class WitnessCalculatorComponent {
         }
     }
 
-    async witnessComputationStage1(subproofId, airId, instanceId, proofCtx, subproofCtx) {
-        return WITNESS_ROUND_NOTHING_TO_DO;
-    }
-
     async witnessComputation(stageId, subproofId, airId, instanceId, proofCtx, subproofCtx) {
         return WITNESS_ROUND_NOTHING_TO_DO;
     }
