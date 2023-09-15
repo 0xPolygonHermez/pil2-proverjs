@@ -54,10 +54,10 @@ class ProofManager {
         }
 
         this.prover = await ProverFactory.createProver(proofManagerConfig.prover.filename, proofmanagerAPI);
-        this.prover.initialize(proofManagerConfig.prover.settings);
+        this.prover.initialize(proofManagerConfig.prover.settings, this.options);
 
         this.checker = await CheckerFactory.createChecker(proofManagerConfig.checker.filename, proofmanagerAPI);
-        this.checker.initialize(proofManagerConfig.checker.settings);        
+        this.checker.initialize(proofManagerConfig.checker.settings, this.options);        
 
         this.initialized = true;
         log.info(`[${this.name}]`, `${this.name} initialized.`);
@@ -148,7 +148,7 @@ class ProofManager {
         }
     }
 
-    async verifyPilCommand() {
+    async verifyPil() {
         this.checkInitialized();
 
         try {
@@ -159,14 +159,19 @@ class ProofManager {
             await this.computeWitnessStage(0);
             log.info(`[${this.name}]`, `<== STAGE 0`);
 
+            let result = true;
             for (const subproofCtx of this.subproofsCtx) {
                 for (const airCtx of subproofCtx.airsCtx) {
                     for (const airInstanceCtx of airCtx.instances) {
-                        await this.prover.pilVerify(subproofCtx, airCtx.airId, airInstanceCtx.instanceId);
+                        result = result && await this.prover.pilVerify(subproofCtx, airCtx.airId, airInstanceCtx.instanceId);
                     }
                 }
             }
-    
+            if(result) {
+                log.info(`[${this.name}]`, `PIL verification successful.`);
+            } else {
+                log.error(`[${this.name}]`, `PIL verification failed.`);
+            }
         } catch (error) {
             log.error(`[${this.name}]`, `Error while verifying PIL: ${error}`);
             throw error;

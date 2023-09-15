@@ -5,7 +5,7 @@
   "author": "Polygon Hermez",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "nyc mocha test/simple/stark_simple.test.js"
   },
   "keywords": [
     "pil",
@@ -26,6 +26,7 @@
   "homepage": "https://github.com/0xPolygonHermez/pil2-proofman-js#readme",
   "dependencies": {
     "npmlog": "^7.0.1",
+    "nyc": "^15.1.0",
     "pil2-stark-js": "https://github.com/0xPolygonHermez/pil2-stark-js.git",
     "pilcom2": "https://github.com/0xPolygonHermez/pilcom.git#feature/pil2",
     "protobufjs": "^7.2.4"

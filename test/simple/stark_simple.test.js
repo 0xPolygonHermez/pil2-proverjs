@@ -10,19 +10,21 @@ async function runProver(prefix) {
         },
         witnessCalculators: [
             // First witness calculator is the main executor
-            { filename: `./test/simple/${prefix}/${prefix}_executor.js`, type: "main", settings: { parallelExec: false, useThreads: false } },
+            { filename: `./test/simple/${prefix}/${prefix}_executor.js`,type: "main", settings: {} },
             // { filename: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {},},
         ],
         prover: {
             filename: "./src/lib/provers/stark_fri_prover.js",
-            settings: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json`, parallelExec: false, useThreads: false },
+            settings: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json` },
         },
         checker: { filename: "./src/lib/checkers/stark_checker.js", settings: {} },
         setup: "setup",
     };
 
     const options = {
-        verify: true
+        verify: true,
+        parallelExec: false,
+        useThreads: false
     };
 
     const proofManager = new ProofManager("zkEvmProofManager");
@@ -43,7 +45,7 @@ async function runPilVerifier(prefix) {
         },
         witnessCalculators: [
             // First witness calculator is the main executor
-            { filename: `./test/simple/${prefix}/${prefix}_executor.js`, type: "main", settings: { parallelExec: false, useThreads: false } },
+            { filename: `./test/simple/${prefix}/${prefix}_executor.js`, type: "main", settings: {} },
             // { filename: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {},},
         ],
         prover: {
@@ -56,13 +58,15 @@ async function runPilVerifier(prefix) {
 
     const options = {
         debug: true,
+        parallelExec: false,
+        useThreads: false
     };
 
     const proofManager = new ProofManager("zkEvmProofManager");
 
     await proofManager.initialize(proofManagerConfig, options);
 
-    await proofManager.verifyPilCommand();
+    await proofManager.verifyPil();
 }
 
 describe("PIL2 proof manager stark simple tests", async function () {

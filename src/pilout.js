@@ -35,7 +35,7 @@ class PilOut {
 
         if(options && options.debug) this.printInfo();
 
-        log.info("[PilOut]", "PilOut loaded.");
+        log.info("[PilOut]", "Pilout loaded.");
     }
 
     printInfo() {

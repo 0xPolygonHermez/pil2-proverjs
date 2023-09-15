@@ -24,8 +24,8 @@ class StarkFriProver extends ProverComponent {
         super("FRI Prover", proofmanagerAPI);
     }
 
-    initialize(settings) {
-        super.initialize(settings);
+    initialize(settings, options) {
+        super.initialize(settings, options);
 
         const starkStructFilename =  path.join(__dirname, "../../..",  this.settings.starkStruct);
         this.starkStruct = require(starkStructFilename);
@@ -50,8 +50,7 @@ class StarkFriProver extends ProverComponent {
         const splitLinearHash = false;
         const optionsPilVerify = {logger:log, debug, useThreads: false, parallelExec: false, verificationHashType, splitLinearHash};
 
-        const pilVerification = await starkGen(airInstance.cmmtPols, airInstance.cnstPols, {}, starkInfo, optionsPilVerify);
-        //assert(pilVerification==true);
+        return await starkGen(airInstance.cmmtPols, airInstance.cnstPols, {}, starkInfo, optionsPilVerify);
     }
 
     async setupProof(subproofCtx, airId, airInstanceId) {

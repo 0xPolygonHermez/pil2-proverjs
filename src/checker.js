@@ -8,12 +8,14 @@ class CheckerComponent {
 
         this.initialized = false;
         this.settings = null;
+        this.options = null;
     }
 
-    initialize(settings) {
+    initialize(settings, options) {
         log.info(`[${this.name}]`, "Initializing.");
 
         this.settings = settings;
+        this.options = options;
         this.initialized = true;
     }
 

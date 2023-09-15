@@ -22,7 +22,7 @@ class CheckerA extends CheckerComponent {
             { logger: log }
         );
 
-        if (isValid == false) {
+        if (isValid === false) {
             log.error(
                 `[${this.name}]`,
                 `STARK proof for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId} is invalid`

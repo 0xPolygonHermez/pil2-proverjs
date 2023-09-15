@@ -32,10 +32,9 @@ class WitnessCalculatorManager {
     registerWitnessCalculator(witnesscalculator) {
         this.checkInitialized();
 
-        const index = this.witnesscalculators.length;
-        this.witnesscalculators.push(witnesscalculator);
+        const length = this.witnesscalculators.push(witnesscalculator);
 
-        return index;
+        return length - 1;
     }
     
     async witnessComputation(stageId, subproofId, airId, instanceId, subproofCtx) {
