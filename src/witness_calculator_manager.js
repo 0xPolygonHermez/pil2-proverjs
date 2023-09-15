@@ -36,14 +36,15 @@ class WitnessCalculatorManager {
 
         return length - 1;
     }
-    
-    async witnessComputation(stageId, subproofId, airId, instanceId, subproofCtx) {
+
+    async witnessComputationStage0(subproofId, airId, subproofCtx) {
         this.checkInitialized();
 
-        if(stageId === 0) {
-            await this.witnesscalculators[0].witnessComputationStage0(subproofId, airId, subproofCtx);
-            return;
-        }
+        await this.witnesscalculators[0].witnessComputationStage0(subproofId, airId, subproofCtx);
+    }
+
+    async witnessComputation(stageId, airInstanceCtx) {
+        this.checkInitialized();
 
         const numWitnessCalculators = this.witnesscalculators.length;
         let witnesscalculatorStatus = Array(numWitnessCalculators).fill(WITNESS_ROUND_NOTHING_DONE);
@@ -60,7 +61,7 @@ class WitnessCalculatorManager {
                 throw new Error(`WitnessCalculator ${this.witnesscalculators[i].name} is stuck in witness computation for stage ${stageId}`);
             }
 
-            const status = await this.witnesscalculators[i].witnessComputation(stageId, subproofId, airId, instanceId, subproofCtx);
+            const status = await this.witnesscalculators[i].witnessComputation(stageId, airInstanceCtx);
 
             if(witnesscalculatorStatus[i] !== WITNESS_ROUND_NOTHING_TO_DO &&
                witnesscalculatorStatus[i] !== WITNESS_ROUND_NOTHING_DONE &&

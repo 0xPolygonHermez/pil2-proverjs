@@ -52,30 +52,30 @@ class ExecutorSimple3 extends WitnessCalculatorComponent {
         return WITNESS_ROUND_FULLY_DONE;
     }
 
-    async witnessComputation(stageId, subproofId, airId, instanceId, subproofCtx) {
-        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[instanceId].ctx;
-
+    async witnessComputation(stageId, airInstanceCtx) {
+        const ctx = airInstanceCtx.ctx;
+        
         if(stageId === 1) {
-            await calculatePublics(airInstanceCtx);
+            await calculatePublics(ctx);
         }
         
-        const qStage = airInstanceCtx.pilInfo.numChallenges.length + 1;
+        const qStage = ctx.pilInfo.numChallenges.length + 1;
 
         const dom = stageId === qStage ? "ext" : "n";
 
-        await callCalculateExps(`stage${stageId}`, airInstanceCtx.pilInfo.code[`stage${stageId}`], dom, airInstanceCtx, this.settings.parallelExec, this.settings.useThreads, false);
+        await callCalculateExps(`stage${stageId}`, ctx.pilInfo.code[`stage${stageId}`], dom, ctx, this.settings.parallelExec, this.settings.useThreads, false);
     
-        await applyHints(stageId, airInstanceCtx);
+        await applyHints(stageId, ctx);
 
         if(stageId !== qStage && this.options.debug) {
-            const nConstraintsStage = airInstanceCtx.pilInfo.constraints[`stage${stageId}`].length;
+            const nConstraintsStage = ctx.pilInfo.constraints[`stage${stageId}`].length;
 
             for(let i = 0; i < nConstraintsStage; i++) {
-                const constraint = airInstanceCtx.pilInfo.constraints[`stage${stageId}`][i];
+                const constraint = ctx.pilInfo.constraints[`stage${stageId}`][i];
                 if(logger) {
                     logger.debug(` Checking constraint ${i + 1}/${nConstraintsStage}: line ${constraint.line} `);
                 }
-                await callCalculateExps(`stage${stageId}`, constraint, dom, airInstanceCtx, this.settings.parallelExec, this.settings.useThreads, true);
+                await callCalculateExps(`stage${stageId}`, constraint, dom, ctx, this.settings.parallelExec, this.settings.useThreads, true);
             }
         }
         return WITNESS_ROUND_FULLY_DONE;

@@ -297,11 +297,11 @@ class ProofManager {
             log.info(`[${this.name}]`, `--> Subproof '${subproofCtx.name}' witness computation stage ${stageId}`);
             for (const airCtx of subproofCtx.airsCtx) {
                 if(stageId === 0) {
-                    await this.wcManager.witnessComputation(stageId, subproofCtx.subproofId, airCtx.airId, null, subproofCtx);
+                    await this.wcManager.witnessComputationStage0(subproofCtx.subproofId, airCtx.airId, subproofCtx);
                 } else {
                     for (const airInstanceCtx of airCtx.instances) {
                         log.info(`[ProofManager]`, `··· Air '${airCtx.name}' Computing witness for stage ${stageId}.`);
-                        await this.wcManager.witnessComputation(stageId, subproofCtx.subproofId, airCtx.airId, airInstanceCtx.instanceId, subproofCtx);
+                        await this.wcManager.witnessComputation(stageId, airInstanceCtx);
                     }
                 }
             }

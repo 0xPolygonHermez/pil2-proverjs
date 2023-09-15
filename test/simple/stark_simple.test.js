@@ -10,7 +10,7 @@ async function runProver(prefix) {
         },
         witnessCalculators: [
             // First witness calculator is the main executor
-            { filename: `./test/simple/${prefix}/${prefix}_executor.js`,type: "main", settings: {} },
+            { filename: `./test/simple/${prefix}/${prefix}_executor.js`, settings: {} },
             // { filename: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {},},
         ],
         prover: {
@@ -45,7 +45,7 @@ async function runPilVerifier(prefix) {
         },
         witnessCalculators: [
             // First witness calculator is the main executor
-            { filename: `./test/simple/${prefix}/${prefix}_executor.js`, type: "main", settings: {} },
+            { filename: `./test/simple/${prefix}/${prefix}_executor.js`, settings: {} },
             // { filename: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {},},
         ],
         prover: {
