@@ -217,7 +217,12 @@ class ProofManager {
         // TODO change this, I did it to maintain compatibility with pil2-stark code
         for( let i = 0; i < this.pilout.pilout.subproofs.length; i++) {
             for( let j = 0; j < this.pilout.pilout.subproofs[i].airs.length; j++) {
-                this.pilout.pilout.subproofs[i].airs[j].symbols = this.pilout.pilout.symbols.filter(symbol => symbol.subproofId === i && symbol.airId === j);
+                // this.pilout.pilout.subproofs[i].airs[j].symbols = this.pilout.pilout.symbols.filter(symbol => symbol.subproofId === i && symbol.airId === j);
+                // this.pilout.pilout.subproofs[i].airs[j].numChallenges = this.pilout.pilout.numChallenges;
+
+                // TODO change this
+                this.pilout.pilout.subproofs[i].airs[j].symbols = this.pilout.pilout.symbols;
+                this.pilout.pilout.subproofs[i].airs[j].hints = this.pilout.pilout.hints;
                 this.pilout.pilout.subproofs[i].airs[j].numChallenges = this.pilout.pilout.numChallenges;
             }
         }

@@ -5,7 +5,8 @@
   "author": "Polygon Hermez",
   "main": "index.js",
   "scripts": {
-    "test": "nyc mocha test/simple/stark_simple.test.js"
+    "test:simple": "mocha test/simple/stark_simple.test.js",
+    "test:simple:coverage": "nyc mocha test/simple/stark_simple.test.js"
   },
   "keywords": [
     "pil",
