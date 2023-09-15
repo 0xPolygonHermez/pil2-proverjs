@@ -15,7 +15,7 @@ const log = require("../../../logger.js");
 
 class ExecutorSimple3 extends WitnessCalculatorComponent {
     constructor(proofmanagerAPI) {
-        super("WCSimple2", proofmanagerAPI);
+        super("WCSimple3", proofmanagerAPI);
     }
 
     async witnessComputationStage0(subproofId, airId, subproofCtx) {

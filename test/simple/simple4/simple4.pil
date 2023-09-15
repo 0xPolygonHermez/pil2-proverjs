@@ -9,7 +9,7 @@ subproof Simple4(2**3) {
     col fixed LLAST = [0...,1];
 
     @public {reference: in1, expression: b, row_index: 1}
-    @public {reference: in2, expression: a*a*a, row_index: 7}
+    @public {reference: in2, expression: a*a*a, row_index: 2**3-1}
 
     a*a*a*a*a === b*b*a; 
 

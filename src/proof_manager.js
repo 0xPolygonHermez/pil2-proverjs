@@ -196,7 +196,8 @@ class ProofManager {
                 const isValid = await this.checker.checkProof(airInstance.proof, 0, 0, this.proofCtx, this.subproofsCtx[0]);
 
                 if(isValid == false) {
-                    log.error(`[${this.name}]`, `Proof for subproof ${this.subproofsCtx[0].name} is invalid`);        
+                    log.error(`[${this.name}]`, `Proof for subproof ${this.subproofsCtx[0].name} is invalid`);
+                    throw new Error(`[${this.name}]`, `Proof for subproof ${this.subproofsCtx[0].name} is invalid`);
                 } else {
                     log.info(`[${this.name}]`, `Proof for subproof ${this.subproofsCtx[0].name} is valid`);
                 }

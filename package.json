@@ -6,7 +6,9 @@
   "main": "index.js",
   "scripts": {
     "test:simple": "mocha test/simple/stark_simple.test.js",
-    "test:simple:coverage": "nyc mocha test/simple/stark_simple.test.js"
+    "test:fibonacci": "mocha test/fibonacci/stark_fibonacci.test.js",
+    "test:simple:coverage": "nyc mocha test/simple/stark_simple.test.js",
+    "test:fibonacci:coverage": "nyc mocha test/fibonacci/stark_fibonacci.test.js"
   },
   "keywords": [
     "pil",
@@ -29,7 +31,7 @@
     "npmlog": "^7.0.1",
     "nyc": "^15.1.0",
     "pil2-stark-js": "https://github.com/0xPolygonHermez/pil2-stark-js.git",
-    "pilcom2": "https://github.com/0xPolygonHermez/pilcom.git#feature/pil2",
+    "pilcom": "https://github.com/0xPolygonHermez/pilcom.git#feature/pil2",
     "protobufjs": "^7.2.4"
   },
   "devDependencies": {

@@ -2,7 +2,7 @@ const {
     WITNESS_ROUND_NOTHING_DONE,
     WITNESS_ROUND_FULLY_DONE,
     WitnessCalculatorComponent
-} = require("../../../src/witness_calculator_component.js");
+} = require("../../src/witness_calculator_component.js");
 
 const {
     calculatePublics,
@@ -11,11 +11,11 @@ const {
 } = require("pil2-stark-js/src/prover/prover_helpers.js");
 const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
 
-const log = require("../../../logger.js");
+const log = require("../../logger.js");
 
-class ExecutorSimple4 extends WitnessCalculatorComponent {
+class ExecutorFibonacci extends WitnessCalculatorComponent {
     constructor(proofmanagerAPI) {
-        super("WCSimple4", proofmanagerAPI);
+        super("WCFibonacci", proofmanagerAPI);
     }
 
     async witnessComputationStage0(subproofId, airId, subproofCtx) {
@@ -35,12 +35,16 @@ class ExecutorSimple4 extends WitnessCalculatorComponent {
 
         const N = air.numRows;
         const F = subproofCtx.F;
-        for (let i = 0; i < N; i++) {
-            const v = BigInt(i);
 
-            airInstanceCtx.cmmtPols.Simple4.a[i] = v;
-            airInstanceCtx.cmmtPols.Simple4.b[i] = F.square(v);
-        }
+        airInstanceCtx.cmmtPols.Fibonacci.b[0] = 1n;
+        airInstanceCtx.cmmtPols.Fibonacci.a[0] = 2n;
+        for (let i = 1; i < N; i++) {
+            const polA = airInstanceCtx.cmmtPols.Fibonacci.a;
+            const polB = airInstanceCtx.cmmtPols.Fibonacci.b;
+
+            polB[i] = polA[i-1];
+            polA[i] = F.add(F.square(polB[i-1]), F.square(polA[i-1]));    
+        }    
 
         return WITNESS_ROUND_FULLY_DONE;
     }
@@ -75,4 +79,4 @@ class ExecutorSimple4 extends WitnessCalculatorComponent {
     }
 }
 
-module.exports = ExecutorSimple4;
+module.exports = ExecutorFibonacci;
