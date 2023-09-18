@@ -25,7 +25,7 @@ proofSettings = {
             filename: "./src/lib/provers/stark_prover.js",
             settings: { starkStruct: "./test/simple/simple1/simple1_stark_struct.json", parallelExec: false, useThreads: false },
         },
-        checker: { filename: "./src/lib/checkers/stark_checker.js", settings: {} },
+        checker: { filename: "./src/lib/checkers/stark_fri_checker.js", settings: {} },
         setup: "setup",
     },
     options: {
@@ -43,7 +43,7 @@ proofSettings = {
 //             { file: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {} },
 //         ],
 //         prover: { filename: "./src/lib/provers/stark_prover.js", settings: {} },
-//         checker: { filename: "./src/lib/checkers/stark_checker.js", settings: {} },
+//         checker: { filename: "./src/lib/checkers/stark_fri_checker.js", settings: {} },
 //         setup: "setup",
 //     },
 //     options: {

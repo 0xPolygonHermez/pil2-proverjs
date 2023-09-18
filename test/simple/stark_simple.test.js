@@ -17,7 +17,7 @@ function getSettings(prefix) {
             filename: "./src/lib/provers/stark_fri_prover.js",
             settings: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json` },
         },
-        checker: { filename: "./src/lib/checkers/stark_checker.js", settings: {} },
+        checker: { filename: "./src/lib/checkers/stark_fri_checker.js", settings: {} },
         setup: "setup",
     };
 
