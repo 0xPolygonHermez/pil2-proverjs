@@ -40,9 +40,6 @@ class StarkFriProver extends ProverComponent {
         const airInstance = subproofCtx.airsCtx[airId].instances[airInstanceId];
         const pilout = this.proofmanagerAPI.getPilout();
         const air = pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
-        air.hints = pilout.pilout.hints;
-        air.numChallenges = pilout.pilout.numChallenges;
-        air.symbols = pilout.pilout.symbols;
 
         const starkInfo = pilInfo(subproofCtx.F, air, stark, pil1, debug, {});
 
