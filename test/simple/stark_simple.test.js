@@ -1,9 +1,9 @@
-const ProofManager = require("../../src/proof_manager.js");
+const ProofOrchestrator = require("../../src/proof_orchestrator.js");
 const log = require("../../logger.js");
 
 function getSettings(prefix) {
     return {
-        name: "zkEvmProof-" + Date.now(),
+        name: prefix + "Test-" + Date.now(),
         pilout: {
             piloutFilename: `./test/simple/${prefix}/${prefix}.pilout`,
             piloutProto: "./node_modules/pilcom/src/pilout.proto",
@@ -17,8 +17,26 @@ function getSettings(prefix) {
             filename: "./src/lib/provers/stark_fri_prover.js",
             settings: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json` },
         },
+
+        // prover: {
+        //     filename: "./src/lib/provers/stark_fri_prover.js",
+        //     settings: {
+        //         default: {
+        //             starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json`
+        //         },
+        //         stateMachines: {
+        //             Main: {
+        //                 "8": "aaa",
+        //                 "16": "bbb",
+        //                 }
+        //             }    
+        //         }
+        //     }// debug: true,
+        //     },
+        // },
+
+
         checker: { filename: "./src/lib/checkers/stark_fri_checker.js", settings: {} },
-        setup: "setup",
     };
 
 }
@@ -31,11 +49,11 @@ async function runProver(prefix) {
         useThreads: false
     };
 
-    const proofManager = new ProofManager("zkEvmProofManager");
+    const proofOrchestrator = new ProofOrchestrator("SimpleProofOrchestrator");
 
-    await proofManager.initialize(proofManagerConfig, options);
+    await proofOrchestrator.initialize(proofManagerConfig, options);
 
-    const proof = await proofManager.prove();
+    const proof = await proofOrchestrator.prove();
 
     log.info("Proof generated");
 }
@@ -49,11 +67,11 @@ async function runPilVerifier(prefix) {
         useThreads: false
     };
 
-    const proofManager = new ProofManager("zkEvmProofManager");
+    const proofOrchestrator = new ProofOrchestrator("SimpleProofOrchestrator");
 
-    await proofManager.initialize(proofManagerConfig, options);
+    await proofOrchestrator.initialize(proofManagerConfig, options);
 
-    await proofManager.verifyPil();
+    await proofOrchestrator.verifyPil();
 }
 
 describe("PIL2 proof manager stark simple tests", async function () {

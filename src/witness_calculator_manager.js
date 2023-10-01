@@ -4,6 +4,8 @@ const {
     WITNESS_ROUND_NOTHING_TO_DO,
     WITNESS_ROUND_PARTIAL_DONE,
 } = require("./witness_calculator_component.js");
+const WitnessCalculatorFactory = require("./witness_calculator_factory.js");
+
 const log = require('../logger.js');
 
 // WitnessCalculator class acting as the composite
@@ -16,10 +18,22 @@ class WitnessCalculatorManager {
         this.witnesscalculators = [];
     }
 
-    initialize() {
-        log.info(`[${this.name}]`, "Initializing.");
+    async initialize(witnessCalculatorsConfig, options) {
+        if (this.initialized) {
+            log.error(`[${this.name}]`, "Already initialized.");
+            throw new Error(`[${this.name}] Witness Calculator Manager already initialized.`);
+        }
+
+        log.info(`[${this.name}]`, "Initializing...");
 
         this.initialized = true;
+
+        for(const witnessCalculator of witnessCalculatorsConfig) {
+            const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(witnessCalculator.witnessCalculatorLib, this.proofmanagerAPI);
+            newWitnessCalculator.initialize(witnessCalculator.settings, options);
+
+            this.registerWitnessCalculator(newWitnessCalculator);
+        }
     }
 
     checkInitialized() {
@@ -37,10 +51,32 @@ class WitnessCalculatorManager {
         return length - 1;
     }
 
-    async witnessComputationStage0(subproofId, airId, subproofCtx) {
+    async setup() {
         this.checkInitialized();
 
-        await this.witnesscalculators[0].witnessComputationStage0(subproofId, airId, subproofCtx);
+        for (const subproofCtx of this.subproofsCtx) {
+            for (const airCtx of subproofCtx.airsCtx) {
+                const { result, airInstanceCtx } = this.proofmanagerAPI.addAirInstance(airCtx.subproofCtx, airCtx.airId);
+
+                if (result === false) {
+                    log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
+                    throw new Error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
+                }
+            }
+        }
+    }
+
+    async computeWitness(stageId) {
+        for (const subproofCtx of this.subproofsCtx) {
+            log.info(`[${this.name}]`, `--> Subproof '${subproofCtx.name}' witness computation stage ${stageId}`);
+            for (const airCtx of subproofCtx.airsCtx) {
+                for (const airInstanceCtx of airCtx.instances) {
+                    log.info(`[ProofOrchestrator]`, `··· Air '${airCtx.name}' Computing witness for stage ${stageId}.`);
+                    await this.witnessComputation(stageId, airInstanceCtx);
+                }
+            }
+            log.info(`[${this.name}]`, `<-- Subproof '${subproofCtx.name}' witness computation stage ${stageId}`);
+        }
     }
 
     async witnessComputation(stageId, airInstanceCtx) {

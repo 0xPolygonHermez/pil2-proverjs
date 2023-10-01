@@ -27,27 +27,46 @@ const HINT_FIELD_TYPES = {
 
 class PilOut {
     constructor(piloutFilename, protoFilename, options) {
-        log.info("[PilOut]", "Loading pilout.");
+        log.info("[PilOut]", "Loading pilout...");
 
         const piloutEncoded = fs.readFileSync(piloutFilename);
         const PilOut = protobuf.loadSync(protoFilename).lookupType("PilOut");
         this.pilout = PilOut.toObject(PilOut.decode(piloutEncoded));
 
-        if(options && options.debug) this.printInfo();
+        this.printInfo();
 
         log.info("[PilOut]", "Pilout loaded.");
     }
 
     printInfo() {
         log.info("[PilOut]", `Pilout name: ${this.pilout.name}`);
-        log.info("[PilOut]", `Pilout #subproofs: ${this.pilout.subproofs.length}`);
-        log.info("[PilOut]", `Pilout #proofValues: ${this.pilout.numProofValues}`);
-        log.info("[PilOut]", `Pilout #publicValues: ${this.pilout.numPublicValues}`);
-        if(this.pilout.publicTables) log.info("[PilOut]", `Pilout #publicTables: ${this.pilout.publicTables.length}`);
-        if(this.pilout.expressions) log.info("[PilOut]", `Pilout #expressions: ${this.pilout.expressions.length}`);
-        if(this.pilout.constraints) log.info("[PilOut]", `Pilout #constraints: ${this.pilout.constraints.length}`);
-        if(this.pilout.hints) log.info("[PilOut]", `Pilout #hints: ${this.pilout.hints.length}`);
-        if(this.pilout.symbols) log.info("[PilOut]", `Pilout #symbols: ${this.pilout.symbols.length}`);
+        log.info("[PilOut]", `  #subproofs: ${this.pilout.subproofs.length}`);
+
+        for(const subproof of this.pilout.subproofs) this.printSubproofInfo(subproof);
+
+        log.info("[PilOut]", `  #proofValues: ${this.pilout.numProofValues}`);
+        log.info("[PilOut]", `  #publicValues: ${this.pilout.numPublicValues}`);
+
+
+        if(this.pilout.publicTables) log.info("[PilOut]", `  #publicTables: ${this.pilout.publicTables.length}`);
+        if(this.pilout.expressions) log.info("[PilOut]", `  #expressions: ${this.pilout.expressions.length}`);
+        if(this.pilout.constraints) log.info("[PilOut]", `  #constraints: ${this.pilout.constraints.length}`);
+        if(this.pilout.hints) log.info("[PilOut]", `  #hints: ${this.pilout.hints.length}`);
+        if(this.pilout.symbols) log.info("[PilOut]", `  #symbols: ${this.pilout.symbols.length}`);
+    }
+
+    printSubproofInfo(subproof) {
+        log.info("[PilOut]", `    > Subproof '${subproof.name}'`);
+
+        for(const air of subproof.airs) this.printAirInfo(air);
+    }
+
+    printAirInfo(air) {
+        log.info("[PilOut]", `      > Air '${air.name}'`);
+        log.info("[PilOut]", `        #numRows:     ${air.numRows}`);
+        log.info("[PilOut]", `        #stages:      ${air.stageWidths.length}`);
+        log.info("[PilOut]", `        #expressions: ${air.expressions.length}`);
+        log.info("[PilOut]", `        #constraints: ${air.constraints.length}`);
     }
 
     get numSubproofs() {

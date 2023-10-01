@@ -12,7 +12,7 @@ class ProverComponent {
     }
 
     initialize(settings, options) {
-        log.info(`[${this.name}]`, "Initializing.");
+        log.info(`[${this.name}]`, "Initializing...");
 
         this.settings = settings;
         this.options = options;
@@ -26,8 +26,8 @@ class ProverComponent {
         }
     }
 
-    async setupProof(subproofCtx, airId, airInstanceId) {
-        throw new Error("Method 'setupProof' must be implemented in concrete classes.");
+    async newProof(subproofCtx, airId, airInstanceId) {
+        throw new Error("Method 'newProof' must be implemented in concrete classes.");
     }
 
     async commitStage(stageId, airInstanceCtx) {

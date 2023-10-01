@@ -1,4 +1,5 @@
 const ProverComponent = require("../../prover.js");
+const { PROVER_OPENING_TASKS_COMPLETED, PROVER_OPENING_TASKS_PENDING } = require("../../provers_manager.js");
 const starkSetup = require("pil2-stark-js/src/stark/stark_setup.js");
 const starkGen = require("pil2-stark-js/src/stark/stark_gen.js");
 const { initProverStark,
@@ -14,6 +15,8 @@ const { initProverStark,
     computeQStark
 } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 const pilInfo = require("pil2-stark-js/src/pil_info/pil_info.js");
+const { newConstantPolsArrayPil2 } = require("pilcom/src/polsarray.js");
+const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
 
 const path = require("path");
 
@@ -31,12 +34,44 @@ class StarkFriProver extends ProverComponent {
         this.starkStruct = require(starkStructFilename);
     }
 
+    async setup(subproofCtx, airCtx) {
+        const pilout = this.proofmanagerAPI.getPilout().pilout;
+        const airSymbols = pilout.symbols.filter(symbol => symbol.subproofId === subproofCtx.subproofId && symbol.airId === airCtx.airId);
+
+        const air = this.proofmanagerAPI.getPilout().getAirBySubproofIdAirId(subproofCtx.subproofId, airCtx.airId);
+
+        airCtx.setup = {
+            name: (airCtx.name ? airCtx.name : airCtx.airId) + "-" + airCtx.numRows,
+            cnstPols: newConstantPolsArrayPil2(airSymbols, airCtx.numRows, subproofCtx.F)
+        };
+
+        getFixedPolsPil2(air, airCtx.setup.cnstPols, subproofCtx.F);
+
+        const options = {
+            F: subproofCtx.F,
+            pil1: false,
+        };
+
+        Object.assign(airCtx.setup, await starkSetup(airCtx.setup.cnstPols, air, this.starkStruct, options));
+
+        for (const airInstanceCtx of airCtx.instances) {   
+            airInstanceCtx.ctx = await initProverStark(airCtx.setup.starkInfo, airCtx.setup.cnstPols, airCtx.setup.constTree, { logger: log});                   
+        }
+    }
+
+    async newProof(subproofCtx, airId, airInstanceId) {
+        const airInstance = subproofCtx.airsCtx[airId].instances[airInstanceId];
+        
+        const setup = airInstance.airCtx.setup;
+        airInstance.ctx = await initProverStark(setup.starkInfo, setup.cnstPols, setup.constTree, { logger: log});        
+    }
+
+
     async pilVerify(subproofCtx, airId, airInstanceId) {
         const pil1 = false;
         const stark = true;
         const debug = true;
-
-        log.debug = log.info;
+        
         const airInstance = subproofCtx.airsCtx[airId].instances[airInstanceId];
         const pilout = this.proofmanagerAPI.getPilout();
         const air = pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
@@ -47,30 +82,8 @@ class StarkFriProver extends ProverComponent {
         const splitLinearHash = false;
         const optionsPilVerify = {logger:log, debug, useThreads: false, parallelExec: false, verificationHashType, splitLinearHash};
 
-        return await starkGen(airInstance.cmmtPols, airInstance.cnstPols, {}, starkInfo, optionsPilVerify);
-    }
-
-    async setupProof(subproofCtx, airId, airInstanceId) {
-        const airInstance = subproofCtx.airsCtx[airId].instances[airInstanceId];
-        const pilout = this.proofmanagerAPI.getPilout();
-        const air = pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
-
-        log.debug = log.info;
-
-        const options = {
-            F: subproofCtx.F,
-            pil1: false,
-            parallelExec: false,
-            useThreads: false,
-            logger: log,
-        };
-    
-        airInstance.setup = await starkSetup(airInstance.cnstPols, air, this.starkStruct, options);
-    
-        airInstance.ctx = await initProverStark(airInstance.setup.starkInfo, airInstance.cnstPols, airInstance.setup.constTree, options);
-        
-        // Read committed polynomials
-        airInstance.cmmtPols.writeToBigBuffer(airInstance.ctx.cm1_n, airInstance.ctx.pilInfo.mapSectionsN.cm1);
+        const setup = airInstance.airCtx.setup;
+        return await starkGen(airInstance.cmmtPols, setup.cnstPols, {}, starkInfo, optionsPilVerify);
     }
 
     async commitStage(stageId, airInstanceCtx) {
@@ -85,6 +98,29 @@ class StarkFriProver extends ProverComponent {
         }
     }
 
+    async openingStage(openingId, airInstanceCtx) {
+        this.checkInitialized();
+
+        const isLastRound = openingId === 2 + airInstanceCtx.ctx.pilInfo.starkStruct.steps.length + 1;
+        const numStages = this.proofmanagerAPI.getPilout().numStages + 1;
+
+        if(openingId === 1) {
+            await this.computeOpenings(numStages + openingId, airInstanceCtx);
+        } else if(openingId === 2) {
+            await this.computeFRIStark(numStages + openingId, airInstanceCtx);
+        } else if(openingId <= 2 + airInstanceCtx.ctx.pilInfo.starkStruct.steps.length) {
+            await this.computeFRIFolding(numStages + openingId, airInstanceCtx, { step: openingId - 3});
+        } else if(openingId === 2 + airInstanceCtx.ctx.pilInfo.starkStruct.steps.length + 1) {
+            await this.computeFRIQueries(numStages + openingId, airInstanceCtx);
+        } else {
+            log.error(`[${this.name}]`, `Invalid openingId ${openingId}.`);
+            throw new Error(`[${this.name}]`, `Invalid openingId ${openingId}.`);
+        }
+
+
+        return isLastRound ? PROVER_OPENING_TASKS_COMPLETED : PROVER_OPENING_TASKS_PENDING;
+    }
+
     async computeAirChallenges(stageId, airInstanceCtx) {
         this.checkInitialized();
 
@@ -95,28 +131,6 @@ class StarkFriProver extends ProverComponent {
         this.checkInitialized();
 
         setChallengesStark(stageId, airInstanceCtx.ctx, challenge, log);
-    }
-
-    getProverCallbacks(airInstanceCtx) {
-        this.checkInitialized();
-
-        let callbacks = [
-            { callback: this.computeOpenings.bind(this), airInstanceCtx, params: {}},
-            { callback: this.computeFRIStark.bind(this), airInstanceCtx, params: {} },
-        ];
-
-        for (let step = 0; step < airInstanceCtx.ctx.pilInfo.starkStruct.steps.length; step++) {
-            const callbackItem = {
-                callback: this.computeFRIFolding.bind(this),
-                airInstanceCtx,
-                params: { step }
-            }
-            callbacks.push(callbackItem);
-        }
-
-        callbacks.push({ callback: this.computeFRIQueries.bind(this), airInstanceCtx, params: {}});
-
-        return callbacks;
     }
 
     async computeOpenings(stageId, airInstanceCtx) {

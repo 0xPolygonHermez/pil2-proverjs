@@ -16,9 +16,9 @@ class CheckerA extends CheckerComponent {
         const isValid = await starkVerify(
             proof.proof,
             proof.publics,
-            airInstance.setup.constRoot,
+            airInstance.airCtx.setup.constRoot,
             [],
-            airInstance.setup.starkInfo,
+            airInstance.airCtx.setup.starkInfo,
             { logger: log }
         );
 
