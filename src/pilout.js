@@ -26,7 +26,7 @@ const HINT_FIELD_TYPES = {
 };
 
 class PilOut {
-    constructor(piloutFilename, protoFilename, options) {
+    constructor(piloutFilename, protoFilename) {
         log.info("[PilOut]", "Loading pilout...");
 
         const piloutEncoded = fs.readFileSync(piloutFilename);

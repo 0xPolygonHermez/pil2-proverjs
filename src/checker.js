@@ -2,9 +2,8 @@
 const log = require('../logger.js');
 
 class CheckerComponent {
-    constructor(name, proofmanagerAPI) {
+    constructor(name) {
         this.name = name;
-        this.proofmanagerAPI = proofmanagerAPI;
 
         this.initialized = false;
         this.settings = null;

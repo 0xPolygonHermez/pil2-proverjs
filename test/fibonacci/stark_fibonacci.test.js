@@ -1,4 +1,7 @@
 const ProofOrchestrator = require("../../src/proof_orchestrator.js");
+
+const { proveAndVerifyTest } = require("../test_utils.js");
+
 const log = require("../../logger.js");
 
 function getSettings() {
@@ -22,23 +25,6 @@ function getSettings() {
     };
 
 }
-async function runProver(prefix) {
-    const proofManagerConfig = getSettings(prefix);
-
-    const options = {
-        verify: true,
-        parallelExec: false,
-        useThreads: false
-    };
-
-    const proofOrchestrator = new ProofOrchestrator("FibonacciProofOrchestrator");
-
-    await proofOrchestrator.initialize(proofManagerConfig, options);
-
-    const proof = await proofOrchestrator.prove();
-
-    log.info("Proof generated");
-}
 
 async function runPilVerifier(prefix) {
     const proofManagerConfig = getSettings(prefix);
@@ -59,7 +45,11 @@ async function runPilVerifier(prefix) {
 describe("PIL2 proof manager stark simple tests", async function () {
     this.timeout(10000000);
 
-    it("prove Fibonacci", async () => { await runProver(); });
+    it("prove Fibonacci", async () => {
+        await proveAndVerifyTest(getSettings(), { "publics[2]": 12437053821496257494n });
+    });
 
-    it("verify Fibonacci", async () => { await runPilVerifier(); });
+    it("verify Fibonacci", async () => {
+        await runPilVerifier();
+    });
 });

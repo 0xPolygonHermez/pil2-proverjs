@@ -20,6 +20,10 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
     async witnessComputation(stageId, airInstanceCtx) {
         const ctx = airInstanceCtx.ctx;
 
+        if(stageId > 2) {
+            return WITNESS_ROUND_NOTHING_TO_DO;
+        }
+
         if(stageId === 1) {
             const subproofCtx = airInstanceCtx.airCtx.subproofCtx;
             const airCtx = airInstanceCtx.airCtx;
@@ -37,8 +41,6 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
             airInstanceCtx.cmmtPols.writeToBigBuffer(airInstanceCtx.ctx.cm1_n, airInstanceCtx.ctx.pilInfo.mapSectionsN.cm1);
 
             await calculatePublics(ctx);
-        } else if(stageId > 2) {
-            return WITNESS_ROUND_NOTHING_TO_DO;
         }     
            
         const qStage = ctx.pilInfo.numChallenges.length + 1;

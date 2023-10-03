@@ -1,7 +1,7 @@
 class CheckerFactory {
-    static async createChecker(filename, proofmanagerAPI) {
+    static async createChecker(filename) {
         const { default: myClass } = await import(filename);
-        return new myClass(proofmanagerAPI);
+        return new myClass();
     }
 }
 

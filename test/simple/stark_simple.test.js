@@ -1,5 +1,6 @@
 const ProofOrchestrator = require("../../src/proof_orchestrator.js");
-const log = require("../../logger.js");
+
+const { proveAndVerifyTest } = require("../test_utils.js");
 
 function getSettings(prefix) {
     return {
@@ -40,23 +41,8 @@ function getSettings(prefix) {
     };
 
 }
-async function runProver(prefix) {
-    const proofManagerConfig = getSettings(prefix);
 
-    const options = {
-        verify: true,
-        parallelExec: false,
-        useThreads: false
-    };
 
-    const proofOrchestrator = new ProofOrchestrator("SimpleProofOrchestrator");
-
-    await proofOrchestrator.initialize(proofManagerConfig, options);
-
-    const proof = await proofOrchestrator.prove();
-
-    log.info("Proof generated");
-}
 
 async function runPilVerifier(prefix) {
     const proofManagerConfig = getSettings(prefix);
@@ -77,19 +63,35 @@ async function runPilVerifier(prefix) {
 describe("PIL2 proof manager stark simple tests", async function () {
     this.timeout(10000000);
 
-    it("prove Simple1", async () => { await runProver("simple1"); });
+    it("prove Simple1", async () => {
+        await proveAndVerifyTest(getSettings("simple1"), {});
+    });
 
-    it("prove Simple2", async () => { await runProver("simple2"); });
+    it("prove Simple2", async () => {
+        await proveAndVerifyTest(getSettings("simple2"), {});
+    });
 
-    it("prove Simple3", async () => { await runProver("simple3"); });
+    it("prove Simple3", async () => {
+        await proveAndVerifyTest(getSettings("simple3"), {});
+    });
 
-    it("prove Simple4", async () => { await runProver("simple4"); });
+    it("prove Simple4", async () => {
+        await proveAndVerifyTest(getSettings("simple4"), {});
+    });
 
-    it("verify PIL Simple1", async () => { await runPilVerifier("simple1"); });
+    it("verify PIL Simple1", async () => {
+        await runPilVerifier("simple1");
+    });
 
-    it("verify PIL Simple2", async () => { await runPilVerifier("simple2"); });
+    it("verify PIL Simple2", async () => {
+        await runPilVerifier("simple2");
+    });
 
-    it("verify PIL Simple3", async () => { await runPilVerifier("simple3"); });
+    it("verify PIL Simple3", async () => {
+        await runPilVerifier("simple3");
+    });
 
-    it("verify PIL Simple4", async () => { await runPilVerifier("simple4"); });
+    it("verify PIL Simple4", async () => {
+        await runPilVerifier("simple4");
+    });
 });

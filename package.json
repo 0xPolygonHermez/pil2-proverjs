@@ -29,14 +29,14 @@
   "homepage": "https://github.com/0xPolygonHermez/pil2-proofman-js#readme",
   "dependencies": {
     "npmlog": "^7.0.1",
-    "nyc": "^15.1.0",
     "pil2-stark-js": "https://github.com/0xPolygonHermez/pil2-stark-js.git",
     "pilcom": "https://github.com/0xPolygonHermez/pilcom.git#feature/pil2",
     "protobufjs": "^7.2.4"
   },
   "devDependencies": {
     "chai": "^4.3.8",
+    "circom_tester": "^0.0.18",
     "mocha": "^10.2.0",
-    "circom_tester": "^0.0.18"
+    "nyc": "^15.1.0"
   }
 }
