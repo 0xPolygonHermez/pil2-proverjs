@@ -34,7 +34,8 @@ class StarkFriProver extends ProverComponent {
         this.starkStruct = require(starkStructFilename);
     }
 
-    async setup(subproofCtx, airCtx) {
+    async setup(airCtx) {
+        const subproofCtx = airCtx.subproofCtx;
         const pilout = this.proofmanagerAPI.getPilout().pilout;
         const airSymbols = pilout.symbols.filter(symbol => symbol.subproofId === subproofCtx.subproofId && symbol.airId === airCtx.airId);
 
@@ -53,19 +54,13 @@ class StarkFriProver extends ProverComponent {
         };
 
         Object.assign(airCtx.setup, await starkSetup(airCtx.setup.cnstPols, air, this.starkStruct, options));
+    }
 
+    async newProof(airCtx) {
         for (const airInstanceCtx of airCtx.instances) {   
             airInstanceCtx.ctx = await initProverStark(airCtx.setup.starkInfo, airCtx.setup.cnstPols, airCtx.setup.constTree, { logger: log});                   
         }
     }
-
-    async newProof(subproofCtx, airId, airInstanceId) {
-        const airInstance = subproofCtx.airsCtx[airId].instances[airInstanceId];
-        
-        const setup = airInstance.airCtx.setup;
-        airInstance.ctx = await initProverStark(setup.starkInfo, setup.cnstPols, setup.constTree, { logger: log});        
-    }
-
 
     async pilVerify(subproofCtx, airId, airInstanceId) {
         const pil1 = false;

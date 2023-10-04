@@ -51,7 +51,7 @@ class WitnessCalculatorManager {
         return length - 1;
     }
 
-    async setup() {
+    async newProof() {
         this.checkInitialized();
 
         for (const subproofCtx of this.subproofsCtx) {

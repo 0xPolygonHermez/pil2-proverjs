@@ -15,7 +15,7 @@ const path = require("path");
 
 const log = require("../logger.js");
 
-class ProofOrchestrator {
+module.exports = class ProofOrchestrator {
     constructor(name) {
         this.initialized = false;
 
@@ -62,7 +62,7 @@ class ProofOrchestrator {
         await this.wcManager.initialize(proofConfig.witnessCalculators, this.options);
 
         this.proversManager = new ProversManager(proofmanagerAPI, this.proofCtx, this.subproofsCtx);
-        await this.proversManager.initialize(this.proofManagerConfig.prover, this.options, this.pilout);
+        await this.proversManager.initialize(this.proofManagerConfig.prover, this.pilout, this.options);
 
         this.checker = await CheckerFactory.createChecker(proofConfig.checker.filename);
         this.checker.initialize(proofConfig.checker.settings, this.options);        
@@ -179,11 +179,11 @@ class ProofOrchestrator {
         this.checkInitialized();
 
         try {
-            await this.setup();
-
-            await this.setup();
-            await this.wcManager.setup();
             await this.proversManager.setup();
+
+            await this.newProof();
+            await this.wcManager.newProof();
+            await this.proversManager.newProof();
 
             await this.wcManager.computeWitness(1);
 
@@ -191,7 +191,8 @@ class ProofOrchestrator {
             for (const subproofCtx of this.subproofsCtx) {
                 for (const airCtx of subproofCtx.airsCtx) {
                     for (const airInstanceCtx of airCtx.instances) {
-                        result = result && await this.proversManager.provers[0].pilVerify(subproofCtx, airCtx.airId, airInstanceCtx.instanceId);
+                        const id = this.proversManager.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.numRows);
+                        result = result && await this.proversManager.provers[id].pilVerify(subproofCtx, airCtx.airId, airInstanceCtx.instanceId);
                     }
                 }
             }
@@ -209,7 +210,7 @@ class ProofOrchestrator {
         }
     }
 
-    async setup() {
+    async newProof() {
         for (const subproofCtx of this.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
                 airCtx.instances = [];
@@ -221,12 +222,13 @@ class ProofOrchestrator {
         this.checkInitialized();
 
         try {
-            // TODO must initialize ctx fro STARKS ?????
             log.info(`[${this.name}]`, `--> Initiating the generation of the proof '${this.proofManagerConfig.name}'.`);
 
-            await this.setup();
-            await this.wcManager.setup();
             await this.proversManager.setup();
+
+            await this.newProof();
+            await this.wcManager.newProof();
+            await this.proversManager.newProof();
 
             let proverTaskStatus = PROVER_OPENING_TASKS_PENDING;
             for (let stageId = 1; proverTaskStatus !== PROVER_OPENING_TASKS_COMPLETED; stageId++) {
@@ -239,7 +241,6 @@ class ProofOrchestrator {
 
                 log.info(`[${this.name}]`, `<== ${str} ${stageId}`);
             }
-
 
             // TODO now proof is hardcoded as the proof in subproof[0].air[0]
             // TODO this has to change to generate a proof from all subproofs (airs)
@@ -309,5 +310,3 @@ class ProofOrchestrator {
 
     
 }
-
-module.exports = ProofOrchestrator;
