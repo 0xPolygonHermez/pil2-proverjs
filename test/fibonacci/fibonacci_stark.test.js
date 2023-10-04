@@ -6,7 +6,7 @@ const log = require("../../logger.js");
 
 function getSettings() {
     return {
-        name: "FibonacciTest-" + Date.now(),
+        name: "Fibonacci-" + Date.now(),
         pilout: {
             piloutFilename: `./test/fibonacci/fibonacci.pilout`,
             piloutProto: "./node_modules/pilcom/src/pilout.proto",
