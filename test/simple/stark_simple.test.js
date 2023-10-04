@@ -4,7 +4,7 @@ const { proveAndVerifyTest } = require("../test_utils.js");
 
 function getSettings(prefix) {
     return {
-        name: prefix + "Test-" + Date.now(),
+        name: prefix + "-" + Date.now(),
         pilout: {
             piloutFilename: `./test/simple/${prefix}/${prefix}.pilout`,
             piloutProto: "./node_modules/pilcom/src/pilout.proto",
@@ -16,28 +16,18 @@ function getSettings(prefix) {
         ],
         prover: {
             filename: "./src/lib/provers/stark_fri_prover.js",
-            settings: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json` },
+            settings: {
+                default: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json` },
+                // "Simple4": {
+                //     default: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json` },
+                //     8: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json` },
+                // },
+            },
         },
-
-        // prover: {
-        //     filename: "./src/lib/provers/stark_fri_prover.js",
-        //     settings: {
-        //         default: {
-        //             starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json`
-        //         },
-        //         stateMachines: {
-        //             Main: {
-        //                 "8": "aaa",
-        //                 "16": "bbb",
-        //                 }
-        //             }    
-        //         }
-        //     }// debug: true,
-        //     },
-        // },
-
-
-        checker: { filename: "./src/lib/checkers/stark_fri_checker.js", settings: {} },
+        checker: {
+            filename: "./src/lib/checkers/stark_fri_checker.js",
+            settings: {},
+        },
     };
 
 }
@@ -64,34 +54,34 @@ describe("PIL2 proof manager stark simple tests", async function () {
     this.timeout(10000000);
 
     it("prove Simple1", async () => {
-        await proveAndVerifyTest(getSettings("simple1"), {});
+        await proveAndVerifyTest(getSettings("Simple1"), {});
     });
 
     it("prove Simple2", async () => {
-        await proveAndVerifyTest(getSettings("simple2"), {});
+        await proveAndVerifyTest(getSettings("Simple2"), {});
     });
 
     it("prove Simple3", async () => {
-        await proveAndVerifyTest(getSettings("simple3"), {});
+        await proveAndVerifyTest(getSettings("Simple3"), {});
     });
 
     it("prove Simple4", async () => {
-        await proveAndVerifyTest(getSettings("simple4"), {});
+        await proveAndVerifyTest(getSettings("Simple4"), {});
     });
 
     it("verify PIL Simple1", async () => {
-        await runPilVerifier("simple1");
+        await runPilVerifier("Simple1");
     });
 
     it("verify PIL Simple2", async () => {
-        await runPilVerifier("simple2");
+        await runPilVerifier("Simple2");
     });
 
     it("verify PIL Simple3", async () => {
-        await runPilVerifier("simple3");
+        await runPilVerifier("Simple3");
     });
 
     it("verify PIL Simple4", async () => {
-        await runPilVerifier("simple4");
+        await runPilVerifier("Simple4");
     });
 });

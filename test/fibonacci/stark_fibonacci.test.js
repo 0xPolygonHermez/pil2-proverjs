@@ -18,16 +18,16 @@ function getSettings() {
         ],
         prover: {
             filename: "./src/lib/provers/stark_fri_prover.js",
-            //TODO for each instance type of each state machine we have to specify the setup done rpeviously
-            settings: { starkStruct: `./test/fibonacci/fibonacci_stark_struct.json` },
-        },
-        checker: { filename: "./src/lib/checkers/stark_fri_checker.js", settings: {} },
+            settings: {
+                default: { starkStruct: `./test/fibonacci/fibonacci_stark_struct.json` },
+            },
+        },        checker: { filename: "./src/lib/checkers/stark_fri_checker.js", settings: {} },
     };
 
 }
 
-async function runPilVerifier(prefix) {
-    const proofManagerConfig = getSettings(prefix);
+async function runPilVerifier() {
+    const proofManagerConfig = getSettings();
 
     const options = {
         debug: true,

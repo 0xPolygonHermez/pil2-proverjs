@@ -30,7 +30,7 @@ class StarkFriProver extends ProverComponent {
     initialize(settings, options) {
         super.initialize(settings, options);
 
-        const starkStructFilename =  path.join(__dirname, "../../..",  this.settings.starkStruct);
+        const starkStructFilename =  path.join(__dirname, "../../..",  settings.starkStruct);
         this.starkStruct = require(starkStructFilename);
     }
 

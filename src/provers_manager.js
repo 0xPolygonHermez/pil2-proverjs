@@ -31,7 +31,20 @@ class ProversManager {
         for( let i = 0; i < pilout.pilout.subproofs.length; i++) {
             for( let j = 0; j < pilout.pilout.subproofs[i].airs.length; j++) {
                 const prover = await ProverFactory.createProver(proverConfig.filename, this.proofmanagerAPI);
-                prover.initialize(proverConfig.settings, options);
+
+                const airName = pilout.pilout.subproofs[i].airs[j].name;
+                const N = pilout.pilout.subproofs[i].airs[j].numRows;
+                let settings =
+                    proverConfig.settings[airName]?.[N] ||
+                    proverConfig.settings[airName]?.default ||
+                    proverConfig.settings.default;
+                
+                if (!settings) {
+                    log.error(`[${this.name}]`, `No settings for air '${airName}'${N ? ` with N=${N}` : ''}`);
+                    throw new Error(`[${this.name}] No settings for air '${airName}'${N ? ` with N=${N}` : ''}`);
+                }
+
+                prover.initialize(settings, options);
 
                 const id = this.getProverId(i, j, pilout.pilout.subproofs[i].airs[j].numRows);
 
