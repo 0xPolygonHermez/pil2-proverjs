@@ -14,6 +14,12 @@ const { initProverStark,
     computeFRIQueries,
     computeQStark
 } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
+const {
+    calculatePublics,
+    callCalculateExps,
+    applyHints,
+} = require("pil2-stark-js/src/prover/prover_helpers.js");
+
 const pilInfo = require("pil2-stark-js/src/pil_info/pil_info.js");
 const { newConstantPolsArrayPil2 } = require("pilcom/src/polsarray.js");
 const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
@@ -85,11 +91,39 @@ class StarkFriProver extends ProverComponent {
         this.checkInitialized();
 
         const pilout = this.proofmanagerAPI.getPilout();
+        const ctx = airInstanceCtx.ctx;
+
+        if(stageId <= pilout.numStages + 1) {
+            if (stageId === 1) {
+                airInstanceCtx.cmmtPols.writeToBigBuffer(ctx.cm1_n, ctx.pilInfo.mapSectionsN.cm1);
+                await calculatePublics(ctx);
+            }
+            
+            const qStage = ctx.pilInfo.numChallenges.length + 1;
+
+            const dom = stageId === qStage ? "ext" : "n";
+
+            await callCalculateExps(`stage${stageId}`, ctx.pilInfo.code[`stage${stageId}`], dom, ctx, this.settings.parallelExec, this.settings.useThreads, false);
+        
+            await applyHints(stageId, ctx);
+
+            if(stageId !== qStage && this.options.debug) {
+                const nConstraintsStage = ctx.pilInfo.constraints[`stage${stageId}`].length;
+
+                for(let i = 0; i < nConstraintsStage; i++) {
+                    const constraint = ctx.pilInfo.constraints[`stage${stageId}`][i];
+                    
+                    if(log) log.debug(` Checking constraint ${i + 1}/${nConstraintsStage}: line ${constraint.line} `);
+
+                    await callCalculateExps(`stage${stageId}`, constraint, dom, ctx, this.settings.parallelExec, this.settings.useThreads, true);
+                }
+            }
+        }
         
         if (stageId === pilout.numStages + 1)  {
-            await computeQStark(airInstanceCtx.ctx, log);
+            await computeQStark(ctx, log);
         } else {
-            await extendAndMerkelize(stageId, airInstanceCtx.ctx, log);
+            await extendAndMerkelize(stageId, ctx, log);
         }
     }
 
