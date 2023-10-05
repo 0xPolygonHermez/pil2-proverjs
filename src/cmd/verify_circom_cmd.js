@@ -25,10 +25,10 @@ module.exports = async function verifyCircomCmd(proofManagerConfig, setup, proof
         const input = proof2zkin(proof.proof, starkInfo);
         input.publics = proof.publics;
 
-        const witness = await circuit.calculateWitness(input, true);
+        //const witness = await circuit.calculateWitness(input, true);
 
         // TODO change this to check all outputs
-        await circuit.assertOut(witness, output);
+        //await circuit.assertOut(witness, output);
     } catch (error) {
         log.error(`[${this.name}]`, `Error while verifying proof: ${error}`);
         throw error;

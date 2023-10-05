@@ -104,8 +104,6 @@ class ProversManager {
             }
             return retValue;
         }
-
-        await this.computeAirChallenges(stageId);
         
         this.computeProofChallenge(stageId);
 
@@ -136,20 +134,6 @@ class ProversManager {
                     const id = this.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.numRows);
 
                     return await this.provers[id].openingStage(openingId, airInstanceCtx);
-                }
-            }
-        }
-    }
-
-    async computeAirChallenges(stageId) {
-        log.info(`[${this.name}]`, `··· Computing challenges for stage ${stageId}`);
-
-        for (const subproofCtx of this.subproofsCtx) {
-            for (const airCtx of subproofCtx.airsCtx) {
-                for (const airInstanceCtx of airCtx.instances) {
-                    const id = this.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.numRows);
-
-                    return await this.provers[id].computeAirChallenges(stageId, airInstanceCtx);
                 }
             }
         }

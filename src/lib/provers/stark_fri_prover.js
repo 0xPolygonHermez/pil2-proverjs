@@ -9,10 +9,12 @@ const { initProverStark,
     setChallengesStark,
     calculateChallengeStark,
     extendAndMerkelize,
-    computeFRIChallenge,
+    getPermutationsStark,
     computeFRIFolding,
     computeFRIQueries,
-    computeQStark
+    computeQStark,
+    addTranscriptStark,
+    getChallengeStark,
 } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 const {
     calculatePublics,
@@ -35,6 +37,8 @@ class StarkFriProver extends ProverComponent {
 
     initialize(settings, options) {
         super.initialize(settings, options);
+
+        this.options.logger = log;
 
         const starkStructFilename =  path.join(__dirname, "../../..",  settings.starkStruct);
         this.starkStruct = require(starkStructFilename);
@@ -64,7 +68,7 @@ class StarkFriProver extends ProverComponent {
 
     async newProof(airCtx) {
         for (const airInstanceCtx of airCtx.instances) {   
-            airInstanceCtx.ctx = await initProverStark(airCtx.setup.starkInfo, airCtx.setup.cnstPols, airCtx.setup.constTree, { logger: log});                   
+            airInstanceCtx.ctx = await initProverStark(airCtx.setup.starkInfo, airCtx.setup.cnstPols, airCtx.setup.constTree, this.options);                   
         }
     }
 
@@ -93,13 +97,18 @@ class StarkFriProver extends ProverComponent {
         const pilout = this.proofmanagerAPI.getPilout();
         const ctx = airInstanceCtx.ctx;
 
+        if (stageId === 1) {
+            airInstanceCtx.cmmtPols.writeToBigBuffer(ctx.cm1_n, ctx.pilInfo.mapSectionsN.cm1);
+            this.calculatePublics(airInstanceCtx);
+        }
+
         if(stageId <= pilout.numStages + 1) {
-            if (stageId === 1) {
-                airInstanceCtx.cmmtPols.writeToBigBuffer(ctx.cm1_n, ctx.pilInfo.mapSectionsN.cm1);
-                await calculatePublics(ctx);
-            }
-            
             const qStage = ctx.pilInfo.numChallenges.length + 1;
+
+            if(this.options.debug) {
+                ctx.errors = [];
+                if(stageId === qStage) return;
+            }
 
             const dom = stageId === qStage ? "ext" : "n";
 
@@ -107,24 +116,46 @@ class StarkFriProver extends ProverComponent {
         
             await applyHints(stageId, ctx);
 
-            if(stageId !== qStage && this.options.debug) {
+            if(this.options.debug && stageId !== qStage) {
                 const nConstraintsStage = ctx.pilInfo.constraints[`stage${stageId}`].length;
 
                 for(let i = 0; i < nConstraintsStage; i++) {
-                    const constraint = ctx.pilInfo.constraints[`stage${stageId}`][i];
-                    
-                    if(log) log.debug(` Checking constraint ${i + 1}/${nConstraintsStage}: line ${constraint.line} `);
-
+                    const constraint = ctx.pilInfo.constraints[`stage${stageId}`][i];                    
+                    log.debug(` Checking constraint ${i + 1}/${nConstraintsStage}: line ${constraint.line} `);
                     await callCalculateExps(`stage${stageId}`, constraint, dom, ctx, this.settings.parallelExec, this.settings.useThreads, true);
                 }
             }
         }
-        
-        if (stageId === pilout.numStages + 1)  {
-            await computeQStark(ctx, log);
+
+        let challenge;
+        if(!this.options.debug) {
+            let commits = stageId === pilout.numStages + 1 ? await computeQStark(ctx, log) : await extendAndMerkelize(stageId, ctx, log);
+
+            addTranscriptStark(ctx.transcript, commits);
+
+            challenge = getChallengeStark(ctx.transcript);
         } else {
-            await extendAndMerkelize(stageId, ctx, log);
+            challenge = ctx.F.random();
         }
+
+        airInstanceCtx.ctx.challenges[stageId] = challenge;
+    }
+
+    async calculatePublics(airInstanceCtx) {
+        const ctx = airInstanceCtx.ctx;
+        
+        await calculatePublics(ctx);
+
+        let publicsCommits = [];
+        //TODO: ASK TO ROGER: Has sense this hashCommits ?????
+        if(this.options.hashCommits) {
+            const publicsRoot = await calculateHash(ctx, ctx.publics);
+            publicsCommits.push(publicsRoot); 
+        } else {
+            publicsCommits.push(...ctx.publics);
+        }
+
+        addTranscriptStark(ctx.transcript, publicsCommits);
     }
 
     async openingStage(openingId, airInstanceCtx) {
@@ -159,58 +190,69 @@ class StarkFriProver extends ProverComponent {
     setChallenges(stageId, airInstanceCtx, challenge) {
         this.checkInitialized();
 
-        setChallengesStark(stageId, airInstanceCtx.ctx, challenge, log);
+        setChallengesStark(stageId, airInstanceCtx.ctx, airInstanceCtx.ctx.transcript, challenge, log);
     }
 
     async computeOpenings(stageId, airInstanceCtx) {
-        const airId = airInstanceCtx.airId;
-        const airInstanceId = airInstanceCtx.instanceId;
-        const subproofCtx = airInstanceCtx.airCtx.subproofCtx;
+        const ctx = airInstanceCtx.ctx;
 
-        log.info(`[${this.name}]`, `Computing Openings for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
+        log.info(
+            `[${this.name}]`,
+            `Computing Openings for subproof ${airInstanceCtx.airCtx.subproofCtx.name} airId ${airInstanceCtx.airId} airInstanceId ${airInstanceCtx.instanceId}`
+        );
 
         const challenge = this.proofmanagerAPI.getChallenge(stageId - 1);
-        setChallengesStark(stageId, airInstanceCtx.ctx, challenge, log);
+        setChallengesStark(stageId, ctx, ctx.transcript, challenge, this.options);
 
-        await computeEvalsStark(airInstanceCtx.ctx, log);
+        const evalCommits = await computeEvalsStark(ctx, this.options);
 
-        airInstanceCtx.ctx.challenges[stageId] = await calculateChallengeStark(stageId, airInstanceCtx.ctx);
+        addTranscriptStark(ctx.transcript, evalCommits);
+        ctx.challenges[stageId] = getChallengeStark(ctx.transcript);
     }
 
-    async computeFRIStark(stageId, airInstanceCtx, params) {
-        const airId = airInstanceCtx.airId;
-        const airInstanceId = airInstanceCtx.instanceId;
-        const subproofCtx = airInstanceCtx.airCtx.subproofCtx;
+    async computeFRIStark(stageId, airInstanceCtx) {
+        const ctx = airInstanceCtx.ctx;
 
-        log.info(`[${this.name}]`, `Computing FRI Stark for subproof ${subproofCtx.name} airId ${airId} airInstanceId ${airInstanceId}`);
-
-        const options = { parallelExec: false, useThreads: false, logger: log };
+        log.info(
+            `[${this.name}]`,
+            `Computing FRI Stark for subproof ${airInstanceCtx.airCtx.subproofCtx.name} airId ${airInstanceCtx.airId} airInstanceId ${airInstanceCtx.instanceId}`
+        );
 
         const challenge = this.proofmanagerAPI.getChallenge(stageId - 1);
-        setChallengesStark(stageId, airInstanceCtx.ctx, challenge, log);
+        setChallengesStark(stageId, ctx, ctx.transcript, challenge, this.options);
 
-        await computeFRIStark(airInstanceCtx.ctx, options);
+        await computeFRIStark(ctx, this.options);
 
-        airInstanceCtx.ctx.challenges[stageId] = computeFRIChallenge(stageId - 4, airInstanceCtx.ctx, log);
+        // TODO ask ROGER: why we don't compute a new challenge here?
+        //ctx.challenges[stageId] = computeFRIChallenge(stageId - 4, ctx, log);
+        ctx.challenges[stageId] = getChallengeStark(ctx.transcript);
     }
 
     async computeFRIFolding(stageId, airInstanceCtx, params) {
         const challenge = this.proofmanagerAPI.getChallenge(stageId - 1);
+        const ctx = airInstanceCtx.ctx;
 
-        await computeFRIFolding(params.step, airInstanceCtx.ctx, challenge);
+        const friCommits = await computeFRIFolding(params.step, ctx, challenge, this.options);
 
-        airInstanceCtx.ctx.challenges[stageId] = computeFRIChallenge(stageId - 4, airInstanceCtx.ctx, log);
+        addTranscriptStark(ctx.transcript, friCommits);
+        ctx.challenges[stageId] = getChallengeStark(ctx.transcript);
+        //ctx.challenges[stageId] = computeFRIChallenge(stageId - 4, airInstanceCtx.ctx, log);
     }
 
     async computeFRIQueries(stageId, airInstanceCtx, params) {
-        const airId = airInstanceCtx.airId;
-        const airInstanceId = airInstanceCtx.instanceId;
-        const subproofCtx = airInstanceCtx.airCtx.subproofCtx;
+        const ctx = airInstanceCtx.ctx;
 
         const challenge = this.proofmanagerAPI.getChallenge(stageId - 1);
     
-        computeFRIQueries(airInstanceCtx.ctx, challenge);
+        const friQueries = await getPermutationsStark(ctx, challenge);
 
+        log.debug("··· FRI queries: [" + friQueries.join(",") + "]");
+    
+        computeFRIQueries(ctx, friQueries);
+
+        const airId = airInstanceCtx.airId;
+        const airInstanceId = airInstanceCtx.instanceId;
+        const subproofCtx = airInstanceCtx.airCtx.subproofCtx;
         subproofCtx.airsCtx[airId].instances[airInstanceId].proof = await genProofStark(airInstanceCtx.ctx, log);
     }    
 

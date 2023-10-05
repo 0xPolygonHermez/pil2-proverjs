@@ -39,6 +39,7 @@ async function runPilVerifier(prefix) {
 
     const options = {
         debug: true,
+        hashCommits: true,
         parallelExec: false,
         useThreads: false
     };
