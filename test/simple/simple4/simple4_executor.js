@@ -23,8 +23,8 @@ class ExecutorSimple4 extends WitnessCalculatorComponent {
         for (let i = 0; i < N; i++) {
             const v = BigInt(i);
 
-            airInstanceCtx.cmmtPols.Simple4.a[i] = v;
-            airInstanceCtx.cmmtPols.Simple4.b[i] = F.square(v);
+            airInstanceCtx.wtnsPols.Simple4.a[i] = v;
+            airInstanceCtx.wtnsPols.Simple4.b[i] = F.square(v);
         }
         
         return WITNESS_ROUND_FULLY_DONE;

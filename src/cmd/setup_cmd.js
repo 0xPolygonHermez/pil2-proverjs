@@ -41,10 +41,10 @@ module.exports = async function setupCmd(proofManagerConfig) {
 
             const airSymbols = pilout.symbols.filter(symbol => symbol.subproofId === i && symbol.airId === j);
 
-            const cnstPols = newConstantPolsArrayPil2(airSymbols, air.numRows, setupOptions.F)
-            getFixedPolsPil2(air, cnstPols, setupOptions.F);
+            const fixedPols = newConstantPolsArrayPil2(airSymbols, air.numRows, setupOptions.F)
+            getFixedPolsPil2(air, fixedPols, setupOptions.F);
 
-            setup[i][j] = await starkSetup(cnstPols, air, starkStruct, setupOptions)
+            setup[i][j] = await starkSetup(fixedPols, air, starkStruct, setupOptions)
         }
     }
 

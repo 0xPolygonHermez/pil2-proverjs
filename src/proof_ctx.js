@@ -108,10 +108,10 @@ class AirCtxStruct {
     }
 
     addAirInstance(airId, numRows) {
-        const airInstance = new AirInstanceCtxStruct(this, airId, numRows);
-        this.instances.push(airInstance);
+        const airInstanceCtx = new AirInstanceCtxStruct(this, airId, numRows);
+        this.instances.push(airInstanceCtx);
 
-        return airInstance;
+        return airInstanceCtx;
     }
 
 }

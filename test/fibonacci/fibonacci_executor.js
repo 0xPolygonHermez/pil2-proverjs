@@ -20,11 +20,11 @@ class ExecutorFibonacci extends WitnessCalculatorComponent {
         const N = air.numRows;
         const F = airCtx.subproofCtx.F;
 
-        airInstanceCtx.cmmtPols.Fibonacci.b[0] = 1n;
-        airInstanceCtx.cmmtPols.Fibonacci.a[0] = 2n;
+        airInstanceCtx.wtnsPols.Fibonacci.b[0] = 1n;
+        airInstanceCtx.wtnsPols.Fibonacci.a[0] = 2n;
         for (let i = 1; i < N; i++) {
-            const polA = airInstanceCtx.cmmtPols.Fibonacci.a;
-            const polB = airInstanceCtx.cmmtPols.Fibonacci.b;
+            const polA = airInstanceCtx.wtnsPols.Fibonacci.a;
+            const polB = airInstanceCtx.wtnsPols.Fibonacci.b;
 
             polB[i] = polA[i-1];
             polA[i] = F.add(F.square(polB[i-1]), F.square(polA[i-1]));    

@@ -23,15 +23,15 @@ class ExecutorSimple3 extends WitnessCalculatorComponent {
         for (let i = 0; i < N; i++) {
             const v = BigInt(i);
 
-            airInstanceCtx.cmmtPols.Simple3.a[0][0][i] = v;
-            airInstanceCtx.cmmtPols.Simple3.a[0][1][i] = v + 1n;
-            airInstanceCtx.cmmtPols.Simple3.a[0][2][i] = v + 2n;
-            airInstanceCtx.cmmtPols.Simple3.b[0][i] = F.mul(v, F.mul(v + 1n, v + 2n));
+            airInstanceCtx.wtnsPols.Simple3.a[0][0][i] = v;
+            airInstanceCtx.wtnsPols.Simple3.a[0][1][i] = v + 1n;
+            airInstanceCtx.wtnsPols.Simple3.a[0][2][i] = v + 2n;
+            airInstanceCtx.wtnsPols.Simple3.b[0][i] = F.mul(v, F.mul(v + 1n, v + 2n));
 
-            airInstanceCtx.cmmtPols.Simple3.a[1][0][i] = v;
-            airInstanceCtx.cmmtPols.Simple3.a[1][1][i] = v - 1n;
-            airInstanceCtx.cmmtPols.Simple3.a[1][2][i] = v - 2n;
-            airInstanceCtx.cmmtPols.Simple3.b[1][i] = F.mul(v, F.mul(v - 1n, v - 2n));
+            airInstanceCtx.wtnsPols.Simple3.a[1][0][i] = v;
+            airInstanceCtx.wtnsPols.Simple3.a[1][1][i] = v - 1n;
+            airInstanceCtx.wtnsPols.Simple3.a[1][2][i] = v - 2n;
+            airInstanceCtx.wtnsPols.Simple3.b[1][i] = F.mul(v, F.mul(v - 1n, v - 2n));
         }
     
         return WITNESS_ROUND_FULLY_DONE;

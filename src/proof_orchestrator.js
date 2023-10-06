@@ -277,31 +277,31 @@ module.exports = class ProofOrchestrator {
         const air = this.pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
         const airSymbols = this.pilout.pilout.symbols.filter(symbol => symbol.subproofId === subproofCtx.subproofId && symbol.airId === airId);
 
-        airInstanceCtx.cmmtPols = newCommitPolsArrayPil2(airSymbols, air.numRows, subproofCtx.F);
+        airInstanceCtx.wtnsPols = newCommitPolsArrayPil2(airSymbols, air.numRows, subproofCtx.F);
 
         return { result: true, airInstanceCtx};
     }
 
     // Reallocate the buffer for the given subproofId and airId with the given numRows.
     resizeAirInstance(subproofCtx, airId, instanceId, numRows) {
-        const airInstance = subproofCtx.airsCtx[airId].instances[instanceId];
+        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[instanceId];
 
-        if(airInstance === undefined) return { result: false, data: undefined };
+        if(airInstanceCtx === undefined) return { result: false, data: undefined };
 
-        const factor = airInstance.numRows / numRows;
+        const factor = airInstanceCtx.numRows / numRows;
 
         //TODO change this to a more efficient way...resize??? it's not working, why?
-        airInstance.buffer = airInstance.buffer.slice(0, airInstance.buffer.byteLength / factor);
+        airInstanceCtx.buffer = airInstanceCtx.buffer.slice(0, airInstanceCtx.buffer.byteLength / factor);
         //buffer.buffer.resize(buffer.buffer.byteLength / factor);
-        return { result: true, airInstance };
+        return { result: true, airInstanceCtx };
     }
 
     // Free the buffer for the given subproofId and airId.
     removeAirInstance(subproofCtx, airId, instanceId) {
         if(subproofCtx.airs[airId] === undefined) return false;
 
-        const airInstance = subproofCtx.airsCtx[airId].instances[instanceId];
-        if(airInstance === undefined) return false;
+        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[instanceId];
+        if(airInstanceCtx === undefined) return false;
 
         subproofCtx.airsCtx[airId].instances.splice(instanceId, 1);
 

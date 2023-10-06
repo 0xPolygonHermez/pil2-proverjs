@@ -53,22 +53,22 @@ class StarkFriProver extends ProverComponent {
 
         airCtx.setup = {
             name: (airCtx.name ? airCtx.name : airCtx.airId) + "-" + airCtx.numRows,
-            cnstPols: newConstantPolsArrayPil2(airSymbols, airCtx.numRows, subproofCtx.F)
+            fixedPols: newConstantPolsArrayPil2(airSymbols, airCtx.numRows, subproofCtx.F)
         };
 
-        getFixedPolsPil2(air, airCtx.setup.cnstPols, subproofCtx.F);
+        getFixedPolsPil2(air, airCtx.setup.fixedPols, subproofCtx.F);
 
         const options = {
             F: subproofCtx.F,
             pil1: false,
         };
 
-        Object.assign(airCtx.setup, await starkSetup(airCtx.setup.cnstPols, air, this.starkStruct, options));
+        Object.assign(airCtx.setup, await starkSetup(airCtx.setup.fixedPols, air, this.starkStruct, options));
     }
 
     async newProof(airCtx) {
         for (const airInstanceCtx of airCtx.instances) {   
-            airInstanceCtx.ctx = await initProverStark(airCtx.setup.starkInfo, airCtx.setup.cnstPols, airCtx.setup.constTree, this.options);                   
+            airInstanceCtx.ctx = await initProverStark(airCtx.setup.starkInfo, airCtx.setup.fixedPols, airCtx.setup.constTree, this.options);                   
         }
     }
 
@@ -77,7 +77,7 @@ class StarkFriProver extends ProverComponent {
         const stark = true;
         const debug = true;
         
-        const airInstance = subproofCtx.airsCtx[airId].instances[airInstanceId];
+        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[airInstanceId];
         const pilout = this.proofmanagerAPI.getPilout();
         const air = pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
 
@@ -87,8 +87,8 @@ class StarkFriProver extends ProverComponent {
         const splitLinearHash = false;
         const optionsPilVerify = {logger:log, debug, useThreads: false, parallelExec: false, verificationHashType, splitLinearHash};
 
-        const setup = airInstance.airCtx.setup;
-        return await starkGen(airInstance.cmmtPols, setup.cnstPols, {}, starkInfo, optionsPilVerify);
+        const setup = airInstanceCtx.airCtx.setup;
+        return await starkGen(airInstanceCtx.wtnsPols, setup.fixedPols, {}, starkInfo, optionsPilVerify);
     }
 
     async commitStage(stageId, airInstanceCtx) {
@@ -98,7 +98,7 @@ class StarkFriProver extends ProverComponent {
         const ctx = airInstanceCtx.ctx;
 
         if (stageId === 1) {
-            airInstanceCtx.cmmtPols.writeToBigBuffer(ctx.cm1_n, ctx.pilInfo.mapSectionsN.cm1);
+            airInstanceCtx.wtnsPols.writeToBigBuffer(ctx.cm1_n, ctx.pilInfo.mapSectionsN.cm1);
             this.calculatePublics(airInstanceCtx);
         }
 
@@ -147,10 +147,10 @@ class StarkFriProver extends ProverComponent {
         await calculatePublics(ctx);
 
         let publicsCommits = [];
-        //TODO: ASK TO ROGER: Has sense this hashCommits ?????
-        if(this.options.hashCommits) {
+
+        if (this.options.hashCommits) {
             const publicsRoot = await calculateHash(ctx, ctx.publics);
-            publicsCommits.push(publicsRoot); 
+            publicsCommits.push(publicsRoot);
         } else {
             publicsCommits.push(...ctx.publics);
         }
@@ -223,8 +223,6 @@ class StarkFriProver extends ProverComponent {
 
         await computeFRIStark(ctx, this.options);
 
-        // TODO ask ROGER: why we don't compute a new challenge here?
-        //ctx.challenges[stageId] = computeFRIChallenge(stageId - 4, ctx, log);
         ctx.challenges[stageId] = getChallengeStark(ctx.transcript);
     }
 
@@ -236,7 +234,6 @@ class StarkFriProver extends ProverComponent {
 
         addTranscriptStark(ctx.transcript, friCommits);
         ctx.challenges[stageId] = getChallengeStark(ctx.transcript);
-        //ctx.challenges[stageId] = computeFRIChallenge(stageId - 4, airInstanceCtx.ctx, log);
     }
 
     async computeFRIQueries(stageId, airInstanceCtx, params) {

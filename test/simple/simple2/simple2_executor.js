@@ -23,9 +23,9 @@ class ExecutorSimple2 extends WitnessCalculatorComponent {
         for (let i = 0; i < N; i++) {
             const v = BigInt(i);
 
-            airInstanceCtx.cmmtPols.Simple2.a[i] = v;
-            airInstanceCtx.cmmtPols.Simple2.c[(i + 3) % N] = v + 1n;
-            airInstanceCtx.cmmtPols.Simple2.b[(i + N - 2) % N] = F.mul(v, v + 1n);
+            airInstanceCtx.wtnsPols.Simple2.a[i] = v;
+            airInstanceCtx.wtnsPols.Simple2.c[(i + 3) % N] = v + 1n;
+            airInstanceCtx.wtnsPols.Simple2.b[(i + N - 2) % N] = F.mul(v, v + 1n);
         }
 
         return WITNESS_ROUND_FULLY_DONE;
