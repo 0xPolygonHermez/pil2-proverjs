@@ -25,6 +25,8 @@ module.exports = async function setupCmd(proofManagerConfig) {
         for( let j = 0; j < pilout.subproofs[i].airs.length; j++) {
             const air = pilout.subproofs[i].airs[j];
             air.symbols = pilout.symbols;
+            air.hints = pilout.hints;
+            air.numChallenges = pilout.numChallenges;
 
             let settings =
                 proofManagerConfig.prover.settings[air.name]?.[air.numRows] ||
