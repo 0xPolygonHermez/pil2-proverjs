@@ -1,4 +1,4 @@
-const WitnessCalculatorManager = require("./witness_calculator_manager.js");
+const { WitnessCalculatorManager } = require("./witness_calculator_manager.js");
 const {
     ProversManager,
     PROVER_OPENING_TASKS_COMPLETED,
@@ -182,10 +182,8 @@ module.exports = class ProofOrchestrator {
             await this.proversManager.setup();
 
             await this.newProof();
-            await this.wcManager.newProof();
-            await this.proversManager.newProof();
 
-            await this.wcManager.computeWitness(1);
+            await this.wcManager.witnessComputation(1);
 
             let result = true;
             for (const subproofCtx of this.subproofsCtx) {
@@ -227,15 +225,13 @@ module.exports = class ProofOrchestrator {
             await this.proversManager.setup();
 
             await this.newProof();
-            await this.wcManager.newProof();
-            await this.proversManager.newProof();
 
             let proverTaskStatus = PROVER_OPENING_TASKS_PENDING;
             for (let stageId = 1; proverTaskStatus !== PROVER_OPENING_TASKS_COMPLETED; stageId++) {
                 let str = stageId <= this.pilout.numStages + 1 ? "STAGE" : "OPENINGS";
                 log.info(`[${this.name}]`, `==> ${str} ${stageId}`);
 
-                await this.wcManager.computeWitness(stageId);
+                await this.wcManager.witnessComputation(stageId);
 
                 proverTaskStatus = await this.proversManager.computeStage(stageId);
 

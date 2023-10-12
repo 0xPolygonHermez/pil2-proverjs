@@ -29,10 +29,7 @@ function getSettings(prefix) {
             settings: {},
         },
     };
-
 }
-
-
 
 async function runPilVerifier(prefix) {
     const proofManagerConfig = getSettings(prefix);

@@ -1,8 +1,6 @@
-const {
-    WITNESS_ROUND_NOTHING_TO_DO,
-    WITNESS_ROUND_FULLY_DONE,
-    WitnessCalculatorComponent
-} = require("../../src/witness_calculator_component.js");
+const { WitnessCalculatorComponent } = require("../../../src/witness_calculator_component.js");
+
+const { WITNESS_ROUND_FULLY_DONE, WITNESS_ROUND_NOTHING_TO_DO } = require("../../../src/witness_calculator_manager.js");
 
 const {
     calculatePublics,

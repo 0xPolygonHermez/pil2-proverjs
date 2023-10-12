@@ -5,6 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Test Simple4",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "args": [
+                "${workspaceFolder}/test/simple/simple_stark.test.js",
+                " -g 'prove Simple4'"
+            ],
+            "runtimeArgs": [
+                "--max-old-space-size=32000"
+            ]
+        },
+        {
             "name": "Test: Fibonacci vadcop",
             "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
             "request": "launch",
@@ -19,6 +35,15 @@
             "runtimeArgs": [
                 "--max-old-space-size=32000"
             ]
+        },
+        {
+            "name": "Test: WC manager 2",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "request": "launch",
+            "skipFiles": ["<node_internals>/**"],
+            "type": "node",
+            "args": ["${workspaceFolder}/test/wc_manager/test2/wc_manager_2.test.js"],
+            "runtimeArgs": ["--max-old-space-size=32000"]
         },
     ]
 }

@@ -95,6 +95,8 @@ class ProversManager {
     async computeStage(stageId) {
         const numStages = this.proofmanagerAPI.getPilout().numStages + 1;
 
+        if(stageId === 1) await this.newProof();
+        
         if(stageId <= numStages) {
             await this.commitStage(stageId);
         } else {
