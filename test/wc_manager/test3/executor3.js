@@ -2,19 +2,17 @@ const { WitnessCalculatorComponent } = require("../../../src/witness_calculator_
 
 const log = require("../../../logger.js");
 
-module.exports = class Executor1 extends WitnessCalculatorComponent {
+module.exports = class Executor3 extends WitnessCalculatorComponent {
     constructor(proofmanagerAPI) {
-        super("Executor1", proofmanagerAPI);
+        super("div_lib", proofmanagerAPI);
     }
 
     async witnessComputation(stageId, airCtx, airInstanceId) {
         return new Promise(async (resolve) => {
             log.info(`[${this.name}]`, `Starting stageId: ${stageId}, airCtx: ${airCtx}, airInstanceId: ${airInstanceId}`);
 
-            const A = await this.wcManager.readData(this, "A");
-
-            log.info(`[${this.name}]`, "Finishing");
             resolve();
+            log.info(`[${this.name}]`, "Finishing");
         });
     }
-};
+}

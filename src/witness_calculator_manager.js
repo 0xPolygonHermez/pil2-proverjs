@@ -58,12 +58,17 @@ const WITNESS_ROUND_FULLY_DONE = 4;
 const WAIT_UNTIL_LOCKED = 5;
 
 const WitnessCalculatorFactory = require("./witness_calculator_factory.js");
+const { Task, NOTIFICATION_TYPE } = require("./task.js");
 const PendingTaskTable = require("./task_table.js");
 
 const WC_MANAGER_NAME = "WCManager";
 
 const log = require('../logger.js');
 const Mutex = require("./concurrency/mutex.js");
+const AsyncAccLock = require("./concurrency/async_acc_lock.js");
+const TargetLock = require("./concurrency/target_lock.js");
+
+const path = require("path");
 
 // WitnessCalculator class acting as the composite
 class WitnessCalculatorManager {
@@ -74,7 +79,11 @@ class WitnessCalculatorManager {
         this.initialized = false;
         this.witnesscalculators = [];
 
-        this.locks = [];
+        this.mutex = new Mutex();
+        this.deferredMutex;
+        this.data= [];
+
+        this.asyncLocks = [];
 
         this.pendingTaskTable = new PendingTaskTable();
     }
@@ -88,6 +97,12 @@ class WitnessCalculatorManager {
         log.info(`[${this.name}]`, "Initializing...");
 
         this.initialized = true;
+
+        const wcRelease = witnessCalculatorsConfig.filter(wc => wc.settings.type && wc.settings.type === "unlocker");
+        if(wcRelease.length > 0) {
+            const witnessCalculatorLib =  path.join(__dirname, "witness_calculator_module.js");
+            witnessCalculatorsConfig.unshift({ witnessCalculatorLib, settings: { } });
+        }
 
         for(const witnessCalculator of witnessCalculatorsConfig) {
             const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(witnessCalculator.witnessCalculatorLib, this.proofmanagerAPI);
@@ -218,10 +233,13 @@ class WitnessCalculatorManager {
                 }
             }
         }
-
         /////////////////////////////////////
 
-        const executors = this.witnesscalculators.map((wc, index) =>
+        const wc = this.witnesscalculators.filter(wc => !wc.settings.type || wc.settings.type !== "unlocker");
+
+        this.deferredMutex = new TargetLock(wc.length - 1, 0);
+
+        const executors = wc.map((wc, index) =>
             wc.witnessComputation(stageId, wcStatusTable[index].airCtx, wcStatusTable[index].airInstanceId));
 
         await Promise.all(executors);
@@ -256,12 +274,16 @@ class WitnessCalculatorManager {
             throw new Error(`Task type '${task.type}' not allowed`);
         }
 
+        task.lock = lock;
         this.pendingTaskTable.addTask(task);
 
         if(lock) {
-            if(!this.locks[senderIdx]) this.locks[senderIdx] = new Mutex(true);
+            if(!this.asyncLocks[senderIdx]) this.asyncLocks[senderIdx] = new AsyncAccLock();
+            log.info(`[${this.name}]`, `Locking witness calculator ${this.witnesscalculators[senderIdx].name}`);
 
-            await this.locks[senderIdx].lock();
+            this.mutex.unlock();
+            this.deferredMutex.release();
+            await this.asyncLocks[senderIdx].lock();
         }
     }
 
@@ -276,13 +298,57 @@ class WitnessCalculatorManager {
 
         this.pendingTaskTable.resolveTask(taskId);
 
-        if(this.locks[senderIdx] && this.locks[senderIdx].isLocked) {
-            this.locks[senderIdx].unlock();
+        if(this.asyncLocks[senderIdx]) {
+            log.info(`[${this.name}]`, `Unlocking witness calculator ${this.witnesscalculators[senderIdx].name}`);
+            this.deferredMutex.acquire();
+            this.asyncLocks[senderIdx].unlock();
         }
     }
 
     getPendingTasksByRecipient(recipient) {
         return this.pendingTaskTable.getPendingTasksByRecipient(recipient);
+    }
+
+    async readData(module, dataId) {
+        this.mutex.lock();
+
+        //TODO read data from proofmanagerAPI
+        if(!this.data[dataId]) {
+            const task = new Task(module.name, this.name, NOTIFICATION_TYPE, "resolve", { dataId });
+            await this.addPendingTask(task, true);
+        } else {
+            this.mutex.unlock();
+        }
+
+        return this.data[dataId];
+    }
+
+    async writeData(module, dataId, data) {
+        this.mutex.lock();
+
+        this.data[dataId] = data;
+
+        const tasks = this.pendingTaskTable.getPendingTasksByTagDataId("resolve", dataId);
+        
+        for(const task of tasks) {
+            task.isPending = false;
+            
+            const senderIdx = this.witnesscalculators.findIndex(witnesscalculator => witnesscalculator.name === task.sender);
+            if(this.asyncLocks[senderIdx]) {
+                log.info(`[${this.name}]`, `Unlocking witness calculator ${this.witnesscalculators[senderIdx].name}`);
+                this.asyncLocks[senderIdx].unlock();
+            }
+        }
+
+        this.mutex.unlock();
+    }
+
+    async lockDeferred() {
+        await this.deferredMutex.lock();
+    }
+
+    hasPendingTasks() {
+        return this.pendingTaskTable.hasPendingTasks();
     }
 }
 

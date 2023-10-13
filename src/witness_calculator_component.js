@@ -70,7 +70,7 @@ class WitnessCalculatorComponent {
 
     async _addPendingtask(lib, tag, data, lock) {
         const task = new Task(this.name, lib, NOTIFICATION_TYPE, tag, data);
-        await this.wcManager.addPendingTask(task, lock);
+        return await this.wcManager.addPendingTask(task, lock);
     }
 
     addPendingTask(tag, data, log = false) {
@@ -78,7 +78,7 @@ class WitnessCalculatorComponent {
     }
 
     async addLibPendingTask(lib, tag, data, lock = false) {
-        await this._addPendingtask(lib, tag, data, lock);
+        return await this._addPendingtask(lib, tag, data, lock);
     }
 
     resolvePendingTask(taskId) {

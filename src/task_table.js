@@ -41,4 +41,8 @@ module.exports = class TaskTable {
     getPendingTasksByTag(tag) {
         return this.tasks.filter((task) => task.isPending && task.tag === tag);
     }
+
+    getPendingTasksByTagDataId(tag, dataId) {
+        return this.tasks.filter((task) => task.isPending && task.tag === tag && task.data.dataId === dataId);
+    }
 }

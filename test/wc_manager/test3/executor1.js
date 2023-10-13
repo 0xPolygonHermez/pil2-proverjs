@@ -12,8 +12,12 @@ module.exports = class Executor1 extends WitnessCalculatorComponent {
             log.info(`[${this.name}]`, `Starting stageId: ${stageId}, airCtx: ${airCtx}, airInstanceId: ${airInstanceId}`);
 
             const A = await this.wcManager.readData(this, "A");
+            
+            const B = await this.wcManager.readData(this, "B");
 
             log.info(`[${this.name}]`, "Finishing");
+
+            this.wcManager.deferredMutex.release();
             resolve();
         });
     }

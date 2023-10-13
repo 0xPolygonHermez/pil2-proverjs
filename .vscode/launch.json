@@ -42,7 +42,7 @@
             "request": "launch",
             "skipFiles": ["<node_internals>/**"],
             "type": "node",
-            "args": ["${workspaceFolder}/test/wc_manager/test2/wc_manager_2.test.js"],
+            "args": ["${workspaceFolder}/test/wc_manager/wc_manager.test.js"],
             "runtimeArgs": ["--max-old-space-size=32000"]
         },
     ]
