@@ -8,13 +8,6 @@ module.exports = class Executor2 extends WitnessCalculatorComponent {
     }
 
     async witnessComputation(stageId, airCtx, airInstanceId) {
-        return new Promise(async (resolve) => {
-            log.info(`[${this.name}]`, `Starting stageId: ${stageId}, airCtx: ${airCtx}, airInstanceId: ${airInstanceId}`);
-
-            this.wcManager.writeData(this, "A", 7);
-
-            log.info(`[${this.name}]`, "Finishing");
-            resolve();
-        });
+        this.wcManager.writeData(this, "A", 7);
     }
 }

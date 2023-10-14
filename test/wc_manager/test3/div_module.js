@@ -2,16 +2,16 @@ const { WitnessCalculatorComponent } = require("../../../src/witness_calculator_
 
 const log = require("../../../logger.js");
 
-module.exports = class Executor2 extends WitnessCalculatorComponent {
+module.exports = class DivModule extends WitnessCalculatorComponent {
     constructor(proofmanagerAPI) {
-        super("Executor2", proofmanagerAPI);
+        super("div_lib", proofmanagerAPI);
     }
 
     async witnessComputation(stageId, airCtx, airInstanceId) {
         const tasks = this.getPendingTasksByRecipient(this.name);
 
         for(const task of tasks) {
-            log.info(`[${this.name}]`, `Resolving task: ${task.taskId}`);                
+            log.info(`[${this.name}]`, ` Resolving task: ${task.taskId}`);
             this.resolvePendingTask(task.taskId);
         }
     }

@@ -38,7 +38,7 @@ describe("Witnes Computation Manager tests", async function () {
             witnessCalculators: [
                 { filename: `./test3/executor1.js`, settings: {} },
                 { filename: `./test3/executor2.js`, settings: {} },
-                { filename: `./test3/executor3.js`, settings: { type: "unlocker"} } ]
+                { filename: `./test3/div_module.js`, settings: { type: "unlocker"} } ]
         };
 
         const subproofsCtx = createFakeSubproofsCtx([[1]]);

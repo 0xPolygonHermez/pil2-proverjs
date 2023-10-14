@@ -75,9 +75,11 @@ class WitnessCalculatorManager {
     constructor(proofmanagerAPI) {
         this.name = WC_MANAGER_NAME;
         this.proofmanagerAPI = proofmanagerAPI;
+        this.options;
 
         this.initialized = false;
         this.witnesscalculators = [];
+        this.wcDeferred = [];
 
         this.mutex = new Mutex();
         this.deferredMutex;
@@ -86,6 +88,7 @@ class WitnessCalculatorManager {
         this.asyncLocks = [];
 
         this.pendingTaskTable = new PendingTaskTable();
+
     }
 
     async initialize(witnessCalculatorsConfig, options) {
@@ -94,12 +97,14 @@ class WitnessCalculatorManager {
             throw new Error(`[${this.name}] Witness Calculator Manager already initialized.`);
         }
 
+        this.options = options;
+
         log.info(`[${this.name}]`, "Initializing...");
 
         this.initialized = true;
 
-        const wcRelease = witnessCalculatorsConfig.filter(wc => wc.settings.type && wc.settings.type === "unlocker");
-        if(wcRelease.length > 0) {
+        this.wcDeferred = witnessCalculatorsConfig.filter(wc => wc.settings.type && wc.settings.type === "unlocker");
+        if(this.wcDeferred.length > 0) {
             const witnessCalculatorLib =  path.join(__dirname, "witness_calculator_module.js");
             witnessCalculatorsConfig.unshift({ witnessCalculatorLib, settings: { } });
         }
@@ -237,10 +242,10 @@ class WitnessCalculatorManager {
 
         const wc = this.witnesscalculators.filter(wc => !wc.settings.type || wc.settings.type !== "unlocker");
 
-        this.deferredMutex = new TargetLock(wc.length - 1, 0);
+        if(wc.length !== this.witnesscalculators.length) this.deferredMutex = new TargetLock(wc.length - 1, 0);
 
         const executors = wc.map((wc, index) =>
-            wc.witnessComputation(stageId, wcStatusTable[index].airCtx, wcStatusTable[index].airInstanceId));
+            wc._witnessComputation(stageId, wcStatusTable[index].airCtx, wcStatusTable[index].airInstanceId));
 
         await Promise.all(executors);
 
@@ -282,7 +287,7 @@ class WitnessCalculatorManager {
             log.info(`[${this.name}]`, `Locking witness calculator ${this.witnesscalculators[senderIdx].name}`);
 
             this.mutex.unlock();
-            this.deferredMutex.release();
+            if(this.deferredMutex) this.deferredMutex.release();
             await this.asyncLocks[senderIdx].lock();
         }
     }
@@ -300,7 +305,7 @@ class WitnessCalculatorManager {
 
         if(this.asyncLocks[senderIdx]) {
             log.info(`[${this.name}]`, `Unlocking witness calculator ${this.witnesscalculators[senderIdx].name}`);
-            this.deferredMutex.acquire();
+            if(this.deferredMutex) this.deferredMutex.acquire();
             this.asyncLocks[senderIdx].unlock();
         }
     }
@@ -349,6 +354,18 @@ class WitnessCalculatorManager {
 
     hasPendingTasks() {
         return this.pendingTaskTable.hasPendingTasks();
+    }
+
+    async executeDeferredModules(stageId, airCtx, airInstanceId) {
+        if(this.wcDeferred.length === 0) return;
+
+        for(const wcDeferred of this.wcDeferred) {
+            const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(wcDeferred.witnessCalculatorLib, this.proofmanagerAPI);
+            newWitnessCalculator.initialize(wcDeferred.settings, this.options);
+
+            newWitnessCalculator.setWcManager(this);
+            await newWitnessCalculator._witnessComputation(stageId, airCtx, airInstanceId);
+        }
     }
 }
 

@@ -64,6 +64,20 @@ class WitnessCalculatorComponent {
         return WITNESS_ROUND_NOTHING_TO_DO;
     }
 
+    async _witnessComputation(stageId, airCtx, airInstanceId) {
+        return new Promise(async (resolve) => {
+            log.info(`[${this.name}]`, `Starting stageId: ${stageId}, airCtx: ${airCtx}, airInstanceId: ${airInstanceId}`);
+
+            await this.witnessComputation(stageId, airCtx, airInstanceId);
+
+            if(this.wcManager.deferredMutex) this.wcManager.deferredMutex.release();
+            
+            resolve();
+
+            log.info(`[${this.name}]`, "Finishing");
+        });
+    }
+
     setWcManager(wcManager) {
         this.wcManager = wcManager;
     }
