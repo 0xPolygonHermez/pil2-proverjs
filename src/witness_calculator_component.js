@@ -12,15 +12,9 @@
 ///     - proofCtx: the proof context object
 ///     - subproofCtx: the subproof context object
 /// The `witnessComputation()` method should return one of the following values:
-///     - WITNESS_ROUND_NOTHING_TO_DO: The witness calculator has no task for the current stage.
-///     - WITNESS_ROUND_FULLY_DONE: The calculator has completed all its tasks for the current stage.
-///     - WITNESS_ROUND_NOTHING_DONE: The calculator has pending tasks but hasn't started because it's
-///         waiting for another component to act first.
-///     - WITNESS_ROUND_PARTIAL_DONE: The calculator has started but waits for another component to finish
-///         its part before continuing its tasks.
 
-const { Task, NOTIFICATION_TYPE } = require("./task.js");
-const { WC_MANAGER_NAME, WITNESS_ROUND_NOTHING_DONE } = require("./witness_calculator_manager.js");
+const Task = require("./task.js");
+const { WC_MANAGER_NAME, TaskTypeEnum } = require("./witness_calculator_manager.js");
 const log = require("../logger.js");
 
 // Abstract base class for all WitnessCalculator components
@@ -49,19 +43,8 @@ class WitnessCalculatorComponent {
         }
     }
 
-    initialState() {
-        return WITNESS_ROUND_NOTHING_DONE;
-    }
-
-    async witnessComputation(
-        stageId,
-        subproofId,
-        airId,
-        instanceId,
-        proofCtx,
-        subproofCtx
-    ) {
-        return WITNESS_ROUND_NOTHING_TO_DO;
+    async witnessComputation() {
+        throw new Error("Method 'witnessComputation' must be implemented in concrete classes.");
     }
 
     async _witnessComputation(stageId, airCtx, airInstanceId) {
@@ -70,7 +53,7 @@ class WitnessCalculatorComponent {
 
             await this.witnessComputation(stageId, airCtx, airInstanceId);
 
-            if(this.wcManager.deferredMutex) this.wcManager.deferredMutex.release();
+            this.wcManager.releaseDeferredLock();
             
             resolve();
 
@@ -83,7 +66,7 @@ class WitnessCalculatorComponent {
     }
 
     async _addPendingtask(lib, tag, data, lock) {
-        const task = new Task(this.name, lib, NOTIFICATION_TYPE, tag, data);
+        const task = new Task(this.name, lib, TaskTypeEnum.NOTIFICATION, tag, data);
         return await this.wcManager.addPendingTask(task, lock);
     }
 

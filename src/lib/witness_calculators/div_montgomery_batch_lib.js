@@ -1,4 +1,4 @@
-const { WitnessCalculatorComponent } = require("../../../src/witness_calculator_component.js");
+const { WitnessCalculatorComponent } = require("../../witness_calculator_component.js");
 
 const log = require("../../../logger.js");
 

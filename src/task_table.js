@@ -23,7 +23,6 @@ module.exports = class TaskTable {
         }
 
         task.isPending = false;
-        //if (task.promise) task.promise.unlock();
     }
 
     getPendingTasks() {

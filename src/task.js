@@ -1,8 +1,4 @@
-const log = require('../logger.js');
-
-const NOTIFICATION_TYPE = "notification";
-
-class Task {
+module.exports = class Task {
     constructor(sender, recipient, type, tag, data) {
         this.sender = sender;
         this.recipient = recipient;
@@ -11,8 +7,3 @@ class Task {
         this.data = data;
     }
 }
-
-module.exports = {
-    Task,
-    NOTIFICATION_TYPE,
-};

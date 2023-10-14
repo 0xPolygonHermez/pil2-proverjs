@@ -1,7 +1,5 @@
 const { WitnessCalculatorComponent } = require("../../../src/witness_calculator_component.js");
 
-const { WITNESS_ROUND_FULLY_DONE, WITNESS_ROUND_NOTHING_TO_DO } = require("../../../src/witness_calculator_manager.js");
-
 const {
     calculatePublics,
     callCalculateExps,
@@ -18,9 +16,7 @@ class ExecutorFibonacci extends WitnessCalculatorComponent {
     async witnessComputation(stageId, airInstanceCtx) {
         const ctx = airInstanceCtx.ctx;
         
-        if(stageId > 2) {
-            return WITNESS_ROUND_NOTHING_TO_DO;
-        }
+        if(stageId > 2) return;
 
         if(stageId === 1) {
             const subproofCtx = airInstanceCtx.airCtx.subproofCtx;
@@ -64,7 +60,7 @@ class ExecutorFibonacci extends WitnessCalculatorComponent {
                 await callCalculateExps(`stage${stageId}`, constraint, dom, ctx, this.settings.parallelExec, this.settings.useThreads, true);
             }
         }
-        return WITNESS_ROUND_FULLY_DONE;
+        return;
     }
 }
 

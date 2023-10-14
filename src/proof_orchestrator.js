@@ -58,7 +58,7 @@ module.exports = class ProofOrchestrator {
 
         this.pilout = new PilOut(this.proofManagerConfig.pilout.piloutFilename, this.proofManagerConfig.pilout.piloutProto);
 
-        this.wcManager = new WitnessCalculatorManager(proofmanagerAPI, this.proofCtx, this.subproofsCtx);
+        this.wcManager = new WitnessCalculatorManager(proofmanagerAPI);
         await this.wcManager.initialize(proofConfig.witnessCalculators, this.options);
 
         this.proversManager = new ProversManager(proofmanagerAPI, this.proofCtx, this.subproofsCtx);
@@ -183,7 +183,7 @@ module.exports = class ProofOrchestrator {
 
             await this.newProof();
 
-            await this.wcManager.witnessComputationX(1);
+            await this.wcManager.witnessComputation(1);
 
             let result = true;
             for (const subproofCtx of this.subproofsCtx) {
@@ -231,7 +231,7 @@ module.exports = class ProofOrchestrator {
                 let str = stageId <= this.pilout.numStages + 1 ? "STAGE" : "OPENINGS";
                 log.info(`[${this.name}]`, `==> ${str} ${stageId}`);
 
-                await this.wcManager.witnessComputationX(stageId);
+                await this.wcManager.witnessComputation(stageId);
 
                 proverTaskStatus = await this.proversManager.computeStage(stageId);
 

@@ -16,51 +16,13 @@
 // Modules are executed in the order they were registered within the WitnessCalculatorManager.
 // Similarly, deferred modules are executed in the order they were registered in the WitnessCalculatorManager.
 
-/// MODULE STATES
-/// -----------------------------------------------------------------------------------------
-
-// - State: NOTHING_TO_DO
-//   Represents a state with any task for current stage.
-
-// - State: TASKS_DONE
-//   Represents a state where all tasks have been completed in the current stage.
-
-// - State: PENDING_TASKS
-//   Represents a state with pending tasks to be completed during the current stage.
-
-// Initial State: PENDING_TASKS
-
-// Transitions:
-// - Transition: PENDING_TASKS -> PENDING_TASKS
-//   Description: Remains in the PENDING_TASK state when there are still pending tasks to complete.
-
-// - Transition: PENDING_TASKS -> NOTHING_TO_DO
-//   Description: Transitions to the NOTHING_TO_DO state when there are no more pending tasks.
-
-// - Transition: PENDING_TASKS -> TASKS_DONE
-//   Description: Transitions to the TASKS_DONE state when all pending tasks are completed.
-
-
-/// DEFERRED MODULE STATES 
-/// -----------------------------------------------------------------------------------------
-
-// - State: WAIT_UNTIL_LOCKED
-//   Represents a state where the machine is waiting until the remainig witness calculator
-//   components 
-
-// - Transition: WAIT_UNTIL_LOCKED -> WAIT_UNTIL_LOCKED
-//   Description: Remains in the WAIT_UNTIL_LOCKED state while waiting for a lock condition.
-
-const WITNESS_ROUND_NOTHING_TO_DO = 1;
-const WITNESS_ROUND_NOTHING_DONE = 2;
-const WITNESS_ROUND_PARTIAL_DONE = 3;
-const WITNESS_ROUND_FULLY_DONE = 4;
-const WAIT_UNTIL_LOCKED = 5;
-
 const WitnessCalculatorFactory = require("./witness_calculator_factory.js");
-const { Task, NOTIFICATION_TYPE } = require("./task.js");
+const Task = require("./task.js");
 const PendingTaskTable = require("./task_table.js");
 
+const TaskTypeEnum = {
+    NOTIFICATION: "notification",
+};
 const WC_MANAGER_NAME = "WCManager";
 
 const log = require('../logger.js');
@@ -73,22 +35,24 @@ const path = require("path");
 // WitnessCalculator class acting as the composite
 class WitnessCalculatorManager {
     constructor(proofmanagerAPI) {
+        this.initialized = false;
+
         this.name = WC_MANAGER_NAME;
         this.proofmanagerAPI = proofmanagerAPI;
-        this.options;
 
-        this.initialized = false;
-        this.witnesscalculators = [];
+        this.wc = [];
+        this.wcLocks = [];
+        
         this.wcDeferred = [];
+        this.wcDeferredLock;
 
-        this.mutex = new Mutex();
-        this.deferredMutex;
+        this.tasksTable = new PendingTaskTable();
+        this.tasksTableMutex = new Mutex();
+
+        // TODO remove when access to data is implemented
         this.data= [];
 
-        this.asyncLocks = [];
-
-        this.pendingTaskTable = new PendingTaskTable();
-
+        this.options;
     }
 
     async initialize(witnessCalculatorsConfig, options) {
@@ -97,23 +61,31 @@ class WitnessCalculatorManager {
             throw new Error(`[${this.name}] Witness Calculator Manager already initialized.`);
         }
 
-        this.options = options;
+        try {
+            this.options = options;
 
-        log.info(`[${this.name}]`, "Initializing...");
+            log.info(`[${this.name}]`, "Initializing...");
 
-        this.initialized = true;
+            // NOTE: The first witness calculator is always the witness_calculator_module
+            this.wcDeferred = witnessCalculatorsConfig.filter(wc => wc.settings.type && wc.settings.type === "unlocker");
 
-        this.wcDeferred = witnessCalculatorsConfig.filter(wc => wc.settings.type && wc.settings.type === "unlocker");
-        if(this.wcDeferred.length > 0) {
-            const witnessCalculatorLib =  path.join(__dirname, "witness_calculator_module.js");
-            witnessCalculatorsConfig.unshift({ witnessCalculatorLib, settings: { } });
-        }
+            if(this.wcDeferred.length > 0) {
+                const witnessCalculatorLib =  path.join(__dirname, "witness_calculator_module.js");
+                witnessCalculatorsConfig.unshift({ witnessCalculatorLib, settings: { } });
+            }
 
-        for(const witnessCalculator of witnessCalculatorsConfig) {
-            const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(witnessCalculator.witnessCalculatorLib, this.proofmanagerAPI);
-            newWitnessCalculator.initialize(witnessCalculator.settings, options);
+            for(const witnessCalculator of witnessCalculatorsConfig) {
+                const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(witnessCalculator.witnessCalculatorLib, this.proofmanagerAPI);
+                newWitnessCalculator.initialize(witnessCalculator.settings, options);
 
-            this.registerWitnessCalculator(newWitnessCalculator);
+                newWitnessCalculator.setWcManager(this);
+                this.wc.push(newWitnessCalculator);
+            }
+        } catch (err) {
+            log.error(`[${this.name}]`, `Error initializing Witness Calculator Manager: ${err}`);
+            throw new Error(`Error initializing Witness Calculator Manager: ${err}`);
+        } finally {
+            this.initialized = true;
         }
     }
 
@@ -124,132 +96,40 @@ class WitnessCalculatorManager {
         }
     }
 
-    registerWitnessCalculator(witnesscalculator) {
-        this.checkInitialized();
-
-        witnesscalculator.setWcManager(this);
-        this.witnesscalculators.push(witnesscalculator);
-    }
-
     async witnessComputation(stageId) {
         this.checkInitialized();
 
         log.info(`[${this.name}]`, `--> Computing witness for stage ${stageId}.`);
         
-        /////////////////////////////////////
         let wcStatusTable = [];
         for (const subproofCtx of this.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
                 if(airCtx.instances.length === 0) {
-                    for(let i =0; i < this.witnesscalculators.length; i++) {
-                        wcStatusTable.push({ wcId: i, airCtx, airInstanceId: -1, status: this.witnesscalculators[i].initialState()});
+                    for(let i =0; i < this.wc.length; i++) {
+                        wcStatusTable.push({ wcId: i, airCtx, airInstanceId: -1});
                     }
                 } else {
-                    for(let i =0; i < this.witnesscalculators.length; i++) {
+                    for(let i =0; i < this.wc.length; i++) {
                         for (const airInstanceCtx of airCtx.instances) {
-                        wcStatusTable.push({ wcId: i, airCtx, airInstanceId: airInstanceCtx.instanceId, status: this.witnesscalculators[i].initialState()});
+                        wcStatusTable.push({ wcId: i, airCtx, airInstanceId: airInstanceCtx.instanceId});
                     }
                 }
                 }
             }
         }
-        /////////////////////////////////////
 
-        const numWitnessCalculators = wcStatusTable.length;
+        const wc = this.wc.filter(wc => !wc.settings.type || wc.settings.type !== "unlocker");
+        const numWc = wc.length;
+        const numWcDeferred = this.wcDeferred.length;
 
-        let nPendingToFinish = numWitnessCalculators;
-        let x = nPendingToFinish;
-        let lastId = -1;
-
-        for(let i = 0; x > 0; i = (i+1) % numWitnessCalculators) {
-            const wcStatus = wcStatusTable[i].status;
-
-            if (wcStatus === WITNESS_ROUND_FULLY_DONE || 
-                wcStatus === WITNESS_ROUND_NOTHING_TO_DO ||
-                wcStatus === WAIT_UNTIL_LOCKED) continue;
-
-            if(lastId !== -1 && lastId === i) {
-                log.error(`[${this.name}]`, `WitnessCalculator ${this.witnesscalculators[i].name} is stuck in witness computation for stage ${stageId}`);
-                throw new Error(`WitnessCalculator ${this.witnesscalculators[i].name} is stuck in witness computation for stage ${stageId}`);
-            }
-
-            const status = await this.witnesscalculators[wcStatusTable[i].wcId].witnessComputation(stageId, wcStatusTable[i].airCtx, wcStatusTable[i].airInstanceId);
-
-            if(![WITNESS_ROUND_NOTHING_TO_DO, WITNESS_ROUND_NOTHING_DONE, WITNESS_ROUND_PARTIAL_DONE,WITNESS_ROUND_FULLY_DONE, WAIT_UNTIL_LOCKED].includes(status)) {
-                log.error(`[${this.name}]`, `Unknown witnesscalculator status return value: ${wcStatus}`);
-                throw new Error(`Unknown witnesscalculator status return value: ${wcStatus}`);
-            }
-
-            wcStatusTable[i].status = status;
-
-            if(status === WITNESS_ROUND_FULLY_DONE || status === WITNESS_ROUND_PARTIAL_DONE) {
-                lastId = i;
-            }
-
-            if (status === WITNESS_ROUND_NOTHING_DONE) {
-                x--;
-            } else if (status === WITNESS_ROUND_FULLY_DONE || status === WITNESS_ROUND_NOTHING_TO_DO) {
-                x = --nPendingToFinish;
-            }
-
-            // Here we have to check if all not finished modules are stucked
-            // If so, we have to execute deferred modules, so all that have a WAIT_UNTIL_LOCKED status
-            // If there are no deferred modules, we have to end the iteration and outside the for we have to check if there are still modules with pending tasks
-            // If there are no pending tasks, we can end the witness computation
-            // If there are still pending tasks, we have to throw an error
-        }
-
-        if(this.pendingTaskTable.hasPendingTasks()) {
-            log.error(`[${this.name}]`, `Some witness calculators have pending tasks for stage ${stageId}. Unable to continue`);
-            throw new Error(`Some witness calculators have pending tasks for stage ${stageId}. Unable to continue`);
-        }
-
-        if(nPendingToFinish !== 0) {
-            wcStatusTable.forEach((status, index) => {
-                if(status.status !== WITNESS_ROUND_FULLY_DONE)
-                    log.error(`[${this.name}]`, `WitnessCalculator ${this.witnesscalculators[index].name} did not finish witness computation for stage ${stageId}`);
-            });
-            log.error(`[${this.name}]`, `Unable to compute all witnesses for stage ${stageId}`);
-            throw new Error(`Unable to compute all witnesses for stage ${stageId}`);
-        }
-
-        log.info(`[${this.name}]`, `<-- Computing witness for stage ${stageId}.`);
-    }
-
-    async witnessComputationX(stageId) {
-        this.checkInitialized();
-
-        log.info(`[${this.name}]`, `--> Computing witness for stage ${stageId}.`);
-        
-        /////////////////////////////////////
-        let wcStatusTable = [];
-        for (const subproofCtx of this.subproofsCtx) {
-            for (const airCtx of subproofCtx.airsCtx) {
-                if(airCtx.instances.length === 0) {
-                    for(let i =0; i < this.witnesscalculators.length; i++) {
-                        wcStatusTable.push({ wcId: i, airCtx, airInstanceId: -1, status: this.witnesscalculators[i].initialState()});
-                    }
-                } else {
-                    for(let i =0; i < this.witnesscalculators.length; i++) {
-                        for (const airInstanceCtx of airCtx.instances) {
-                        wcStatusTable.push({ wcId: i, airCtx, airInstanceId: airInstanceCtx.instanceId, status: this.witnesscalculators[i].initialState()});
-                    }
-                }
-                }
-            }
-        }
-        /////////////////////////////////////
-
-        const wc = this.witnesscalculators.filter(wc => !wc.settings.type || wc.settings.type !== "unlocker");
-
-        if(wc.length !== this.witnesscalculators.length) this.deferredMutex = new TargetLock(wc.length - 1, 0);
+        if(numWcDeferred > 0) this.wcDeferredLock = new TargetLock(numWc - 1, 0);
 
         const executors = wc.map((wc, index) =>
             wc._witnessComputation(stageId, wcStatusTable[index].airCtx, wcStatusTable[index].airInstanceId));
 
         await Promise.all(executors);
 
-        if(this.pendingTaskTable.hasPendingTasks()) {
+        if(this.tasksTable.hasPendingTasks()) {
             log.error(`[${this.name}]`, `Some witness calculators have pending tasks for stage ${stageId}. Unable to continue`);
             throw new Error(`Some witness calculators have pending tasks for stage ${stageId}. Unable to continue`);
         }
@@ -258,16 +138,16 @@ class WitnessCalculatorManager {
     }
 
     async addPendingTask(task, lock = false) {
-        const taskTypesAllowed = ["notification"];
+        const taskTypesAllowed = [TaskTypeEnum.NOTIFICATION];
 
-        const senderIdx = this.witnesscalculators.findIndex(witnesscalculator => witnesscalculator.name === task.sender);
+        const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === task.sender);
         if(senderIdx === -1) {
             log.error(`[${this.name}]`, `Task sender '${task.sender}' not found`);
             throw new Error(`Task sender '${task.sender}' not found`);
         }
 
         if(task.recipient !== this.name) {
-            const recipient = this.witnesscalculators.find(witnesscalculator => witnesscalculator.name === task.recipient);
+            const recipient = this.wc.find(witnesscalculator => witnesscalculator.name === task.recipient);
             if(!recipient) {
                 log.error(`[${this.name}]`, `Task recipient '${task.recipient}' not found`);
                 throw new Error(`Task recipient '${task.recipient}' not found`);
@@ -280,80 +160,84 @@ class WitnessCalculatorManager {
         }
 
         task.lock = lock;
-        this.pendingTaskTable.addTask(task);
+        this.tasksTable.addTask(task);
 
         if(lock) {
-            if(!this.asyncLocks[senderIdx]) this.asyncLocks[senderIdx] = new AsyncAccLock();
-            log.info(`[${this.name}]`, `Locking witness calculator ${this.witnesscalculators[senderIdx].name}`);
+            if(!this.wcLocks[senderIdx]) this.wcLocks[senderIdx] = new AsyncAccLock();
+            log.info(`[${this.name}]`, `Locking witness calculator ${this.wc[senderIdx].name}`);
 
-            this.mutex.unlock();
-            if(this.deferredMutex) this.deferredMutex.release();
-            await this.asyncLocks[senderIdx].lock();
+            this.tasksTableMutex.unlock();
+            if(this.wcDeferredLock) this.wcDeferredLock.release();
+            await this.wcLocks[senderIdx].lock();
         }
     }
 
     resolvePendingTask(taskId) {
-        const task = this.pendingTaskTable.tasks.find(task => task.taskId === taskId);
-        const senderIdx = this.witnesscalculators.findIndex(witnesscalculator => witnesscalculator.name === task.sender);
+        const task = this.tasksTable.tasks.find(task => task.taskId === taskId);
+        const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === task.sender);
 
         if(senderIdx === -1) {
             log.error(`[${this.name}]`, `Task sender '${task.sender}' not found`);
             throw new Error(`Task sender '${task.sender}' not found`);
         }
 
-        this.pendingTaskTable.resolveTask(taskId);
+        this.tasksTable.resolveTask(taskId);
 
-        if(this.asyncLocks[senderIdx]) {
-            log.info(`[${this.name}]`, `Unlocking witness calculator ${this.witnesscalculators[senderIdx].name}`);
-            if(this.deferredMutex) this.deferredMutex.acquire();
-            this.asyncLocks[senderIdx].unlock();
+        if(this.wcLocks[senderIdx]) {
+            log.info(`[${this.name}]`, `Unlocking witness calculator ${this.wc[senderIdx].name}`);
+            if(this.wcDeferredLock) this.wcDeferredLock.acquire();
+            this.wcLocks[senderIdx].unlock();
         }
     }
 
     getPendingTasksByRecipient(recipient) {
-        return this.pendingTaskTable.getPendingTasksByRecipient(recipient);
+        return this.tasksTable.getPendingTasksByRecipient(recipient);
     }
 
     async readData(module, dataId) {
-        this.mutex.lock();
+        this.tasksTableMutex.lock();
 
         //TODO read data from proofmanagerAPI
         if(!this.data[dataId]) {
-            const task = new Task(module.name, this.name, NOTIFICATION_TYPE, "resolve", { dataId });
+            const task = new Task(module.name, this.name, TaskTypeEnum.NOTIFICATION, "resolve", { dataId });
             await this.addPendingTask(task, true);
         } else {
-            this.mutex.unlock();
+            this.tasksTableMutex.unlock();
         }
 
         return this.data[dataId];
     }
 
     async writeData(module, dataId, data) {
-        this.mutex.lock();
+        this.tasksTableMutex.lock();
 
         this.data[dataId] = data;
 
-        const tasks = this.pendingTaskTable.getPendingTasksByTagDataId("resolve", dataId);
+        const tasks = this.tasksTable.getPendingTasksByTagDataId("resolve", dataId);
         
         for(const task of tasks) {
             task.isPending = false;
             
-            const senderIdx = this.witnesscalculators.findIndex(witnesscalculator => witnesscalculator.name === task.sender);
-            if(this.asyncLocks[senderIdx]) {
-                log.info(`[${this.name}]`, `Unlocking witness calculator ${this.witnesscalculators[senderIdx].name}`);
-                this.asyncLocks[senderIdx].unlock();
+            const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === task.sender);
+            if(this.wcLocks[senderIdx]) {
+                log.info(`[${this.name}]`, `Unlocking witness calculator ${this.wc[senderIdx].name}`);
+                this.wcLocks[senderIdx].unlock();
             }
         }
 
-        this.mutex.unlock();
+        this.tasksTableMutex.unlock();
     }
 
     async lockDeferred() {
-        await this.deferredMutex.lock();
+        await this.wcDeferredLock.lock();
     }
 
     hasPendingTasks() {
-        return this.pendingTaskTable.hasPendingTasks();
+        return this.tasksTable.hasPendingTasks();
+    }
+
+    releaseDeferredLock() { 
+        if(this.wcDeferredLock) this.wcDeferredLock.release();
     }
 
     async executeDeferredModules(stageId, airCtx, airInstanceId) {
@@ -372,8 +256,5 @@ class WitnessCalculatorManager {
 module.exports = {
     WitnessCalculatorManager,
     WC_MANAGER_NAME,
-    WITNESS_ROUND_NOTHING_TO_DO,
-    WITNESS_ROUND_NOTHING_DONE,
-    WITNESS_ROUND_PARTIAL_DONE,
-    WITNESS_ROUND_FULLY_DONE
+    TaskTypeEnum
 };
