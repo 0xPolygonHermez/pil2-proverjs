@@ -183,7 +183,7 @@ module.exports = class ProofOrchestrator {
 
             await this.newProof();
 
-            await this.wcManager.witnessComputation(1);
+            await this.wcManager.witnessComputationX(1);
 
             let result = true;
             for (const subproofCtx of this.subproofsCtx) {
@@ -231,7 +231,7 @@ module.exports = class ProofOrchestrator {
                 let str = stageId <= this.pilout.numStages + 1 ? "STAGE" : "OPENINGS";
                 log.info(`[${this.name}]`, `==> ${str} ${stageId}`);
 
-                await this.wcManager.witnessComputation(stageId);
+                await this.wcManager.witnessComputationX(stageId);
 
                 proverTaskStatus = await this.proversManager.computeStage(stageId);
 

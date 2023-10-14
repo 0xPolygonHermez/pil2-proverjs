@@ -1,7 +1,5 @@
 const { WitnessCalculatorComponent } = require("../../../src/witness_calculator_component.js");
 
-const { WITNESS_ROUND_FULLY_DONE, WITNESS_ROUND_NOTHING_TO_DO } = require("../../../src/witness_calculator_manager.js");
-
 const log = require("../../../logger.js");
 
 class ExecutorSimple4 extends WitnessCalculatorComponent {
@@ -10,20 +8,18 @@ class ExecutorSimple4 extends WitnessCalculatorComponent {
     }
 
     async witnessComputation(stageId, airCtx, airInstanceId) {
-        if(stageId !== 1) return WITNESS_ROUND_NOTHING_TO_DO;
+        if(stageId !== 1) return;
 
-        if(airInstanceId === -1 && stageId !== 1) {
+        if(airInstanceId !== -1) {
             log.error(`[${this.name}]`, `Air instance id already existing in stageId 1.`);
             throw new Error(`[${this.name}]`, `Air instance id already existing in stageId 1.`);
         }
 
-        if(stageId === 1) {
-            let { result, airInstanceCtx } = this.proofmanagerAPI.addAirInstance(airCtx.subproofCtx, airCtx.airId);
+        let { result, airInstanceCtx } = this.proofmanagerAPI.addAirInstance(airCtx.subproofCtx, airCtx.airId);
 
-            if (result === false) {
-                log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
-                throw new Error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
-            }
+        if (result === false) {
+            log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
+            throw new Error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
         }
 
         const air = this.proofmanagerAPI.getPilout().getAirBySubproofIdAirId(airCtx.subproofCtx.subproofId, airCtx.airId);
@@ -39,7 +35,7 @@ class ExecutorSimple4 extends WitnessCalculatorComponent {
             airCtx.instances[0].wtnsPols.Simple4.b[i] = F.square(v);
         }
         
-        return WITNESS_ROUND_FULLY_DONE;
+        return;
     }
 }
 
