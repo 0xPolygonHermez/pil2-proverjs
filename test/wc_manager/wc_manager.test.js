@@ -38,7 +38,7 @@ describe("Witnes Computation Manager tests", async function () {
             witnessCalculators: [
                 { filename: `./test3/executor1.js`, settings: {} },
                 { filename: `./test3/executor2.js`, settings: {} },
-                { filename: `../../src/lib/witness_calculators/div_montgomery_batch_lib.js`, settings: { type: "unlocker"} } ]
+                { filename: `../../src/lib/witness_calculators/div_montgomery_batch_lib.js`, settings: { type: "deferred"} } ]
         };
 
         const subproofsCtx = createFakeSubproofsCtx([[1]]);

@@ -23,6 +23,13 @@ const PendingTaskTable = require("./task_table.js");
 const TaskTypeEnum = {
     NOTIFICATION: "notification",
 };
+
+const ModuleTypeEnum = {
+    REGULAR: 1,
+    DEFERRED: 2,
+    DEFERRED_MANAGER: 3,
+}
+
 const WC_MANAGER_NAME = "WCManager";
 
 const log = require('../logger.js');
@@ -41,9 +48,7 @@ class WitnessCalculatorManager {
         this.proofmanagerAPI = proofmanagerAPI;
 
         this.wc = [];
-        this.wcLocks = [];
-        
-        this.wcDeferred = [];
+        this.wcLocks = [];        
         this.wcDeferredLock;
 
         this.tasksTable = new PendingTaskTable();
@@ -66,19 +71,23 @@ class WitnessCalculatorManager {
 
             log.info(`[${this.name}]`, "Initializing...");
 
-            // NOTE: The first witness calculator is always the witness_calculator_module
-            this.wcDeferred = witnessCalculatorsConfig.filter(wc => wc.settings.type && wc.settings.type === "unlocker");
+            const regulars = witnessCalculatorsConfig.filter(wc => !(wc.settings.type) || wc.settings.type === "regular");
+            const deferreds = witnessCalculatorsConfig.filter(wc => wc.settings.type === "deferred");
 
-            if(this.wcDeferred.length > 0) {
-                const witnessCalculatorLib =  path.join(__dirname, "witness_calculator_module.js");
-                witnessCalculatorsConfig.unshift({ witnessCalculatorLib, settings: { } });
+            regulars.forEach(wc => wc.settings.type = ModuleTypeEnum.REGULAR);
+            deferreds.forEach(wc => wc.settings.type = ModuleTypeEnum.DEFERRED);
+
+            if(deferreds.length > 0) {
+                const deferredMgrLib =  path.join(__dirname, "witness_calculator_module.js");
+                witnessCalculatorsConfig.unshift({ witnessCalculatorLib: deferredMgrLib, settings: { type: ModuleTypeEnum.DEFERRED_MANAGER} });
             }
 
-            for(const witnessCalculator of witnessCalculatorsConfig) {
-                const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(witnessCalculator.witnessCalculatorLib, this.proofmanagerAPI);
-                newWitnessCalculator.initialize(witnessCalculator.settings, options);
-
+            for(const config of witnessCalculatorsConfig) {
+                const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(config.witnessCalculatorLib, this.proofmanagerAPI);
+                newWitnessCalculator.initialize(config.settings, options);
+        
                 newWitnessCalculator.setWcManager(this);
+        
                 this.wc.push(newWitnessCalculator);
             }
         } catch (err) {
@@ -101,31 +110,30 @@ class WitnessCalculatorManager {
 
         log.info(`[${this.name}]`, `--> Computing witness for stage ${stageId}.`);
         
-        let wcStatusTable = [];
+        const regulars = this.wc.filter(wc => wc.settings.type === ModuleTypeEnum.REGULAR);
+        const deferredMgr = this.wc.find(wc => wc.settings.type === ModuleTypeEnum.DEFERRED_MANAGER);
+        const executors = [];
+
+        if(deferredMgr) {
+            this.wcDeferredLock = new TargetLock(regulars.length, 0);
+
+            // NOTE: The first witness calculator is always the witness_calculator_module
+            executors.push(deferredMgr._witnessComputation(stageId, this.subproofsCtx, -1));
+        }
+        
         for (const subproofCtx of this.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
-                if(airCtx.instances.length === 0) {
-                    for(let i =0; i < this.wc.length; i++) {
-                        wcStatusTable.push({ wcId: i, airCtx, airInstanceId: -1});
+                for (const wc of regulars) {
+                    const instances = airCtx.instances.length === 0
+                        ? [-1]
+                        : airCtx.instances.map(airInstanceCtx => airInstanceCtx.instanceId);
+    
+                    for (const instanceId of instances) {
+                        executors.push(wc._witnessComputation(stageId, airCtx, instanceId));
                     }
-                } else {
-                    for(let i =0; i < this.wc.length; i++) {
-                        for (const airInstanceCtx of airCtx.instances) {
-                        wcStatusTable.push({ wcId: i, airCtx, airInstanceId: airInstanceCtx.instanceId});
-                    }
-                }
                 }
             }
         }
-
-        const wc = this.wc.filter(wc => !wc.settings.type || wc.settings.type !== "unlocker");
-        const numWc = wc.length;
-        const numWcDeferred = this.wcDeferred.length;
-
-        if(numWcDeferred > 0) this.wcDeferredLock = new TargetLock(numWc - 1, 0);
-
-        const executors = wc.map((wc, index) =>
-            wc._witnessComputation(stageId, wcStatusTable[index].airCtx, wcStatusTable[index].airInstanceId));
 
         await Promise.all(executors);
 
@@ -241,14 +249,11 @@ class WitnessCalculatorManager {
     }
 
     async executeDeferredModules(stageId, airCtx, airInstanceId) {
-        if(this.wcDeferred.length === 0) return;
+        const deferredModules = this.wc.filter(wc => wc.settings.type === ModuleTypeEnum.DEFERRED);
 
-        for(const wcDeferred of this.wcDeferred) {
-            const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(wcDeferred.witnessCalculatorLib, this.proofmanagerAPI);
-            newWitnessCalculator.initialize(wcDeferred.settings, this.options);
-
-            newWitnessCalculator.setWcManager(this);
-            await newWitnessCalculator._witnessComputation(stageId, airCtx, airInstanceId);
+        for(const module of deferredModules) {
+            if(module.settings.type !== ModuleTypeEnum.DEFERRED) continue;
+            await module._witnessComputation(stageId, airCtx, airInstanceId);
         }
     }
 }
