@@ -85,7 +85,6 @@ class WitnessCalculatorManager {
             for(const config of witnessCalculatorsConfig) {
                 const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(config.witnessCalculatorLib, this.proofmanagerAPI);
                 newWitnessCalculator.initialize(config.settings, options);
-        
                 newWitnessCalculator.setWcManager(this);
         
                 this.wc.push(newWitnessCalculator);
@@ -167,7 +166,6 @@ class WitnessCalculatorManager {
             throw new Error(`Task type '${task.type}' not allowed`);
         }
 
-        task.lock = lock;
         this.tasksTable.addTask(task);
 
         if(lock) {
