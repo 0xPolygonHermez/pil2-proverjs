@@ -7,7 +7,7 @@ module.exports = class Executor2 extends WitnessCalculatorComponent {
         super("Executor2", proofmanagerAPI);
     }
 
-    async witnessComputation(stageId, airCtx, airInstanceId) {
+    async witnessComputation(stageId, airCtx, instanceId) {
         await this.addLibPendingTask("div_lib", "div_batch", { data: 2 }, true);
     }
 }

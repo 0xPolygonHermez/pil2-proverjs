@@ -7,10 +7,10 @@ class ExecutorSimple4 extends WitnessCalculatorComponent {
         super("WCSimple4", proofmanagerAPI);
     }
 
-    async witnessComputation(stageId, airCtx, airInstanceId) {
+    async witnessComputation(stageId, airCtx, instanceId) {
         if(stageId !== 1) return;
 
-        if(airInstanceId !== -1) {
+        if(instanceId !== -1) {
             log.error(`[${this.name}]`, `Air instance id already existing in stageId 1.`);
             throw new Error(`[${this.name}]`, `Air instance id already existing in stageId 1.`);
         }

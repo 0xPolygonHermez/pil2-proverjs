@@ -2,11 +2,12 @@ const { WitnessCalculatorManager } = require("../../src/witness_calculator_manag
 const { fileExists } = require("../../src/utils.js");
 const log = require("../../logger.js");
 const path = require("path");
+const { expect } = require("chai");
 
 describe("Witnes Computation Manager tests", async function () {
     this.timeout(10000000);
 
-    it("B resolves a pending task without locked thread", async () => {
+    it("adds pending task without blocking", async () => {
         const settings = {
             name: "wcManager-test-1-" + Date.now(),
             witnessCalculators: [
@@ -14,12 +15,12 @@ describe("Witnes Computation Manager tests", async function () {
                 { filename: `./test1/executor2.js`, settings: {} }],
         };
 
-        const subproofsCtx = createFakeSubproofsCtx([[1]]);
+        const subproofsCtx = createFakeSubproofsCtx([[0]]);
 
         await runTest(settings, subproofsCtx);
     });
 
-    it("B resolves a pending task and unlock A thread", async () => {
+    it("tasks are blocked until some computation is done", async () => {
         const settings = {
             name: "wcManager-test-2-" + Date.now(),
             witnessCalculators: [
@@ -27,12 +28,12 @@ describe("Witnes Computation Manager tests", async function () {
                 { filename: `./test2/executor2.js`, settings: {} }]
         };
 
-        const subproofsCtx = createFakeSubproofsCtx([[1]]);
+        const subproofsCtx = createFakeSubproofsCtx([[0]]);
 
         await runTest(settings, subproofsCtx);
     });
 
-    it("A and B locks and C unlock in batch mode", async () => {
+    it("deferred tasks are solved", async () => {
         const settings = {
             name: "wcManager-test-3-" + Date.now(),
             witnessCalculators: [
@@ -41,9 +42,24 @@ describe("Witnes Computation Manager tests", async function () {
                 { filename: `../../src/lib/witness_calculators/div_montgomery_batch_lib.js`, settings: { type: "deferred"} } ]
         };
 
-        const subproofsCtx = createFakeSubproofsCtx([[1]]);
+        const subproofsCtx = createFakeSubproofsCtx([[0]]);
 
         await runTest(settings, subproofsCtx);
+    });
+
+    it("throws an error when tasks cannot be solved", async () => {
+        const settings = {
+            name: "wcManager-test-4-" + Date.now(),
+            witnessCalculators: [
+                { filename: `./test4/executor1.js`, settings: {} },
+                { filename: `./test4/executor2.js`, settings: {} }]
+        };
+
+        const subproofsCtx = createFakeSubproofsCtx([[0]]);
+
+        await runTest(settings, subproofsCtx).catch(err => {
+            expect(err.message).to.equal("The executing processes do not respond, processes are stucked.");
+        });
     });
 
     async function runTest(settings,subproofsCtx) {
@@ -63,7 +79,7 @@ describe("Witnes Computation Manager tests", async function () {
 
         wcManager.subproofsCtx = subproofsCtx;
 
-        await wcManager.witnessComputation(1);
+        return await wcManager.witnessComputation(1);
     }
 
     function createFakeSubproofsCtx(subproofs) {
@@ -72,18 +88,26 @@ describe("Witnes Computation Manager tests", async function () {
 
         for(let i=0; i< subproofs.length; i++) {
             subproofsCtx[i] = {};
-            subproofsCtx[i].airsCtx = createFakeAirCtx(subproofs[i]);
+            subproofsCtx[i].subproofId = i;
+            subproofsCtx[i].airsCtx = createFakeAirCtx(subproofs[i], i);
         }
 
         return subproofsCtx;
     }
 
-    function createFakeAirCtx(airs) {
+    function createFakeAirCtx(airs, subproofId) {
         const airCtx = [];
 
         for(let i=0; i< airs.length; i++) {
             airCtx[i] = [];
-            airCtx[i].instances = []; // = createFakeAirInstanceCtx(airs[i]);
+            airCtx[i].airId = i;
+            airCtx[i].subproofCtx = { subproofId };
+            airCtx[i].instances = new Array(airs[i]);
+            for(let j=0; j< airs[i]; j++) {
+                airCtx[i].instances[j] = {
+                    instanceId: j,
+                };
+            }
         }
 
         return airCtx;

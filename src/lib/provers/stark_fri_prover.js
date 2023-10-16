@@ -72,12 +72,12 @@ class StarkFriProver extends ProverComponent {
         }
     }
 
-    async pilVerify(subproofCtx, airId, airInstanceId) {
+    async pilVerify(subproofCtx, airId, instanceId) {
         const pil1 = false;
         const stark = true;
         const debug = true;
         
-        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[airInstanceId];
+        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[instanceId];
         const pilout = this.proofmanagerAPI.getPilout();
         const air = pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
 
@@ -198,7 +198,7 @@ class StarkFriProver extends ProverComponent {
 
         log.info(
             `[${this.name}]`,
-            `Computing Openings for subproof ${airInstanceCtx.airCtx.subproofCtx.name} airId ${airInstanceCtx.airId} airInstanceId ${airInstanceCtx.instanceId}`
+            `Computing Openings for subproof ${airInstanceCtx.airCtx.subproofCtx.name} airId ${airInstanceCtx.airId} instanceId ${airInstanceCtx.instanceId}`
         );
 
         const challenge = this.proofmanagerAPI.getChallenge(stageId - 1);
@@ -215,7 +215,7 @@ class StarkFriProver extends ProverComponent {
 
         log.info(
             `[${this.name}]`,
-            `Computing FRI Stark for subproof ${airInstanceCtx.airCtx.subproofCtx.name} airId ${airInstanceCtx.airId} airInstanceId ${airInstanceCtx.instanceId}`
+            `Computing FRI Stark for subproof ${airInstanceCtx.airCtx.subproofCtx.name} airId ${airInstanceCtx.airId} instanceId ${airInstanceCtx.instanceId}`
         );
 
         const challenge = this.proofmanagerAPI.getChallenge(stageId - 1);
@@ -248,9 +248,9 @@ class StarkFriProver extends ProverComponent {
         computeFRIQueries(ctx, friQueries);
 
         const airId = airInstanceCtx.airId;
-        const airInstanceId = airInstanceCtx.instanceId;
+        const instanceId = airInstanceCtx.instanceId;
         const subproofCtx = airInstanceCtx.airCtx.subproofCtx;
-        subproofCtx.airsCtx[airId].instances[airInstanceId].proof = await genProofStark(airInstanceCtx.ctx, log);
+        subproofCtx.airsCtx[airId].instances[instanceId].proof = await genProofStark(airInstanceCtx.ctx, log);
     }    
 
 }

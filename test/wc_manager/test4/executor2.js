@@ -8,6 +8,6 @@ module.exports = class Executor2 extends WitnessCalculatorComponent {
     }
 
     async witnessComputation(stageId, airCtx, instanceId) {
-        this.wcManager.writeData(this, "A", 7);
+        await this.wcManager.readData(this, "B");
     }
 }

@@ -52,6 +52,7 @@ class WitnessCalculatorManager {
         this.wcDeferredLock;
 
         this.tasksTable = new PendingTaskTable();
+        this.lastSolvedTaskId;
         this.tasksTableMutex = new Mutex();
 
         // TODO remove when access to data is implemented
@@ -77,10 +78,8 @@ class WitnessCalculatorManager {
             regulars.forEach(wc => wc.settings.type = ModuleTypeEnum.REGULAR);
             deferreds.forEach(wc => wc.settings.type = ModuleTypeEnum.DEFERRED);
 
-            if(deferreds.length > 0) {
-                const deferredMgrLib =  path.join(__dirname, "witness_calculator_module.js");
-                witnessCalculatorsConfig.unshift({ witnessCalculatorLib: deferredMgrLib, settings: { type: ModuleTypeEnum.DEFERRED_MANAGER} });
-            }
+            const deferredMgrLib =  path.join(__dirname, "witness_calculator_module.js");
+            witnessCalculatorsConfig.unshift({ witnessCalculatorLib: deferredMgrLib, settings: { type: ModuleTypeEnum.DEFERRED_MANAGER} });
 
             for(const config of witnessCalculatorsConfig) {
                 const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(config.witnessCalculatorLib, this.proofmanagerAPI);
@@ -113,12 +112,10 @@ class WitnessCalculatorManager {
         const deferredMgr = this.wc.find(wc => wc.settings.type === ModuleTypeEnum.DEFERRED_MANAGER);
         const executors = [];
 
-        if(deferredMgr) {
-            this.wcDeferredLock = new TargetLock(regulars.length, 0);
+        this.wcDeferredLock = new TargetLock(regulars.length, 0);
 
-            // NOTE: The first witness calculator is always the witness_calculator_module
-            executors.push(deferredMgr._witnessComputation(stageId, this.subproofsCtx, -1));
-        }
+        // NOTE: The first witness calculator is always the witness_calculator_module
+        executors.push(deferredMgr._witnessComputation(stageId, this.subproofsCtx, -1));
         
         for (const subproofCtx of this.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
@@ -189,11 +186,18 @@ class WitnessCalculatorManager {
 
         this.tasksTable.resolveTask(taskId);
 
+        // TODO: Do we need a mutex covering this.lastSolvedTaskId?
+        this.lastSolvedTaskId = taskId;
+
         if(this.wcLocks[senderIdx]) {
             log.info(`[${this.name}]`, `Unlocking witness calculator ${this.wc[senderIdx].name}`);
             if(this.wcDeferredLock) this.wcDeferredLock.acquire();
             this.wcLocks[senderIdx].unlock();
         }
+    }
+
+    getLastSolvedTaskId() {
+        return this.lastSolvedTaskId;
     }
 
     getPendingTasksByRecipient(recipient) {
@@ -246,12 +250,12 @@ class WitnessCalculatorManager {
         if(this.wcDeferredLock) this.wcDeferredLock.release();
     }
 
-    async executeDeferredModules(stageId, airCtx, airInstanceId) {
+    async executeDeferredModules(stageId, airCtx, instanceId) {
         const deferredModules = this.wc.filter(wc => wc.settings.type === ModuleTypeEnum.DEFERRED);
 
         for(const module of deferredModules) {
             if(module.settings.type !== ModuleTypeEnum.DEFERRED) continue;
-            await module._witnessComputation(stageId, airCtx, airInstanceId);
+            await module._witnessComputation(stageId, airCtx, instanceId);
         }
     }
 }

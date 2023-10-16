@@ -7,7 +7,7 @@ module.exports = class Executor2 extends WitnessCalculatorComponent {
         super("Executor2", proofmanagerAPI);
     }
 
-    async witnessComputation(stageId, airCtx, airInstanceId) {
+    async witnessComputation(stageId, airCtx, instanceId) {
         const tasks = this.getPendingTasksByRecipient(this.name);
 
         for(const task of tasks) {

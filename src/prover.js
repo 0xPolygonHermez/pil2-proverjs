@@ -26,7 +26,7 @@ class ProverComponent {
         }
     }
 
-    async newProof(subproofCtx, airId, airInstanceId) {
+    async newProof(subproofCtx, airId, instanceId) {
         throw new Error("Method 'newProof' must be implemented in concrete classes.");
     }
 

@@ -47,17 +47,22 @@ class WitnessCalculatorComponent {
         throw new Error("Method 'witnessComputation' must be implemented in concrete classes.");
     }
 
-    async _witnessComputation(stageId, airCtx, airInstanceId) {
-        return new Promise(async (resolve) => {
-            log.info(`[${this.name}]`, `Starting stageId: ${stageId}, airCtx: ${airCtx}, airInstanceId: ${airInstanceId}`);
+    async _witnessComputation(stageId, airCtx, instanceId) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                log.info(`[${this.name}]`, `··> stageId: ${stageId}, airCtx: ${airCtx.airId}, instanceId: ${instanceId}`);
 
-            await this.witnessComputation(stageId, airCtx, airInstanceId);
+                await this.witnessComputation(stageId, airCtx, instanceId);
 
-            this.wcManager.releaseDeferredLock();
-            
-            resolve();
+                this.wcManager.releaseDeferredLock();
+                
+                resolve();
 
-            log.info(`[${this.name}]`, "Finishing");
+                log.info(`[${this.name}]`, `<·· stageId: ${stageId}`);
+            } catch (err) {
+                log.error(`[${this.name}]`, `Witness computation failed.`, err);
+                reject(err);
+            }
         });
     }
 
