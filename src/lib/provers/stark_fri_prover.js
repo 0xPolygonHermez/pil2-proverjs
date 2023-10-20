@@ -1,5 +1,5 @@
 const ProverComponent = require("../../prover.js");
-const { PROVER_OPENING_TASKS_COMPLETED, PROVER_OPENING_TASKS_PENDING } = require("../../provers_manager.js");
+const { PROVER_OPENINGS_COMPLETED, PROVER_OPENINGS_PENDING } = require("../../provers_manager.js");
 const starkSetup = require("pil2-stark-js/src/stark/stark_setup.js");
 const starkGen = require("pil2-stark-js/src/stark/stark_gen.js");
 const { initProverStark,
@@ -180,7 +180,7 @@ class StarkFriProver extends ProverComponent {
         }
 
 
-        return isLastRound ? PROVER_OPENING_TASKS_COMPLETED : PROVER_OPENING_TASKS_PENDING;
+        return isLastRound ? PROVER_OPENINGS_COMPLETED : PROVER_OPENINGS_PENDING;
     }
 
     async computeAirChallenges(stageId, airInstanceCtx) {

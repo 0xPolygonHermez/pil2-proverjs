@@ -27,7 +27,7 @@ class ProofManagerAPI {
 
     // Free the buffer for the given subproof and air.
     removeAirInstance(subproofId, airId) {
-        return this.proofOrchestrator.resizeAirInstance(subproofId, airId);
+        return this.proofOrchestrator.removeAirInstance(subproofId, airId);
     }
 }
 

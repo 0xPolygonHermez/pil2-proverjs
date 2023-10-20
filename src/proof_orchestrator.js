@@ -1,9 +1,10 @@
-const { WitnessCalculatorManager } = require("./witness_calculator_manager.js");
+const WitnessCalculatorManager = require("./witness_calculator_manager.js");
 const {
     ProversManager,
-    PROVER_OPENING_TASKS_COMPLETED,
-    PROVER_OPENING_TASKS_PENDING,
+    PROVER_OPENINGS_COMPLETED,
+    PROVER_OPENINGS_PENDING,
 } = require("./provers_manager.js");
+
 const CheckerFactory = require("./checker_factory.js");
 const ProofManagerAPI = require("./proof_manager_api.js");
 const { AirOut } = require("./airout.js");
@@ -226,14 +227,14 @@ module.exports = class ProofOrchestrator {
 
             await this.newProof();
 
-            let proverTaskStatus = PROVER_OPENING_TASKS_PENDING;
-            for (let stageId = 1; proverTaskStatus !== PROVER_OPENING_TASKS_COMPLETED; stageId++) {
+            let proverStatus = PROVER_OPENINGS_PENDING;
+            for (let stageId = 1; proverStatus !== PROVER_OPENINGS_COMPLETED; stageId++) {
                 let str = stageId <= this.airout.numStages + 1 ? "STAGE" : "OPENINGS";
                 log.info(`[${this.name}]`, `==> ${str} ${stageId}`);
 
                 await this.wcManager.witnessComputation(stageId, publics);
 
-                proverTaskStatus = await this.proversManager.computeStage(stageId, publics);
+                proverStatus = await this.proversManager.computeStage(stageId, publics);
 
                 log.info(`[${this.name}]`, `<== ${str} ${stageId}`);
             }

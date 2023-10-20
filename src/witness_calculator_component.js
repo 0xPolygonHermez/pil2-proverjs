@@ -13,7 +13,7 @@
 ///     - subproofCtx: the subproof context object
 /// The `witnessComputation()` method should return one of the following values:
 
-const { Task, TaskTypeEnum } = require("./task.js");
+const { AirBusPayload, PayloadTypeEnum } = require("./air_bus.js");
 const log = require("../logger.js");
 
 const ModuleTypeEnum = {
@@ -75,17 +75,17 @@ class WitnessCalculatorComponent {
         });
     }
 
-    async addPendingTask(lib, tag, data, lock) {
-        const task = new Task(this.name, lib, TaskTypeEnum.NOTIFICATION, tag, data);
-        return await this.wcManager.addPendingTask(task, lock);
+    async addBusPayload(lib, tag, data, lock) {
+        const payload = new AirBusPayload(this.name, lib, PayloadTypeEnum.NOTIFICATION, tag, data);
+        return await this.wcManager.addBusPayload(payload, lock);
     }
 
-    resolvePendingTask(taskId) {
-        return this.wcManager.resolvePendingTask(taskId);
+    resolveBusPayload(payloadId) {
+        return this.wcManager.resolveBusPayload(payloadId);
     }
 
-    getPendingTasksByRecipient(recipient) {
-        return this.wcManager.getPendingTasksByRecipient(recipient);
+    getBusPayloadsByRecipient(recipient) {
+        return this.wcManager.getBusPayloadsByRecipient(recipient);
     }
 }
 

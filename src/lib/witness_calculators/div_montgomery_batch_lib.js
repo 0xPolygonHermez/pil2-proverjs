@@ -8,11 +8,11 @@ module.exports = class DivModule extends WitnessCalculatorComponent {
     }
 
     async witnessComputation(stageId, airCtx, instanceId) {
-        const tasks = this.getPendingTasksByRecipient(this.name);
+        const payloads = this.getBusPayloadsByRecipient(this.name);
 
-        for(const task of tasks) {
-            log.info(`[${this.name}]`, ` Resolving task: ${task.taskId}`);
-            this.resolvePendingTask(task.taskId);
+        for(const payload of payloads) {
+            log.info(`[${this.name}]`, ` Resolving payload: ${payload.payloadId}`);
+            this.resolveBusPayload(payload.payloadId);
         }
     }
 }

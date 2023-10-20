@@ -1,4 +1,4 @@
-const { WitnessCalculatorManager } = require("../../src/witness_calculator_manager.js");
+const WitnessCalculatorManager = require("../../src/witness_calculator_manager.js");
 const { fileExists } = require("../../src/utils.js");
 const log = require("../../logger.js");
 const path = require("path");
@@ -7,7 +7,7 @@ const { expect } = require("chai");
 describe("Witnes Computation Manager tests", async function () {
     this.timeout(10000000);
 
-    it("adds pending task without blocking", async () => {
+    it("adds payload without blocking", async () => {
         const settings = {
             name: "wcManager-test-1-" + Date.now(),
             witnessCalculators: [
@@ -20,7 +20,7 @@ describe("Witnes Computation Manager tests", async function () {
         await runTest(settings, subproofsCtx);
     });
 
-    it("tasks are blocked until some computation is done", async () => {
+    it("thread are blocked until some payload is resolved", async () => {
         const settings = {
             name: "wcManager-test-2-" + Date.now(),
             witnessCalculators: [
@@ -33,7 +33,7 @@ describe("Witnes Computation Manager tests", async function () {
         await runTest(settings, subproofsCtx);
     });
 
-    it("deferred tasks are solved", async () => {
+    it("deferred payloads are solved", async () => {
         const settings = {
             name: "wcManager-test-3-" + Date.now(),
             witnessCalculators: [
@@ -47,7 +47,7 @@ describe("Witnes Computation Manager tests", async function () {
         await runTest(settings, subproofsCtx);
     });
 
-    it("throws an error when tasks cannot be solved", async () => {
+    it("throws an error when payloads cannot be solved", async () => {
         const settings = {
             name: "wcManager-test-4-" + Date.now(),
             witnessCalculators: [

@@ -2,8 +2,8 @@ const ProverFactory = require("./prover_factory.js");
 
 const log = require('../logger.js');
 
-const PROVER_OPENING_TASKS_PENDING  = 1;
-const PROVER_OPENING_TASKS_COMPLETED = 2;
+const PROVER_OPENINGS_PENDING  = 1;
+const PROVER_OPENINGS_COMPLETED = 2;
 
 class ProversManager {
     constructor(proofmanagerAPI) {
@@ -101,7 +101,7 @@ class ProversManager {
             await this.commitStage(stageId);
         } else {
             const retValue = await this.openingStage(stageId - numStages);
-            if(retValue !== PROVER_OPENING_TASKS_COMPLETED) {
+            if(retValue !== PROVER_OPENINGS_COMPLETED) {
                 this.computeProofChallenge(stageId);
             }
             return retValue;
@@ -111,7 +111,7 @@ class ProversManager {
 
         this.setChallenges(stageId + 1, this.proofCtx.getChallenge(stageId));
 
-        return PROVER_OPENING_TASKS_PENDING;
+        return PROVER_OPENINGS_PENDING;
     }
 
     async commitStage(stageId) {
@@ -125,7 +125,7 @@ class ProversManager {
                 }
             }
         }
-        return PROVER_OPENING_TASKS_PENDING;
+        return PROVER_OPENINGS_PENDING;
     }
 
     async openingStage(openingId) {
@@ -174,6 +174,6 @@ class ProversManager {
 
 module.exports = {
     ProversManager,
-    PROVER_OPENING_TASKS_PENDING,
-    PROVER_OPENING_TASKS_COMPLETED
+    PROVER_OPENINGS_PENDING,
+    PROVER_OPENINGS_COMPLETED
 };

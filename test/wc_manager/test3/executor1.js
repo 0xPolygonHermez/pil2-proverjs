@@ -8,7 +8,7 @@ module.exports = class Executor1 extends WitnessCalculatorComponent {
     }
 
     async witnessComputation(stageId, subproofCtx, airId, instanceId) {
-        await this.addPendingTask("divLib", "div_batch", { data: 2 }, true);
-        await this.addPendingTask("divLib", "div_batch", { data: 2 }, true);
+        await this.addBusPayload("divLib", "div_batch", { data: 2 }, true);
+        await this.addBusPayload("divLib", "div_batch", { data: 2 }, true);
     }
 };

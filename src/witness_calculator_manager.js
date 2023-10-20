@@ -17,9 +17,7 @@
 // Similarly, deferred modules are executed in the order they were registered in the WitnessCalculatorManager.
 
 const WitnessCalculatorFactory = require("./witness_calculator_factory.js");
-const PendingTaskTable = require("./task_table.js");
-
-const { Task, TaskTypeEnum } = require("./task.js");
+const { AirBus, AirBusPayload, PayloadTypeEnum } = require("./air_bus.js");
 
 const { ModuleTypeEnum } = require("./witness_calculator_component.js");
 
@@ -33,7 +31,7 @@ const TargetLock = require("./concurrency/target_lock.js");
 const path = require("path");
 
 // WitnessCalculator class acting as the composite
-class WitnessCalculatorManager {
+module.exports = class WitnessCalculatorManager {
     constructor(proofmanagerAPI) {
         this.initialized = false;
 
@@ -44,9 +42,9 @@ class WitnessCalculatorManager {
         this.wcLocks = [];        
         this.wcDeferredLock;
 
-        this.tasksTable = new PendingTaskTable();
-        this.lastSolvedTaskId;
-        this.tasksTableMutex = new Mutex();
+        this.airBus = new AirBus();
+        this.lastSolvedpayloadId;
+        this.airBusMutex = new Mutex();
 
         // TODO remove when access to data is implemented
         this.data= [];
@@ -133,61 +131,61 @@ class WitnessCalculatorManager {
 
         await Promise.all(executors);
 
-        if(this.tasksTable.hasPendingTasks()) {
-            log.error(`[${this.name}]`, `Some witness calculators have pending tasks for stage ${stageId}. Unable to continue`);
-            throw new Error(`Some witness calculators have pending tasks for stage ${stageId}. Unable to continue`);
+        if(this.airBus.hasPendingPayloads()) {
+            log.error(`[${this.name}]`, `Some witness calculators have pending payloads for stage ${stageId}. Unable to continue`);
+            throw new Error(`Some witness calculators have pending payloads for stage ${stageId}. Unable to continue`);
         }
 
         log.info(`[${this.name}]`, `<== Computing witness stage ${stageId}.`);
     }
 
-    async addPendingTask(task, lock = false) {
-        const taskTypesAllowed = [TaskTypeEnum.NOTIFICATION];
+    async addBusPayload(payload, lock = false) {
+        const payloadTypesAllowed = [PayloadTypeEnum.NOTIFICATION];
 
-        const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === task.sender);
+        const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === payload.sender);
         if(senderIdx === -1) {
-            log.error(`[${this.name}]`, `Task sender '${task.sender}' not found`);
-            throw new Error(`Task sender '${task.sender}' not found`);
+            log.error(`[${this.name}]`, `Bus Payload sender '${payload.sender}' not found`);
+            throw new Error(`Bus Payload sender '${payload.sender}' not found`);
         }
 
-        if(task.recipient !== this.name) {
-            const recipient = this.wc.find(witnesscalculator => witnesscalculator.name === task.recipient);
+        if(payload.recipient !== this.name) {
+            const recipient = this.wc.find(witnesscalculator => witnesscalculator.name === payload.recipient);
             if(!recipient) {
-                log.error(`[${this.name}]`, `Task recipient '${task.recipient}' not found`);
-                throw new Error(`Task recipient '${task.recipient}' not found`);
+                log.error(`[${this.name}]`, `Bus Payload recipient '${payload.recipient}' not found`);
+                throw new Error(`Bus Payload recipient '${payload.recipient}' not found`);
             }
         }
 
-        if(!taskTypesAllowed.includes(task.type)) {
-            log.error(`[${this.name}]`, `Task type '${task.type}' not allowed`);
-            throw new Error(`Task type '${task.type}' not allowed`);
+        if(!payloadTypesAllowed.includes(payload.type)) {
+            log.error(`[${this.name}]`, `Bus Payload type '${payload.type}' not allowed`);
+            throw new Error(`Bus Payload type '${payload.type}' not allowed`);
         }
 
-        this.tasksTable.addTask(task);
+        this.airBus.addBusPayload(payload);
 
         if(lock) {
             if(!this.wcLocks[senderIdx]) this.wcLocks[senderIdx] = new AsyncAccLock();
             log.info(`[${this.name}]`, `Locking witness calculator ${this.wc[senderIdx].name}`);
 
-            this.tasksTableMutex.unlock();
+            this.airBusMutex.unlock();
             if(this.wcDeferredLock) this.wcDeferredLock.release();
             await this.wcLocks[senderIdx].lock();
         }
     }
 
-    resolvePendingTask(taskId) {
-        const task = this.tasksTable.tasks.find(task => task.taskId === taskId);
-        const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === task.sender);
+    resolveBusPayload(payloadId) {
+        const payload = this.airBus.payloads.find(payload => payload.payloadId === payloadId);
+        const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === payload.sender);
 
         if(senderIdx === -1) {
-            log.error(`[${this.name}]`, `Task sender '${task.sender}' not found`);
-            throw new Error(`Task sender '${task.sender}' not found`);
+            log.error(`[${this.name}]`, `Bus Payload sender '${payload.sender}' not found`);
+            throw new Error(`Bus Payload sender '${payload.sender}' not found`);
         }
 
-        this.tasksTable.resolveTask(taskId);
+        this.airBus.resolveBusPayload(payloadId);
 
-        // TODO: Do we need a mutex covering this.lastSolvedTaskId?
-        this.lastSolvedTaskId = taskId;
+        // TODO: Do we need a mutex covering this.lastSolvedpayloadId?
+        this.lastSolvedpayloadId = payloadId;
 
         if(this.wcLocks[senderIdx]) {
             log.info(`[${this.name}]`, `Unlocking witness calculator ${this.wc[senderIdx].name}`);
@@ -196,42 +194,42 @@ class WitnessCalculatorManager {
         }
     }
 
-    getPendingTasksByRecipient(recipient) {
-        return this.tasksTable.getPendingTasksByRecipient(recipient);
+    getBusPayloadsByRecipient(recipient) {
+        return this.airBus.getPendingPayloadsByRecipient(recipient);
     }
 
     async readData(module, dataId) {
-        this.tasksTableMutex.lock();
+        this.airBusMutex.lock();
 
         //TODO read data from proofmanagerAPI
         if(!this.data[dataId]) {
-            const task = new Task(module.name, this.name, TaskTypeEnum.NOTIFICATION, "resolve", { dataId });
-            await this.addPendingTask(task, true);
+            const payload = new AirBusPayload(module.name, this.name, PayloadTypeEnum.NOTIFICATION, "resolve", { dataId });
+            await this.addBusPayload(payload, true);
         } else {
-            this.tasksTableMutex.unlock();
+            this.airBusMutex.unlock();
         }
 
         return this.data[dataId];
     }
 
     async writeData(module, dataId, data) {
-        this.tasksTableMutex.lock();
+        this.airBusMutex.lock();
 
         this.data[dataId] = data;
 
-        const tasks = this.tasksTable.getPendingTasksByTagDataId("resolve", dataId);
+        const payloads = this.airBus.getPendingPayloadsByTagDataId("resolve", dataId);
         
-        for(const task of tasks) {
-            task.isPending = false;
+        for(const payload of payloads) {
+            payload.isPending = false;
             
-            const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === task.sender);
+            const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === payload.sender);
             if(this.wcLocks[senderIdx]) {
                 log.info(`[${this.name}]`, `Unlocking witness calculator ${this.wc[senderIdx].name}`);
                 this.wcLocks[senderIdx].unlock();
             }
         }
 
-        this.tasksTableMutex.unlock();
+        this.airBusMutex.unlock();
     }
 
     releaseDeferredLock() { 
@@ -248,24 +246,24 @@ class WitnessCalculatorManager {
 
     async witnessComputationDeferred(stageId, subproofCtx, airId, instanceId, publics) {
         return new Promise(async (resolve, reject) => {
-            let _lastSolvedTaskId;
+            let _lastSolvedpayloadId;
             try {
                 while(true) {
                     await this.wcDeferredLock.lock();
     
-                    if(!this.tasksTable.hasPendingTasks()) break;
+                    if(!this.airBus.hasPendingPayloads()) break;
 
                     log.info(`[${this.name}]`, `Initiating the process to unblock witness calculators`);
 
                     await this.executeDeferredModules(stageId, airId, instanceId);
     
-                    const lastSolvedTaskId = this.lastSolvedTaskId;
-                    if(_lastSolvedTaskId === lastSolvedTaskId) {
+                    const lastSolvedpayloadId = this.lastSolvedpayloadId;
+                    if(_lastSolvedpayloadId === lastSolvedpayloadId) {
                         log.error(`[${this.name}]`, "The executing processes do not respond, processes are stucked.")
                         throw new Error("The executing processes do not respond, processes are stucked.");
                     }   
                     
-                    _lastSolvedTaskId = lastSolvedTaskId;
+                    _lastSolvedpayloadId = lastSolvedpayloadId;
                 }
     
                 this.releaseDeferredLock();
@@ -278,9 +276,3 @@ class WitnessCalculatorManager {
         });
     }
 }
-
-module.exports = {
-    WitnessCalculatorManager,
-    WC_MANAGER_NAME,
-    TaskTypeEnum
-};
