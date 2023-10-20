@@ -18,7 +18,7 @@ class ProversManager {
         return `${subproofId}-${airId}-${numRows}`;
     }
 
-    async initialize(proverConfig, pilout, options) {
+    async initialize(proverConfig, airout, options) {
         if (this.initialized) {
             log.error(`[${this.name}]`, "Already initialized.");
             throw new Error(`[${this.name}] Provers Manager already initialized.`);
@@ -28,15 +28,15 @@ class ProversManager {
 
         this.initialized = true;
 
-        for( let i = 0; i < pilout.pilout.subproofs.length; i++) {
-            for( let j = 0; j < pilout.pilout.subproofs[i].airs.length; j++) {
+        for( let i = 0; i < airout.airout.subproofs.length; i++) {
+            for( let j = 0; j < airout.airout.subproofs[i].airs.length; j++) {
                 const prover = await ProverFactory.createProver(proverConfig.filename, this.proofmanagerAPI);
 
-                const airName = pilout.pilout.subproofs[i].airs[j].name;
-                const N = pilout.pilout.subproofs[i].airs[j].numRows;
+                const airName = airout.airout.subproofs[i].airs[j].name;
+                const N = airout.airout.subproofs[i].airs[j].numRows;
                 let settings =
-                    proverConfig.settings[airName]?.[N] ||
-                    proverConfig.settings[airName]?.default ||
+                    proverConfig.settings[airName] ||
+                    // proverConfig.settings[airName]?.default ||
                     proverConfig.settings.default;
                 
                 if (!settings) {
@@ -46,7 +46,7 @@ class ProversManager {
 
                 prover.initialize(settings, options);
 
-                const id = this.getProverId(i, j, pilout.pilout.subproofs[i].airs[j].numRows);
+                const id = this.getProverId(i, j, airout.airout.subproofs[i].airs[j].numRows);
 
                 this.provers[id] = prover;
             }
@@ -80,22 +80,22 @@ class ProversManager {
         }
     }
 
-    async newProof() {
+    async newProof(publics) {
         this.checkInitialized();
 
         for (const subproofCtx of this.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
                 const id = this.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.numRows);
 
-                await this.provers[id].newProof(airCtx);
+                await this.provers[id].newProof(airCtx, publics);
             }
         }
     }
 
-    async computeStage(stageId) {
-        const numStages = this.proofmanagerAPI.getPilout().numStages + 1;
+    async computeStage(stageId, publics) {
+        const numStages = this.proofmanagerAPI.getAirout().numStages + 1;
 
-        if(stageId === 1) await this.newProof();
+        if(stageId === 1) await this.newProof(publics);
         
         if(stageId <= numStages) {
             await this.commitStage(stageId);

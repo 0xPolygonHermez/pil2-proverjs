@@ -6,8 +6,8 @@ const {
 } = require("./provers_manager.js");
 const CheckerFactory = require("./checker_factory.js");
 const ProofManagerAPI = require("./proof_manager_api.js");
-const { PilOut } = require("./pilout.js");
-const proofContextFromPilout = require("./proof_ctx.js");
+const { AirOut } = require("./airout.js");
+const proofContextFromAirout = require("./proof_ctx.js");
 const { newCommitPolsArrayPil2 } = require("pilcom/src/polsarray.js");
 
 const { fileExists } = require("./utils.js");
@@ -42,7 +42,7 @@ module.exports = class ProofOrchestrator {
         /*
          * settings is a JSON object containing the following fields:
          * - name: name of the proof
-         * - pilout: pilout of the proof
+         * - airout: airout of the proof
          * - witnessCalculators: array of witnessCalculator types
          * - prover: prover 
          * - checker: prover type
@@ -56,31 +56,31 @@ module.exports = class ProofOrchestrator {
 
         const proofmanagerAPI = new ProofManagerAPI(this);
 
-        this.pilout = new PilOut(this.proofManagerConfig.pilout.piloutFilename, this.proofManagerConfig.pilout.piloutProto);
+        this.airout = new AirOut(this.proofManagerConfig.airout.airoutFilename, this.proofManagerConfig.airout.airoutProto);
 
         this.wcManager = new WitnessCalculatorManager(proofmanagerAPI);
         await this.wcManager.initialize(proofConfig.witnessCalculators, this.options);
 
         this.proversManager = new ProversManager(proofmanagerAPI, this.proofCtx, this.subproofsCtx);
-        await this.proversManager.initialize(this.proofManagerConfig.prover, this.pilout, this.options);
+        await this.proversManager.initialize(this.proofManagerConfig.prover, this.airout, this.options);
 
         this.checker = await CheckerFactory.createChecker(proofConfig.checker.filename);
         this.checker.initialize(proofConfig.checker.settings, this.options);        
 
         // TODO change this, I did it to maintain compatibility with pil2-stark code
-        for( let i = 0; i < this.pilout.pilout.subproofs.length; i++) {
-            for( let j = 0; j < this.pilout.pilout.subproofs[i].airs.length; j++) {
-                // this.pilout.pilout.subproofs[i].airs[j].symbols = this.pilout.pilout.symbols.filter(symbol => symbol.subproofId === i && symbol.airId === j);
-                // this.pilout.pilout.subproofs[i].airs[j].numChallenges = this.pilout.pilout.numChallenges;
+        for( let i = 0; i < this.airout.airout.subproofs.length; i++) {
+            for( let j = 0; j < this.airout.airout.subproofs[i].airs.length; j++) {
+                // this.airout.airout.subproofs[i].airs[j].symbols = this.airout.airout.symbols.filter(symbol => symbol.subproofId === i && symbol.airId === j);
+                // this.airout.airout.subproofs[i].airs[j].numChallenges = this.airout.airout.numChallenges;
 
                 // TODO change this
-                this.pilout.pilout.subproofs[i].airs[j].symbols = this.pilout.pilout.symbols;
-                this.pilout.pilout.subproofs[i].airs[j].hints = this.pilout.pilout.hints;
-                this.pilout.pilout.subproofs[i].airs[j].numChallenges = this.pilout.pilout.numChallenges;
+                this.airout.airout.subproofs[i].airs[j].symbols = this.airout.airout.symbols;
+                this.airout.airout.subproofs[i].airs[j].hints = this.airout.airout.hints;
+                this.airout.airout.subproofs[i].airs[j].numChallenges = this.airout.airout.numChallenges;
             }
         }
 
-        const { proofCtx, subproofsCtx } = proofContextFromPilout(this.pilout);
+        const { proofCtx, subproofsCtx } = proofContextFromAirout(this.airout);
         this.proofCtx = proofCtx;
         this.subproofsCtx = subproofsCtx;
 
@@ -97,7 +97,7 @@ module.exports = class ProofOrchestrator {
         return;
 
         async function proofManagerConfigIsValid(proofManagerConfig) {
-            const fields = ["pilout", "witnessCalculators", "prover"];
+            const fields = ["airout", "witnessCalculators", "prover"];
             for (const field of fields) {
                 if (proofManagerConfig[field] === undefined) {
                     log.error(`[${this.name}]`, `No ${field} provided in the proofManagerConfig.`);
@@ -127,19 +127,19 @@ module.exports = class ProofOrchestrator {
         }
 
         async function validateFileNameCorrectness(proofManagerConfig) {
-            const piloutFilename =  path.join(__dirname, "..", proofManagerConfig.pilout.piloutFilename);
-            if (!await fileExists(piloutFilename)) {
-                log.error(`[${this.name}]`, `Pilout ${piloutFilename} does not exist.`);
+            const airoutFilename =  path.join(__dirname, "..", proofManagerConfig.airout.airoutFilename);
+            if (!await fileExists(airoutFilename)) {
+                log.error(`[${this.name}]`, `Airout ${airoutFilename} does not exist.`);
                 return false;
             }
-            proofManagerConfig.pilout.piloutFilename = piloutFilename;
+            proofManagerConfig.airout.airoutFilename = airoutFilename;
 
-            const piloutProto =  path.join(__dirname, "..", proofManagerConfig.pilout.piloutProto);
-            if (!await fileExists(piloutProto)) {
-                log.error(`[${this.name}]`, `Pilout proto ${piloutProto} does not exist.`);
+            const airoutProto =  path.join(__dirname, "..", proofManagerConfig.airout.airoutProto);
+            if (!await fileExists(airoutProto)) {
+                log.error(`[${this.name}]`, `Airout proto ${airoutProto} does not exist.`);
                 return false;
             }
-            proofManagerConfig.pilout.piloutProto = piloutProto;
+            proofManagerConfig.airout.airoutProto = airoutProto;
 
             for(const witnessCalculator of proofManagerConfig.witnessCalculators) {
                 const witnessCalculatorLib =  path.join(__dirname, "..", witnessCalculator.filename);
@@ -175,7 +175,7 @@ module.exports = class ProofOrchestrator {
         }
     }
 
-    async verifyPil() {
+    async verifyPil(publics) {
         this.checkInitialized();
 
         try {
@@ -183,14 +183,14 @@ module.exports = class ProofOrchestrator {
 
             await this.newProof();
 
-            await this.wcManager.witnessComputation(1);
+            await this.wcManager.witnessComputation(1, publics);
 
             let result = true;
             for (const subproofCtx of this.subproofsCtx) {
                 for (const airCtx of subproofCtx.airsCtx) {
                     for (const airInstanceCtx of airCtx.instances) {
                         const id = this.proversManager.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.numRows);
-                        result = result && await this.proversManager.provers[id].pilVerify(subproofCtx, airCtx.airId, airInstanceCtx.instanceId);
+                        result = result && await this.proversManager.provers[id].verifyPil(subproofCtx, airCtx.airId, airInstanceCtx.instanceId, publics);
                     }
                 }
             }
@@ -216,11 +216,11 @@ module.exports = class ProofOrchestrator {
         }
     }
 
-    async generateProof() {
+    async generateProof(publics) {
         this.checkInitialized();
 
         try {
-            log.info(`[${this.name}]`, `--> Initiating the generation of the proof '${this.proofManagerConfig.name}'.`);
+            log.info(`[${this.name}]`, `-> Initiating the generation of the proof '${this.proofManagerConfig.name}'.`);
 
             await this.proversManager.setup();
 
@@ -228,12 +228,12 @@ module.exports = class ProofOrchestrator {
 
             let proverTaskStatus = PROVER_OPENING_TASKS_PENDING;
             for (let stageId = 1; proverTaskStatus !== PROVER_OPENING_TASKS_COMPLETED; stageId++) {
-                let str = stageId <= this.pilout.numStages + 1 ? "STAGE" : "OPENINGS";
+                let str = stageId <= this.airout.numStages + 1 ? "STAGE" : "OPENINGS";
                 log.info(`[${this.name}]`, `==> ${str} ${stageId}`);
 
-                await this.wcManager.witnessComputation(stageId);
+                await this.wcManager.witnessComputation(stageId, publics);
 
-                proverTaskStatus = await this.proversManager.computeStage(stageId);
+                proverTaskStatus = await this.proversManager.computeStage(stageId, publics);
 
                 log.info(`[${this.name}]`, `<== ${str} ${stageId}`);
             }
@@ -241,7 +241,7 @@ module.exports = class ProofOrchestrator {
             // TODO now proof is hardcoded as the proof in subproof[0].air[0]
             // TODO this has to change to generate a proof from all subproofs (airs)
 
-            log.info(`[${this.name}]`, `<-- Proof '${this.proofManagerConfig.name}' successfully generated.`);
+            log.info(`[${this.name}]`, `<- Proof '${this.proofManagerConfig.name}' successfully generated.`);
 
         } catch (error) {
             log.error(`[${this.name}]`, `Error while generating proof: ${error}`);
@@ -255,7 +255,7 @@ module.exports = class ProofOrchestrator {
     }
 
     finalizeProve() {
-        // TODO Finalize pilout
+        // TODO Finalize airout
         if (this.wcManager) delete this.wcManager;
         // TODO Finalize prover
         // TODO Finalize setup
@@ -270,8 +270,8 @@ module.exports = class ProofOrchestrator {
         numRows = numRows ?? airCtx.numRows;
         const airInstanceCtx = subproofCtx.addAirInstance(airId, numRows);
 
-        const air = this.pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
-        const airSymbols = this.pilout.pilout.symbols.filter(symbol => symbol.subproofId === subproofCtx.subproofId && symbol.airId === airId);
+        const air = this.airout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
+        const airSymbols = this.airout.airout.symbols.filter(symbol => symbol.subproofId === subproofCtx.subproofId && symbol.airId === airId);
 
         airInstanceCtx.wtnsPols = newCommitPolsArrayPil2(airSymbols, air.numRows, subproofCtx.F);
 

@@ -3,8 +3,8 @@ class ProofManagerAPI {
         this.proofOrchestrator = proofOrchestrator;
     }
 
-    getPilout() {
-        return this.proofOrchestrator.pilout;
+    getAirout() {
+        return this.proofOrchestrator.airout;
     }
 
     setChallenge(stageId, challenge) {

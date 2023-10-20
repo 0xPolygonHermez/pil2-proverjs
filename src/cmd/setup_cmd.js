@@ -1,6 +1,6 @@
 
 const F3g = require("pil2-stark-js/src/helpers/f3g");
-const { PilOut } = require("../pilout.js");
+const { AirOut } = require("../airout.js");
 const { newConstantPolsArrayPil2 } = require("pilcom/src/polsarray.js");
 const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
 const starkSetup = require("pil2-stark-js/src/stark/stark_setup");
@@ -11,8 +11,8 @@ const log = require("../../logger.js");
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
 module.exports = async function setupCmd(proofManagerConfig) {
-    const piloutObj = new PilOut(proofManagerConfig.pilout.piloutFilename, proofManagerConfig.pilout.piloutProto);
-    const pilout = piloutObj.pilout;
+    const airoutObj = new AirOut(proofManagerConfig.airout.airoutFilename, proofManagerConfig.airout.airoutProto);
+    const airout = airoutObj.airout;
 
     const setupOptions = {
         F: new F3g("0xFFFFFFFF00000001"),
@@ -20,17 +20,20 @@ module.exports = async function setupCmd(proofManagerConfig) {
     };
 
     let setup = [];
-    for( let i = 0; i < pilout.subproofs.length; i++) {
+    for( let i = 0; i < airout.subproofs.length; i++) {
         setup[i] = [];
-        for( let j = 0; j < pilout.subproofs[i].airs.length; j++) {
-            const air = pilout.subproofs[i].airs[j];
-            air.symbols = pilout.symbols;
-            air.hints = pilout.hints;
-            air.numChallenges = pilout.numChallenges;
+        for( let j = 0; j < airout.subproofs[i].airs.length; j++) {
+            log.info("[setupCmd]", `Setup for air '${airout.subproofs[i].airs[j].name}'`);
+            const air = airout.subproofs[i].airs[j];
+            air.symbols = airout.symbols;
+            air.hints = airout.hints;
+            air.numChallenges = airout.numChallenges;
+            air.subproofId = i;
+            air.airId = j;
 
             let settings =
-                proofManagerConfig.prover.settings[air.name]?.[air.numRows] ||
-                proofManagerConfig.prover.settings[air.name]?.default ||
+                proofManagerConfig.prover.settings[air.name] ||
+                // proofManagerConfig.prover.settings[air.name]?.default ||
                 proofManagerConfig.prover.settings.default;
             
             if (!settings) {
@@ -41,12 +44,13 @@ module.exports = async function setupCmd(proofManagerConfig) {
             const starkStructFilename =  path.join(__dirname, "../../", settings.starkStruct);
             const starkStruct = require(starkStructFilename);
 
-            const airSymbols = pilout.symbols.filter(symbol => symbol.subproofId === i && symbol.airId === j);
+            const airSymbols = airout.symbols.filter(symbol => symbol.subproofId === i && symbol.airId === j);
 
             const fixedPols = newConstantPolsArrayPil2(airSymbols, air.numRows, setupOptions.F)
             getFixedPolsPil2(air, fixedPols, setupOptions.F);
 
-            setup[i][j] = await starkSetup(fixedPols, air, starkStruct, setupOptions)
+            
+            setup[i][j] = await starkSetup(fixedPols, air, starkStruct, setupOptions);
         }
     }
 

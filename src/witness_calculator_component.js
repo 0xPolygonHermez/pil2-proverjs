@@ -13,25 +13,34 @@
 ///     - subproofCtx: the subproof context object
 /// The `witnessComputation()` method should return one of the following values:
 
-const Task = require("./task.js");
-const { WC_MANAGER_NAME, TaskTypeEnum } = require("./witness_calculator_manager.js");
+const { Task, TaskTypeEnum } = require("./task.js");
 const log = require("../logger.js");
+
+const ModuleTypeEnum = {
+    REGULAR: 1,
+    DEFERRED: 2
+}
 
 // Abstract base class for all WitnessCalculator components
 class WitnessCalculatorComponent {
-    constructor(name, proofmanagerAPI) {
+    constructor(name, wcManager, proofmanagerAPI, type = ModuleTypeEnum.REGULAR) {
         this.name = name;
+        this.wcManager = wcManager;
         this.proofmanagerAPI = proofmanagerAPI;
+        this.type = type;
 
         this.initialized = false;
         this.settings = null;
         this.options = null;
+
+        log.info(`[${this.name}]`, "Created.");
     }
 
-    initialize(settings, options) {
+    initialize(config, options) {
         log.info(`[${this.name}]`, "Initializing...");
 
-        this.settings = settings;
+        this.settings = config.settings;
+        this.sm = config.sm;
         this.options = options;
         this.initialized = true;
     }
@@ -47,18 +56,18 @@ class WitnessCalculatorComponent {
         throw new Error("Method 'witnessComputation' must be implemented in concrete classes.");
     }
 
-    async _witnessComputation(stageId, airCtx, instanceId) {
+    async _witnessComputation(stageId, subproofCtx, airId, instanceId, publics) {
         return new Promise(async (resolve, reject) => {
             try {
-                log.info(`[${this.name}]`, `··> stageId: ${stageId}, airCtx: ${airCtx.airId}, instanceId: ${instanceId}`);
+                log.info(`[${this.name}]`, `-> stageId: ${stageId} airId: ${airId} instanceId: ${instanceId}`);
 
-                await this.witnessComputation(stageId, airCtx, instanceId);
+                await this.witnessComputation(stageId, subproofCtx, airId, instanceId, publics);
 
                 this.wcManager.releaseDeferredLock();
                 
                 resolve();
 
-                log.info(`[${this.name}]`, `<·· stageId: ${stageId}`);
+                log.info(`[${this.name}]`, `<- stageId: ${stageId} airId: ${airId} instanceId: ${instanceId}`);
             } catch (err) {
                 log.error(`[${this.name}]`, `Witness computation failed.`, err);
                 reject(err);
@@ -66,21 +75,9 @@ class WitnessCalculatorComponent {
         });
     }
 
-    setWcManager(wcManager) {
-        this.wcManager = wcManager;
-    }
-
-    async _addPendingtask(lib, tag, data, lock) {
+    async addPendingTask(lib, tag, data, lock) {
         const task = new Task(this.name, lib, TaskTypeEnum.NOTIFICATION, tag, data);
         return await this.wcManager.addPendingTask(task, lock);
-    }
-
-    addPendingTask(tag, data, log = false) {
-        this._addPendingtask(WC_MANAGER_NAME, tag, data, log);
-    }
-
-    async addLibPendingTask(lib, tag, data, lock = false) {
-        return await this._addPendingtask(lib, tag, data, lock);
     }
 
     resolvePendingTask(taskId) {
@@ -93,5 +90,5 @@ class WitnessCalculatorComponent {
 }
 
 module.exports = {
-    WitnessCalculatorComponent
+    WitnessCalculatorComponent, ModuleTypeEnum
 };

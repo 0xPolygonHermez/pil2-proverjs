@@ -1,10 +1,10 @@
-const { WitnessCalculatorComponent } = require("../../witness_calculator_component.js");
+const { WitnessCalculatorComponent, ModuleTypeEnum } = require("../../witness_calculator_component.js");
 
 const log = require("../../../logger.js");
 
 module.exports = class DivModule extends WitnessCalculatorComponent {
-    constructor(proofmanagerAPI) {
-        super("div_lib", proofmanagerAPI);
+    constructor(wcManager, proofmanagerAPI) {
+        super("divLib", wcManager, proofmanagerAPI, ModuleTypeEnum.DEFERRED);
     }
 
     async witnessComputation(stageId, airCtx, instanceId) {

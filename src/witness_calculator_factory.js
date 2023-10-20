@@ -1,7 +1,7 @@
 class WitnessCalculatorFactory {
-    static async createWitnessCalculator(witnesscalculatorLib, proofmanagerAPI) {
+    static async createWitnessCalculator(witnesscalculatorLib, wcManager, proofmanagerAPI) {
         const { default: myClass } = await import(witnesscalculatorLib);
-        return new myClass(proofmanagerAPI);
+        return new myClass(wcManager, proofmanagerAPI);
     }
 }
 

@@ -5,23 +5,17 @@ const { proveAndVerifyTest } = require("../test_utils.js");
 function getSettings(prefix) {
     return {
         name: prefix + "-" + Date.now(),
-        pilout: {
-            piloutFilename: `./test/simple/${prefix}/${prefix}.pilout`,
-            piloutProto: "./node_modules/pilcom/src/pilout.proto",
+        airout: {
+            airoutFilename: `./test/simple/${prefix}/${prefix}.airout`,
+            airoutProto: "./node_modules/pilcom/src/pilout.proto",
         },
         witnessCalculators: [
-            // First witness calculator is the main executor
-            { filename: `./test/simple/${prefix}/${prefix}_executor.js`, settings: {} },
-            // { filename: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {},},
+            { filename: `./test/simple/${prefix}/${prefix}_executor.js`, sm: `${prefix}`, settings: { } },
         ],
         prover: {
             filename: "./src/lib/provers/stark_fri_prover.js",
             settings: {
                 default: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json` },
-                // "Simple4": {
-                //     default: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json` },
-                //     8: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json` },
-                // },
             },
         },
         checker: {
@@ -29,6 +23,12 @@ function getSettings(prefix) {
             settings: {},
         },
     };
+}
+
+function getInputs(prefix) {
+    return {
+        filename: `./test/simple/${prefix}/${prefix}_inputs.json`,
+    }
 }
 
 async function runPilVerifier(prefix) {
@@ -45,7 +45,7 @@ async function runPilVerifier(prefix) {
 
     await proofOrchestrator.initialize(proofManagerConfig, options);
 
-    await proofOrchestrator.verifyPil();
+    await proofOrchestrator.verifyPil({});
 }
 
 describe("PIL2 proof manager stark simple tests", async function () {
@@ -64,7 +64,7 @@ describe("PIL2 proof manager stark simple tests", async function () {
     });
 
     it("prove Simple4", async () => {
-        await proveAndVerifyTest(getSettings("Simple4"), {});
+        await proveAndVerifyTest(getSettings("Simple4"), { in1: 2, in2: 3 });
     });
 
     it("verify PIL Simple1", async () => {

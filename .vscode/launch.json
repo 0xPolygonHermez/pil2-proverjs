@@ -5,39 +5,36 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Test Simple4",
+            "name": "TEST Simple",
             "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
             "request": "launch",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
+            "skipFiles": ["<node_internals>/**"],
             "type": "node",
             "args": [
                 "${workspaceFolder}/test/simple/simple_stark.test.js",
-                " -g 'prove Simple4'"
-            ],
-            "runtimeArgs": [
-                "--max-old-space-size=32000"
-            ]
+                " -g 'prove Simple4'"],
+            "runtimeArgs": ["--max-old-space-size=32000"]
         },
         {
-            "name": "Test: Fibonacci vadcop",
+            "name": "TEST Fibonacci",
             "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
             "request": "launch",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
+            "skipFiles": ["<node_internals>/**"],
             "type": "node",
-            "args": [
-                "${workspaceFolder}/test/fibonacci-vadcop/fibonacci-vadcop_stark.test.js",
-                " -g 'prove Fibonacci-vadcop'"
-            ],
-            "runtimeArgs": [
-                "--max-old-space-size=32000"
-            ]
+            "args": ["${workspaceFolder}/test/fibonacci/fibonacci_stark.test.js"],
+            "runtimeArgs": ["--max-old-space-size=32000"]
         },
         {
-            "name": "Test: WC manager 2",
+            "name": "TEST Fibonacci vadcop",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "request": "launch",
+            "skipFiles": ["<node_internals>/**"],
+            "type": "node",
+            "args": ["${workspaceFolder}/test/fibonacci-vadcop/fibonacci_vadcop_stark.test.js"],
+            "runtimeArgs": ["--max-old-space-size=32000"]
+        },
+        {
+            "name": "TEST wc manager",
             "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
             "request": "launch",
             "skipFiles": ["<node_internals>/**"],

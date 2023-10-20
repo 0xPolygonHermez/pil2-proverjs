@@ -6,24 +6,24 @@ class ProofCtxStruct {
     /**
      * Creates a new ProofCtxStruct instance.
      * @constructor
-     * @param {pilout} pilout - The pilout proto.
+     * @param {airout} airout - The airout proto.
      */
-    constructor(pilout) {
-        this.name = pilout.name;
+    constructor(airout) {
+        this.name = airout.name;
 
-        if(pilout.baseField.equals(Buffer.from("FFFFFFFF00000001", "hex"))) {
+        if(airout.baseField.equals(Buffer.from("FFFFFFFF00000001", "hex"))) {
             this.F = new F3g("0xFFFFFFFF00000001");
             this.F.w = getRoots(this.F);
         } else {
-            throw new Error(`Finite field with this characteristic prime number ${"0x" + pilout.baseField.toString('hex').toUpperCase()} not supported`);
+            throw new Error(`Finite field with this characteristic prime number ${"0x" + airout.baseField.toString('hex').toUpperCase()} not supported`);
         }
 
         this.challenges = [];
-        if (pilout.numChallenges !== undefined) {
-            for (let i = 0; i < pilout.numChallenges.length; i++) {
-                if (pilout.numChallenges[i] === undefined) continue;
+        if (airout.numChallenges !== undefined) {
+            for (let i = 0; i < airout.numChallenges.length; i++) {
+                if (airout.numChallenges[i] === undefined) continue;
 
-                this.challenges.push(new Array(pilout.numChallenges[i]).fill(null));
+                this.challenges.push(new Array(airout.numChallenges[i]).fill(null));
             }
         }
         // this.publicTables = []; ???? Should be added here?
@@ -66,17 +66,17 @@ class SubproofCtxStruct {
      * @param {string} name - The name property.
      * @param {AirInstanceCtxStruct[]} airCtx - An array of air contexts.
      */
-    constructor(pilout, subproofId, proofCtx) {
-        if(pilout.subproofs[subproofId] === undefined) {
-            log.error(`Subproof ${subproofId} not found in pilout`);
-            throw new Error(`Subproof ${subproofId} not found in pilout`);
+    constructor(airout, subproofId, proofCtx) {
+        if(airout.subproofs[subproofId] === undefined) {
+            log.error(`Subproof ${subproofId} not found in airout`);
+            throw new Error(`Subproof ${subproofId} not found in airout`);
         }
 
         this.F = proofCtx.F;
 
         this.subproofId = subproofId;
 
-        const subproof = pilout.subproofs[subproofId];
+        const subproof = airout.subproofs[subproofId];
         this.name = subproof.name;
 
         this.airsCtx = [];
@@ -128,20 +128,21 @@ class AirInstanceCtxStruct {
         this.instanceId = airCtx.instances.length;
         // Pointer to airCtx
         this.airCtx = airCtx;
+        this.publics = {};
         this.proof = {};
         if(airCtx.hasSubproofValue)  this.subproofValue = null;
     }
 }
 
-function proofContextFromPilout(piloutObj) {
-    const pilout = piloutObj.pilout;
-    const proofCtx = new ProofCtxStruct(pilout);
+function proofContextFromAirout(airoutObj) {
+    const airout = airoutObj.airout;
+    const proofCtx = new ProofCtxStruct(airout);
     const subproofsCtx = [];
-    for(let i = 0; i < pilout.subproofs.length; i++) {
-        subproofsCtx[i] = new SubproofCtxStruct(pilout, i, proofCtx);
+    for(let i = 0; i < airout.subproofs.length; i++) {
+        subproofsCtx[i] = new SubproofCtxStruct(airout, i, proofCtx);
     }
 
     return { proofCtx, subproofsCtx };
 }
 
-module.exports = proofContextFromPilout;
+module.exports = proofContextFromAirout;

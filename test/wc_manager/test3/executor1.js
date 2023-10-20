@@ -3,12 +3,12 @@ const { WitnessCalculatorComponent } = require("../../../src/witness_calculator_
 const log = require("../../../logger.js");
 
 module.exports = class Executor1 extends WitnessCalculatorComponent {
-    constructor(proofmanagerAPI) {
-        super("Executor1", proofmanagerAPI);
+    constructor(wcManager, proofmanagerAPI) {
+        super("Executor1", wcManager, proofmanagerAPI);
     }
 
-    async witnessComputation(stageId, airCtx, instanceId) {
-        await this.addLibPendingTask("div_lib", "div_batch", { data: 2 }, true);
-        await this.addLibPendingTask("div_lib", "div_batch", { data: 2 }, true);
+    async witnessComputation(stageId, subproofCtx, airId, instanceId) {
+        await this.addPendingTask("divLib", "div_batch", { data: 2 }, true);
+        await this.addPendingTask("divLib", "div_batch", { data: 2 }, true);
     }
 };

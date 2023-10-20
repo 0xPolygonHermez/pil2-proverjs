@@ -17,20 +17,13 @@
 // Similarly, deferred modules are executed in the order they were registered in the WitnessCalculatorManager.
 
 const WitnessCalculatorFactory = require("./witness_calculator_factory.js");
-const Task = require("./task.js");
 const PendingTaskTable = require("./task_table.js");
 
-const TaskTypeEnum = {
-    NOTIFICATION: "notification",
-};
+const { Task, TaskTypeEnum } = require("./task.js");
 
-const ModuleTypeEnum = {
-    REGULAR: 1,
-    DEFERRED: 2,
-    DEFERRED_MANAGER: 3,
-}
+const { ModuleTypeEnum } = require("./witness_calculator_component.js");
 
-const WC_MANAGER_NAME = "WCManager";
+const WC_MANAGER_NAME = "wcManager";
 
 const log = require('../logger.js');
 const Mutex = require("./concurrency/mutex.js");
@@ -72,19 +65,9 @@ class WitnessCalculatorManager {
 
             log.info(`[${this.name}]`, "Initializing...");
 
-            const regulars = witnessCalculatorsConfig.filter(wc => !(wc.settings.type) || wc.settings.type === "regular");
-            const deferreds = witnessCalculatorsConfig.filter(wc => wc.settings.type === "deferred");
-
-            regulars.forEach(wc => wc.settings.type = ModuleTypeEnum.REGULAR);
-            deferreds.forEach(wc => wc.settings.type = ModuleTypeEnum.DEFERRED);
-
-            const deferredMgrLib =  path.join(__dirname, "witness_calculator_module.js");
-            witnessCalculatorsConfig.unshift({ witnessCalculatorLib: deferredMgrLib, settings: { type: ModuleTypeEnum.DEFERRED_MANAGER} });
-
             for(const config of witnessCalculatorsConfig) {
-                const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(config.witnessCalculatorLib, this.proofmanagerAPI);
-                newWitnessCalculator.initialize(config.settings, options);
-                newWitnessCalculator.setWcManager(this);
+                const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(config.witnessCalculatorLib, this, this.proofmanagerAPI);
+                newWitnessCalculator.initialize(config, options);
         
                 this.wc.push(newWitnessCalculator);
             }
@@ -103,33 +86,50 @@ class WitnessCalculatorManager {
         }
     }
 
-    async witnessComputation(stageId) {
+    async witnessComputation(stageId, publics) {
         this.checkInitialized();
 
-        log.info(`[${this.name}]`, `--> Computing witness for stage ${stageId}.`);
+        log.info(`[${this.name}]`, `==> Computing witness stage ${stageId}.`);
         
-        const regulars = this.wc.filter(wc => wc.settings.type === ModuleTypeEnum.REGULAR);
-        const deferredMgr = this.wc.find(wc => wc.settings.type === ModuleTypeEnum.DEFERRED_MANAGER);
+        const regulars = this.wc.filter(wc => wc.type === ModuleTypeEnum.REGULAR);
         const executors = [];
 
         this.wcDeferredLock = new TargetLock(regulars.length, 0);
 
-        // NOTE: The first witness calculator is always the witness_calculator_module
-        executors.push(deferredMgr._witnessComputation(stageId, this.subproofsCtx, -1));
-        
-        for (const subproofCtx of this.subproofsCtx) {
-            for (const airCtx of subproofCtx.airsCtx) {
+        // NOTE: The first witness calculator is always the witness calculator deferred
+        executors.push(this.witnessComputationDeferred(stageId, this.subproofsCtx, -1, -1));
+
+        if(stageId === 1) {
+            for (const subproofCtx of this.subproofsCtx) {
                 for (const wc of regulars) {
-                    const instances = airCtx.instances.length === 0
-                        ? [-1]
-                        : airCtx.instances.map(airInstanceCtx => airInstanceCtx.instanceId);
-    
-                    for (const instanceId of instances) {
-                        executors.push(wc._witnessComputation(stageId, airCtx, instanceId));
+                    if(!wc.sm || subproofCtx.name === wc.sm) {
+                        executors.push(wc._witnessComputation(stageId, subproofCtx, -1, -1, publics));
+                    }
+                }
+            }   
+        } else {
+            for (const subproofCtx of this.subproofsCtx) {
+                for (const airCtx of subproofCtx.airsCtx) {
+                    for (const wc of regulars) {
+                        if(!wc.sm || airCtx.name.startsWith(wc.sm)) {
+                            if(airCtx.instances.length > 0) {
+                                const instances = airCtx.instances.map(airInstanceCtx => airInstanceCtx.instanceId);
+            
+                                for (const instanceId of instances) {
+                                    const airInstanceCtx = airCtx.instances[instanceId];
+                                    // TODO change!!!!!!!
+                                    // if(stageId===2 && instanceId !== -1) airInstanceCtx.ctx.publics = publics;
+                                    if(airInstanceCtx.ctx.subproofValues) airInstanceCtx.ctx.subproofValues.push(1n);
+                                    // TODO change this
+
+                                    executors.push(wc._witnessComputation(stageId, subproofCtx, airCtx.airId, instanceId, publics));
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }
+        }        
 
         await Promise.all(executors);
 
@@ -138,7 +138,7 @@ class WitnessCalculatorManager {
             throw new Error(`Some witness calculators have pending tasks for stage ${stageId}. Unable to continue`);
         }
 
-        log.info(`[${this.name}]`, `<-- Computing witness for stage ${stageId}.`);
+        log.info(`[${this.name}]`, `<== Computing witness stage ${stageId}.`);
     }
 
     async addPendingTask(task, lock = false) {
@@ -196,10 +196,6 @@ class WitnessCalculatorManager {
         }
     }
 
-    getLastSolvedTaskId() {
-        return this.lastSolvedTaskId;
-    }
-
     getPendingTasksByRecipient(recipient) {
         return this.tasksTable.getPendingTasksByRecipient(recipient);
     }
@@ -238,25 +234,48 @@ class WitnessCalculatorManager {
         this.tasksTableMutex.unlock();
     }
 
-    async lockDeferred() {
-        await this.wcDeferredLock.lock();
-    }
-
-    hasPendingTasks() {
-        return this.tasksTable.hasPendingTasks();
-    }
-
     releaseDeferredLock() { 
         if(this.wcDeferredLock) this.wcDeferredLock.release();
     }
 
     async executeDeferredModules(stageId, airCtx, instanceId) {
-        const deferredModules = this.wc.filter(wc => wc.settings.type === ModuleTypeEnum.DEFERRED);
+        const deferredModules = this.wc.filter(wc => wc.type === ModuleTypeEnum.DEFERRED);
 
         for(const module of deferredModules) {
-            if(module.settings.type !== ModuleTypeEnum.DEFERRED) continue;
             await module._witnessComputation(stageId, airCtx, instanceId);
         }
+    }
+
+    async witnessComputationDeferred(stageId, subproofCtx, airId, instanceId, publics) {
+        return new Promise(async (resolve, reject) => {
+            let _lastSolvedTaskId;
+            try {
+                while(true) {
+                    await this.wcDeferredLock.lock();
+    
+                    if(!this.tasksTable.hasPendingTasks()) break;
+
+                    log.info(`[${this.name}]`, `Initiating the process to unblock witness calculators`);
+
+                    await this.executeDeferredModules(stageId, airId, instanceId);
+    
+                    const lastSolvedTaskId = this.lastSolvedTaskId;
+                    if(_lastSolvedTaskId === lastSolvedTaskId) {
+                        log.error(`[${this.name}]`, "The executing processes do not respond, processes are stucked.")
+                        throw new Error("The executing processes do not respond, processes are stucked.");
+                    }   
+                    
+                    _lastSolvedTaskId = lastSolvedTaskId;
+                }
+    
+                this.releaseDeferredLock();
+                
+                resolve();
+            } catch (err) {
+                log.error(`[${this.name}]`, `Witness computation failed.`, err);
+                reject(err);
+            }
+        });
     }
 }
 

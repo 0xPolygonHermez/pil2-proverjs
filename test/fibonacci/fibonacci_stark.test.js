@@ -2,19 +2,17 @@ const ProofOrchestrator = require("../../src/proof_orchestrator.js");
 
 const { proveAndVerifyTest } = require("../test_utils.js");
 
-const log = require("../../logger.js");
+const inputs = { in1: 1n, in2: 2n };
 
 function getSettings() {
     return {
         name: "Fibonacci-" + Date.now(),
-        pilout: {
-            piloutFilename: `./test/fibonacci/fibonacci.pilout`,
-            piloutProto: "./node_modules/pilcom/src/pilout.proto",
+        airout: {
+            airoutFilename: `./test/fibonacci/fibonacci.airout`,
+            airoutProto: "./node_modules/pilcom/src/pilout.proto",
         },
         witnessCalculators: [
-            // First witness calculator is the main executor
             { filename: `./test/fibonacci/fibonacci_executor.js`, settings: {} },
-            // { filename: "./src/lib/witness_calculators/witness_calculator_lib.js", settings: {},},
         ],
         prover: {
             filename: "./src/lib/provers/stark_fri_prover.js",
@@ -26,7 +24,7 @@ function getSettings() {
 
 }
 
-async function runPilVerifier() {
+async function runPilVerifier(publics) {
     const proofManagerConfig = getSettings();
 
     const options = {
@@ -39,17 +37,17 @@ async function runPilVerifier() {
 
     await proofOrchestrator.initialize(proofManagerConfig, options);
 
-    await proofOrchestrator.verifyPil();
+    await proofOrchestrator.verifyPil(publics);
 }
 
 describe("PIL2 proof manager stark simple tests", async function () {
     this.timeout(10000000);
 
     it("prove Fibonacci", async () => {
-        await proveAndVerifyTest(getSettings(), { "publics[2]": 12437053821496257494n });
+        await proveAndVerifyTest(getSettings(), inputs);
     });
 
     it("verify Fibonacci", async () => {
-        await runPilVerifier();
+        await runPilVerifier(inputs);
     });
 });

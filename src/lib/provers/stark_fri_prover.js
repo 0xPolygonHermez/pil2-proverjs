@@ -46,10 +46,10 @@ class StarkFriProver extends ProverComponent {
 
     async setup(airCtx) {
         const subproofCtx = airCtx.subproofCtx;
-        const pilout = this.proofmanagerAPI.getPilout().pilout;
-        const airSymbols = pilout.symbols.filter(symbol => symbol.subproofId === subproofCtx.subproofId && symbol.airId === airCtx.airId);
+        const airout = this.proofmanagerAPI.getAirout().airout;
+        const airSymbols = airout.symbols.filter(symbol => symbol.subproofId === subproofCtx.subproofId && symbol.airId === airCtx.airId);
 
-        const air = this.proofmanagerAPI.getPilout().getAirBySubproofIdAirId(subproofCtx.subproofId, airCtx.airId);
+        const air = this.proofmanagerAPI.getAirout().getAirBySubproofIdAirId(subproofCtx.subproofId, airCtx.airId);
 
         airCtx.setup = {
             name: (airCtx.name ? airCtx.name : airCtx.airId) + "-" + airCtx.numRows,
@@ -66,20 +66,21 @@ class StarkFriProver extends ProverComponent {
         Object.assign(airCtx.setup, await starkSetup(airCtx.setup.fixedPols, air, this.starkStruct, options));
     }
 
-    async newProof(airCtx) {
+    async newProof(airCtx, publics) {
         for (const airInstanceCtx of airCtx.instances) {   
             airInstanceCtx.ctx = await initProverStark(airCtx.setup.starkInfo, airCtx.setup.fixedPols, airCtx.setup.constTree, this.options);                   
+            airInstanceCtx.publics = publics;
         }
     }
 
-    async pilVerify(subproofCtx, airId, instanceId) {
+    async verifyPil(subproofCtx, airId, instanceId, publics) {
         const pil1 = false;
         const stark = true;
         const debug = true;
         
         const airInstanceCtx = subproofCtx.airsCtx[airId].instances[instanceId];
-        const pilout = this.proofmanagerAPI.getPilout();
-        const air = pilout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
+        const airout = this.proofmanagerAPI.getAirout();
+        const air = airout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
 
         const starkInfo = pilInfo(subproofCtx.F, air, stark, pil1, debug, {});
 
@@ -88,21 +89,22 @@ class StarkFriProver extends ProverComponent {
         const optionsPilVerify = {logger:log, debug, useThreads: false, parallelExec: false, verificationHashType, splitLinearHash};
 
         const setup = airInstanceCtx.airCtx.setup;
-        return await starkGen(airInstanceCtx.wtnsPols, setup.fixedPols, {}, starkInfo, optionsPilVerify);
+        return await starkGen(airInstanceCtx.wtnsPols, setup.fixedPols, {}, starkInfo, publics, optionsPilVerify);
     }
 
     async commitStage(stageId, airInstanceCtx) {
         this.checkInitialized();
 
-        const pilout = this.proofmanagerAPI.getPilout();
+        const airout = this.proofmanagerAPI.getAirout();
         const ctx = airInstanceCtx.ctx;
 
         if (stageId === 1) {
             airInstanceCtx.wtnsPols.writeToBigBuffer(ctx.cm1_n, ctx.pilInfo.mapSectionsN.cm1);
+            addTranscriptStark(ctx.transcript, [ctx.MH.root(airInstanceCtx.airCtx.setup.constTree)]);
             this.calculatePublics(airInstanceCtx);
         }
 
-        if(stageId <= pilout.numStages + 1) {
+        if(stageId <= airout.numStages + 1) {
             const qStage = ctx.pilInfo.numChallenges.length + 1;
 
             if(this.options.debug) {
@@ -129,7 +131,7 @@ class StarkFriProver extends ProverComponent {
 
         let challenge;
         if(!this.options.debug) {
-            let commits = stageId === pilout.numStages + 1 ? await computeQStark(ctx, log) : await extendAndMerkelize(stageId, ctx, log);
+            let commits = stageId === airout.numStages + 1 ? await computeQStark(ctx, log) : await extendAndMerkelize(stageId, ctx, log);
 
             addTranscriptStark(ctx.transcript, commits);
 
@@ -144,7 +146,7 @@ class StarkFriProver extends ProverComponent {
     async calculatePublics(airInstanceCtx) {
         const ctx = airInstanceCtx.ctx;
         
-        await calculatePublics(ctx);
+        calculatePublics(ctx, airInstanceCtx.publics);
 
         let publicsCommits = [];
 
@@ -162,7 +164,7 @@ class StarkFriProver extends ProverComponent {
         this.checkInitialized();
 
         const isLastRound = openingId === 2 + airInstanceCtx.ctx.pilInfo.starkStruct.steps.length + 1;
-        const numStages = this.proofmanagerAPI.getPilout().numStages + 1;
+        const numStages = this.proofmanagerAPI.getAirout().numStages + 1;
 
         if(openingId === 1) {
             await this.computeOpenings(numStages + openingId, airInstanceCtx);

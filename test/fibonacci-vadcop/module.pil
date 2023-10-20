@@ -1,6 +1,6 @@
 constant MODULE_ID = 1;
 
-subproof Module(2**16) {
+subproof Module(2**4) {
 
     subproofval aggregate(sum) gsum_module;
 
