@@ -23,7 +23,7 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
             await this.wcManager.writeData(this, "Module.createInstances", {"airId": 0});
             const airCtx = subproofCtx.airsCtx[1];
 
-            log.info(`[${this.name}]`, `Creating air instance for air '${airCtx.name}' with N=${airCtx.numRows} rows.`)
+            log.info(`[${this.name}]`, `Creating air instance for air '${airCtx.air.name}' with N=${airCtx.air.numRows} rows.`)
             let { result, airInstanceCtx: instanceCtx } = this.proofmanagerAPI.addAirInstance(airCtx.subproofCtx, airCtx.airId);
 
             if (result === false) {

@@ -190,7 +190,7 @@ module.exports = class ProofOrchestrator {
             for (const subproofCtx of this.subproofsCtx) {
                 for (const airCtx of subproofCtx.airsCtx) {
                     for (const airInstanceCtx of airCtx.instances) {
-                        const id = this.proversManager.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.numRows);
+                        const id = this.proversManager.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.air.numRows);
                         result = result && await this.proversManager.provers[id].verifyPil(subproofCtx, airCtx.airId, airInstanceCtx.instanceId, publics);
                     }
                 }
@@ -268,7 +268,7 @@ module.exports = class ProofOrchestrator {
 
         if (airCtx === undefined) return { result: false, data: undefined };
 
-        numRows = numRows ?? airCtx.numRows;
+        numRows = numRows ?? airCtx.air.numRows;
         const airInstanceCtx = subproofCtx.addAirInstance(airId, numRows);
 
         const air = this.airout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);

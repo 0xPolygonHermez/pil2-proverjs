@@ -76,13 +76,12 @@ class SubproofCtxStruct {
 
         this.subproofId = subproofId;
 
-        const subproof = airout.subproofs[subproofId];
-        this.name = subproof.name;
+        this.subproof = airout.subproofs[subproofId];
 
         this.airsCtx = [];
-        for (let i = 0; i < subproof.airs.length; i++) {
-            const hasSubproofValue = subproof.subproofvalues !== undefined && subproof.subproofvalues[i] !== undefined;
-            const airCtx = new AirCtxStruct(i, this, subproof.airs[i], hasSubproofValue);
+        for (let i = 0; i < this.subproof.airs.length; i++) {
+            const hasSubproofValue = this.subproof.subproofvalues !== undefined && this.subproof.subproofvalues[i] !== undefined;
+            const airCtx = new AirCtxStruct(i, this, this.subproof.airs[i], hasSubproofValue);
             this.airsCtx.push(airCtx);
         }
     }
@@ -99,10 +98,9 @@ class AirCtxStruct {
     */
     constructor(airId, subproofCtx, air, hasSubproofValue) {
         this.airId = airId;
-        this.name = air.name;
+        this.air = air;
         // Pointer to subproofCtx
         this.subproofCtx = subproofCtx;
-        this.numRows = air.numRows;
         this.hasSubproofValue = hasSubproofValue;
         this.instances = [];
     }

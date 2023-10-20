@@ -52,8 +52,8 @@ class StarkFriProver extends ProverComponent {
         const air = this.proofmanagerAPI.getAirout().getAirBySubproofIdAirId(subproofCtx.subproofId, airCtx.airId);
 
         airCtx.setup = {
-            name: (airCtx.name ? airCtx.name : airCtx.airId) + "-" + airCtx.numRows,
-            fixedPols: newConstantPolsArrayPil2(airSymbols, airCtx.numRows, subproofCtx.F)
+            name: (airCtx.air.name ? airCtx.air.name : airCtx.airId) + "-" + airCtx.air.numRows,
+            fixedPols: newConstantPolsArrayPil2(airSymbols, airCtx.air.numRows, subproofCtx.F)
         };
 
         getFixedPolsPil2(air, airCtx.setup.fixedPols, subproofCtx.F);
@@ -200,7 +200,7 @@ class StarkFriProver extends ProverComponent {
 
         log.info(
             `[${this.name}]`,
-            `Computing Openings for subproof ${airInstanceCtx.airCtx.subproofCtx.name} airId ${airInstanceCtx.airId} instanceId ${airInstanceCtx.instanceId}`
+            `Computing Openings for subproof ${airInstanceCtx.airCtx.subproofCtx.subproof.name} airId ${airInstanceCtx.airId} instanceId ${airInstanceCtx.instanceId}`
         );
 
         const challenge = this.proofmanagerAPI.getChallenge(stageId - 1);
@@ -217,7 +217,7 @@ class StarkFriProver extends ProverComponent {
 
         log.info(
             `[${this.name}]`,
-            `Computing FRI Stark for subproof ${airInstanceCtx.airCtx.subproofCtx.name} airId ${airInstanceCtx.airId} instanceId ${airInstanceCtx.instanceId}`
+            `Computing FRI Stark for subproof ${airInstanceCtx.airCtx.subproofCtx.subproof.name} airId ${airInstanceCtx.airId} instanceId ${airInstanceCtx.instanceId}`
         );
 
         const challenge = this.proofmanagerAPI.getChallenge(stageId - 1);

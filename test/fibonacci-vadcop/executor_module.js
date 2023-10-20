@@ -17,12 +17,12 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
             const instanceData = await this.wcManager.readData(this, "Module.createInstances");
             const airCtx = subproofCtx.airsCtx[instanceData.airId];
 
-            log.info(`[${this.name}]`, `Creating air instance for air '${airCtx.name}' with N=${airCtx.numRows} rows.`)
+            log.info(`[${this.name}]`, `Creating air instance for air '${airCtx.air.name}' with N=${airCtx.air.numRows} rows.`)
             let { result, airInstanceCtx: instanceCtx } = this.proofmanagerAPI.addAirInstance(airCtx.subproofCtx, airCtx.airId);
 
             if (result === false) {
-                log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
-                throw new Error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
+                log.error(`[${this.name}]`, `New air instance for air '${airCtx.air.name}' with N=${air.numRows} rows failed.`);
+                throw new Error(`[${this.name}]`, `New air instance for air '${airCtx.air.name}' with N=${air.numRows} rows failed.`);
             }
         
             this.createPolynomialTraces(instanceCtx, publics);
