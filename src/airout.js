@@ -147,7 +147,18 @@ class AirOut {
     
         return symbols.sort((a, b) => a.id - b.id);
     }
+
+    getColsBySubproofIdAirId(subproofId, airId) {
+        if (!this.airout.symbols) return [];
     
+        const symbols = this.airout.symbols.filter(symbol =>
+            symbol.subproofId === subproofId &&
+            symbol.airId === airId &&
+            ([1, 2, 3].includes(symbol.type))
+        );
+    
+        return symbols.sort((a, b) => a.id - b.id);
+    }
 
     getWitnessSymbolsByStage(subproofId, airId, stageId) {
         return this.getSymbolsByStage(subproofId, airId, stageId, SYMBOL_TYPES.WITNESS_COL);

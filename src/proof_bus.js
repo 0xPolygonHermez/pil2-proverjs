@@ -73,7 +73,7 @@ class AirBus {
 };
 
 module.exports = {
+    AirBus,
     AirBusPayload,
     PayloadTypeEnum,
-    AirBus
 }

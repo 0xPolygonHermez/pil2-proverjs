@@ -3,8 +3,8 @@ const { WitnessCalculatorComponent } = require("../../src/witness_calculator_com
 const log = require("../../logger.js");
 
 class ExecutorFibonacci extends WitnessCalculatorComponent {
-    constructor(wcManager, proofmanagerAPI) {
-        super("FibonacciEx", wcManager, proofmanagerAPI);
+    constructor(wcManager, proofSharedMemory) {
+        super("FibonacciEx", wcManager, proofSharedMemory);
     }
 
     async witnessComputation(stageId, subproofCtx, airId, instanceId, publics) {
@@ -18,20 +18,18 @@ class ExecutorFibonacci extends WitnessCalculatorComponent {
         // For this test we only use airsCtx[0]
         const airCtx = subproofCtx.airsCtx[0];
 
-        let { result, airInstanceCtx } = this.proofmanagerAPI.addAirInstance(airCtx.subproofCtx, airCtx.airId);
+        let { result, airInstanceCtx } = this.proofSharedMemory.addAirInstance(airCtx.subproofId, airCtx.airId);
 
         if (result === false) {
             log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
             throw new Error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
         }
 
-        const air = this.proofmanagerAPI.getAirout().getAirBySubproofIdAirId(airCtx.subproofCtx.subproofId, airCtx.airId);
+        const N = airCtx.layout.numRows;
+        const F = subproofCtx.proofCtx.F;
 
-        const N = air.numRows;
-        const F = airCtx.subproofCtx.F;
-
-        const polA = airCtx.instances[0].wtnsPols.Fibonacci.a;
-        const polB = airCtx.instances[0].wtnsPols.Fibonacci.b;
+        const polA = subproofCtx.proofCtx.instances[0].wtnsPols.Fibonacci.a;
+        const polB = subproofCtx.proofCtx.instances[0].wtnsPols.Fibonacci.b;
 
         polB[0] = publics.in1;
         polA[0] = publics.in2;

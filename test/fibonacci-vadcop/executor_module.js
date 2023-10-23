@@ -3,8 +3,8 @@ const { WitnessCalculatorComponent } = require("../../src/witness_calculator_com
 const log = require("../../logger.js");
 
 class FibonacciVadcopModule extends WitnessCalculatorComponent {
-    constructor(wcManager, proofmanagerAPI) {
-        super("ModuleExecutor", wcManager, proofmanagerAPI);
+    constructor(wcManager, proofSharedMemory) {
+        super("ModuleExecutor", wcManager, proofSharedMemory);
     }
 
     async witnessComputation(stageId, subproofCtx, airId, instanceId, publics) {        
@@ -18,26 +18,22 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
             const airCtx = subproofCtx.airsCtx[instanceData.airId];
 
             log.info(`[${this.name}]`, `Creating air instance for air '${airCtx.air.name}' with N=${airCtx.air.numRows} rows.`)
-            let { result, airInstanceCtx: instanceCtx } = this.proofmanagerAPI.addAirInstance(airCtx.subproofCtx, airCtx.airId);
+            let { result, airInstanceCtx: instanceCtx } = this.proofSharedMemory.addAirInstance(airCtx.subproofId, airCtx.airId);
 
             if (result === false) {
                 log.error(`[${this.name}]`, `New air instance for air '${airCtx.air.name}' with N=${air.numRows} rows failed.`);
                 throw new Error(`[${this.name}]`, `New air instance for air '${airCtx.air.name}' with N=${air.numRows} rows failed.`);
             }
         
-            this.createPolynomialTraces(instanceCtx, publics);
+            this.createPolynomialTraces(subproofCtx, airCtx, instanceCtx, publics);
         }
         
         return;
     }
 
-    createPolynomialTraces(airInstanceCtx, publics) {
-        const subproofCtx = airInstanceCtx.airCtx.subproofCtx;
-        const airCtx = airInstanceCtx.airCtx;
-        const air = this.proofmanagerAPI.getAirout().getAirBySubproofIdAirId(airCtx.subproofCtx.subproofId, airCtx.airId);
-
-        const N = air.numRows;
-        const F = subproofCtx.F;
+    createPolynomialTraces(subproofCtx, airCtx, airInstanceCtx, publics) {
+        const N = airCtx.layout.numRows;
+        const F = subproofCtx.proofCtx.F;
 
         const polX = airInstanceCtx.wtnsPols.Module.x;
         const polQ = airInstanceCtx.wtnsPols.Module.q;

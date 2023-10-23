@@ -13,7 +13,7 @@
 ///     - subproofCtx: the subproof context object
 /// The `witnessComputation()` method should return one of the following values:
 
-const { AirBusPayload, PayloadTypeEnum } = require("./air_bus.js");
+const { AirBusPayload, PayloadTypeEnum } = require("./proof_bus.js");
 const log = require("../logger.js");
 
 const ModuleTypeEnum = {
@@ -23,10 +23,10 @@ const ModuleTypeEnum = {
 
 // Abstract base class for all WitnessCalculator components
 class WitnessCalculatorComponent {
-    constructor(name, wcManager, proofmanagerAPI, type = ModuleTypeEnum.REGULAR) {
+    constructor(name, wcManager, proofSharedMemory, type = ModuleTypeEnum.REGULAR) {
         this.name = name;
         this.wcManager = wcManager;
-        this.proofmanagerAPI = proofmanagerAPI;
+        this.proofSharedMemory = proofSharedMemory;
         this.type = type;
 
         this.initialized = false;

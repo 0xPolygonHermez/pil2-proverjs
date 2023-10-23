@@ -6,13 +6,13 @@ const {
 } = require("./provers_manager.js");
 
 const CheckerFactory = require("./checker_factory.js");
-const ProofManagerAPI = require("./proof_manager_api.js");
 const { AirOut } = require("./airout.js");
-const proofContextFromAirout = require("./proof_ctx.js");
-const { newCommitPolsArrayPil2 } = require("pilcom/src/polsarray.js");
+const ProofSharedMemory = require("./proof_shared_memory.js");
 
 const { fileExists } = require("./utils.js");
 const path = require("path");
+
+const FiniteFieldFactory = require("./finite_field_factory.js");
 
 const log = require("../logger.js");
 
@@ -55,18 +55,10 @@ module.exports = class ProofOrchestrator {
         }
         this.proofManagerConfig = proofConfig;
 
-        const proofmanagerAPI = new ProofManagerAPI(this);
-
         this.airout = new AirOut(this.proofManagerConfig.airout.airoutFilename, this.proofManagerConfig.airout.airoutProto);
 
-        this.wcManager = new WitnessCalculatorManager(proofmanagerAPI);
-        await this.wcManager.initialize(proofConfig.witnessCalculators, this.options);
-
-        this.proversManager = new ProversManager(proofmanagerAPI, this.proofCtx, this.subproofsCtx);
-        await this.proversManager.initialize(this.proofManagerConfig.prover, this.airout, this.options);
-
-        this.checker = await CheckerFactory.createChecker(proofConfig.checker.filename);
-        this.checker.initialize(proofConfig.checker.settings, this.options);        
+        // Create the finite field object
+        const finiteField = FiniteFieldFactory.createFiniteField(this.airout.airout.baseField);
 
         // TODO change this, I did it to maintain compatibility with pil2-stark code
         for( let i = 0; i < this.airout.airout.subproofs.length; i++) {
@@ -81,16 +73,28 @@ module.exports = class ProofOrchestrator {
             }
         }
 
-        const { proofCtx, subproofsCtx } = proofContextFromAirout(this.airout);
-        this.proofCtx = proofCtx;
-        this.subproofsCtx = subproofsCtx;
+        const proofSharedMemory = ProofSharedMemory.createProofSharedMemoryFromAirout(
+            this.proofManagerConfig.name,
+            this.airout,
+            finiteField
+        );
+        this.proofCtx = proofSharedMemory;
+        this.subproofsCtx = proofSharedMemory.subproofsCtx;
+        
+        this.wcManager = new WitnessCalculatorManager(proofSharedMemory);
+        await this.wcManager.initialize(proofConfig.witnessCalculators, this.options);
 
-        this.wcManager.proofCtx = proofCtx;
-        this.wcManager.subproofsCtx = subproofsCtx;
+        this.proversManager = new ProversManager(proofSharedMemory);
+        await this.proversManager.initialize(this.proofManagerConfig.prover, this.airout, this.options);
 
-        this.proversManager.proofCtx = proofCtx;
-        this.proversManager.subproofsCtx = subproofsCtx;
+        this.checker = await CheckerFactory.createChecker(proofConfig.checker.filename);
+        this.checker.initialize(proofConfig.checker.settings, this.options);        
 
+        this.wcManager.proofCtx = proofSharedMemory;
+        this.wcManager.subproofsCtx = proofSharedMemory.subproofsCtx;
+
+        this.proversManager.proofCtx = proofSharedMemory;
+        this.proversManager.subproofsCtx = proofSharedMemory.subproofsCtx;
 
         this.initialized = true;
         log.info(`[${this.name}]`, `< Initialized`);
@@ -252,7 +256,7 @@ module.exports = class ProofOrchestrator {
         }
 
         // TODO remove
-        return this.subproofsCtx[0].airsCtx[0].instances[0].proof;
+        return this.proofCtx.instances[0].proof;
     }
 
     finalizeProve() {
@@ -261,49 +265,4 @@ module.exports = class ProofOrchestrator {
         // TODO Finalize prover
         // TODO Finalize setup
     }
-
-    // Allocate a new buffer for the given subproofId and airId with the given numRows.
-    addAirInstance(subproofCtx, airId, numRows) {
-        const airCtx = subproofCtx.airsCtx[airId];
-
-        if (airCtx === undefined) return { result: false, data: undefined };
-
-        numRows = numRows ?? airCtx.air.numRows;
-        const airInstanceCtx = subproofCtx.addAirInstance(airId, numRows);
-
-        const air = this.airout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
-        const airSymbols = this.airout.airout.symbols.filter(symbol => symbol.subproofId === subproofCtx.subproofId && symbol.airId === airId);
-
-        airInstanceCtx.wtnsPols = newCommitPolsArrayPil2(airSymbols, air.numRows, subproofCtx.F);
-
-        return { result: true, airInstanceCtx};
-    }
-
-    // Reallocate the buffer for the given subproofId and airId with the given numRows.
-    resizeAirInstance(subproofCtx, airId, instanceId, numRows) {
-        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[instanceId];
-
-        if(airInstanceCtx === undefined) return { result: false, data: undefined };
-
-        const factor = airInstanceCtx.numRows / numRows;
-
-        //TODO change this to a more efficient way...resize??? it's not working, why?
-        airInstanceCtx.buffer = airInstanceCtx.buffer.slice(0, airInstanceCtx.buffer.byteLength / factor);
-        //buffer.buffer.resize(buffer.buffer.byteLength / factor);
-        return { result: true, airInstanceCtx };
-    }
-
-    // Free the buffer for the given subproofId and airId.
-    removeAirInstance(subproofCtx, airId, instanceId) {
-        if(subproofCtx.airs[airId] === undefined) return false;
-
-        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[instanceId];
-        if(airInstanceCtx === undefined) return false;
-
-        subproofCtx.airsCtx[airId].instances.splice(instanceId, 1);
-
-        return true;
-    }
-
-    
 }

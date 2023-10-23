@@ -3,8 +3,8 @@ const { WitnessCalculatorComponent, ModuleTypeEnum } = require("../../witness_ca
 const log = require("../../../logger.js");
 
 module.exports = class DivModule extends WitnessCalculatorComponent {
-    constructor(wcManager, proofmanagerAPI) {
-        super("divLib", wcManager, proofmanagerAPI, ModuleTypeEnum.DEFERRED);
+    constructor(wcManager, proofSharedMemory) {
+        super("divLib", wcManager, proofSharedMemory, ModuleTypeEnum.DEFERRED);
     }
 
     async witnessComputation(stageId, airCtx, instanceId) {

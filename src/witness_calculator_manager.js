@@ -17,7 +17,7 @@
 // Similarly, deferred modules are executed in the order they were registered in the WitnessCalculatorManager.
 
 const WitnessCalculatorFactory = require("./witness_calculator_factory.js");
-const { AirBus, AirBusPayload, PayloadTypeEnum } = require("./air_bus.js");
+const { AirBus, AirBusPayload, PayloadTypeEnum } = require("./proof_bus.js");
 
 const { ModuleTypeEnum } = require("./witness_calculator_component.js");
 
@@ -32,11 +32,11 @@ const path = require("path");
 
 // WitnessCalculator class acting as the composite
 module.exports = class WitnessCalculatorManager {
-    constructor(proofmanagerAPI) {
+    constructor(proofSharedMemory) {
         this.initialized = false;
 
         this.name = WC_MANAGER_NAME;
-        this.proofmanagerAPI = proofmanagerAPI;
+        this.proofSharedMemory = proofSharedMemory;
 
         this.wc = [];
         this.wcLocks = [];        
@@ -64,7 +64,7 @@ module.exports = class WitnessCalculatorManager {
             log.info(`[${this.name}]`, "Initializing...");
 
             for(const config of witnessCalculatorsConfig) {
-                const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(config.witnessCalculatorLib, this, this.proofmanagerAPI);
+                const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(config.witnessCalculatorLib, this, this.proofSharedMemory);
                 newWitnessCalculator.initialize(config, options);
         
                 this.wc.push(newWitnessCalculator);
@@ -100,33 +100,47 @@ module.exports = class WitnessCalculatorManager {
         if(stageId === 1) {
             for (const subproofCtx of this.subproofsCtx) {
                 for (const wc of regulars) {
-                    if(!wc.sm || subproofCtx.subproof.name === wc.sm) {
+                    if(!wc.sm || subproofCtx.name === wc.sm) {
                         executors.push(wc._witnessComputation(stageId, subproofCtx, -1, -1, publics));
                     }
                 }
             }   
         } else {
-            for (const subproofCtx of this.subproofsCtx) {
-                for (const airCtx of subproofCtx.airsCtx) {
-                    for (const wc of regulars) {
-                        if(!wc.sm || airCtx.air.name.startsWith(wc.sm)) {
-                            if(airCtx.instances.length > 0) {
-                                const instances = airCtx.instances.map(airInstanceCtx => airInstanceCtx.instanceId);
-            
-                                for (const instanceId of instances) {
-                                    const airInstanceCtx = airCtx.instances[instanceId];
-                                    // TODO change!!!!!!!
-                                    // if(stageId===2 && instanceId !== -1) airInstanceCtx.ctx.publics = publics;
-                                    if(airInstanceCtx.ctx.subproofValues) airInstanceCtx.ctx.subproofValues.push(1n);
-                                    // TODO change this
+            for (const wc of regulars) {
+                for(const instance of this.proofCtx.instances) {
 
-                                    executors.push(wc._witnessComputation(stageId, subproofCtx, airCtx.airId, instanceId, publics));
-                                }
-                            }
-                        }
-                    }
+                    // TODO change!!!!!!!
+                    // if(stageId===2 && instance.instanceId !== -1) instance.ctx.publics = publics;
+                    // instance.ctx.subproofValues.push(1n);
+                    // TODO change this
+
+                    const subproofCtx = this.subproofsCtx[instance.subproofId];
+                    const airCtx = subproofCtx.airsCtx[instance.airId];
+
+                    executors.push(wc._witnessComputation(stageId, subproofCtx, airCtx.airId, instance.instanceId, publics));
                 }
             }
+            // for (const subproofCtx of this.subproofsCtx) {
+            //     for (const airCtx of subproofCtx.airsCtx) {
+            //         for (const wc of regulars) {
+            //             if(!wc.sm || airCtx.air.name.startsWith(wc.sm)) {
+            //                 if(airCtx.instances.length > 0) {
+            //                     const instances = airCtx.instances.map(airInstanceCtx => airInstanceCtx.instanceId);
+            
+            //                     for (const instanceId of instances) {
+            //                         const airInstanceCtx = airCtx.instances[instanceId];
+            //                         // TODO change!!!!!!!
+            //                         // if(stageId===2 && instanceId !== -1) airInstanceCtx.ctx.publics = publics;
+            //                         if(airInstanceCtx.ctx.subproofValues) airInstanceCtx.ctx.subproofValues.push(1n);
+            //                         // TODO change this
+
+            //                         executors.push(wc._witnessComputation(stageId, subproofCtx, airCtx.airId, instanceId, publics));
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
         }        
 
         await Promise.all(executors);
@@ -201,7 +215,7 @@ module.exports = class WitnessCalculatorManager {
     async readData(module, dataId) {
         this.airBusMutex.lock();
 
-        //TODO read data from proofmanagerAPI
+        //TODO read data from proofSharedMemory
         if(!this.data[dataId]) {
             const payload = new AirBusPayload(module.name, this.name, PayloadTypeEnum.NOTIFICATION, "resolve", { dataId });
             await this.addBusPayload(payload, true);
