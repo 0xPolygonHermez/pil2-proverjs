@@ -1,30 +1,37 @@
-function hashArray(arr) {
+const { calculateHashStark } = require("pil2-stark-js");
+
+async function hashValues(arr) {
     // Base case: If the array has only one element => return the hash of that element.
     if (arr.length === 1) return arr[0];
 
     const result = [];
 
+    const ctx = {pilInfo: {starkStruct: {verificationHashType: "GL"}}};
+
     for (let i = 0; i < arr.length; i += 2) {
         if (i + 1 < arr.length) {
             // Hash the current element with the next element
-            result.push(hashFunction(arr[i], arr[i + 1]));
+            console.log(`Hash(${arr[i]}, ${arr[i + 1]})`);
+            const hash = await calculateHashStark(ctx, [...arr[i], ...arr[i+1]]);
+            result.push(hash);
         } else {
             // If there's an odd number of elements, leave the last one as is
-            result.push(hashFunction(arr[i], 0));
+            result.push(arr[i]);
         }
     }
 
     // Recursively call the function with the new array of hashes
-    return hashArray(result, hashFunction);
+    return hashValues(result);
 }
 
-function hashFunction(a, b) {
-    console.log(`Hash(${a}, ${b})`);
-    // Replace this with our hash
-    return a.toString() + b.toString();
+async function testHash() {
+    const elements = [];
+    for(let i = 0; i < 13; ++i) {
+        elements.push([i,i,i,i])
+    }
+    console.log(elements);
+    const finalHash = await hashValues(elements);
+    console.log(finalHash);
 }
 
-const elements = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
-
-const finalHash = hashArray(elements, hashFunction);
-console.log(finalHash);
+testHash();
