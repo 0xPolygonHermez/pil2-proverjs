@@ -3,8 +3,8 @@ const { WitnessCalculatorComponent } = require("../../../src/witness_calculator_
 const log = require("../../../logger.js");
 
 class ExecutorSimple3 extends WitnessCalculatorComponent {
-    constructor(wcManager, proofSharedMemory) {
-        super("Simple3Ex", wcManager, proofSharedMemory);
+    constructor(wcManager, proofCtx) {
+        super("Simple3Ex", wcManager, proofCtx);
     }
 
     async witnessComputation(stageId, subproofCtx, airId, instanceId) {
@@ -18,7 +18,7 @@ class ExecutorSimple3 extends WitnessCalculatorComponent {
         // For this test we only use airsCtx[0]
         const airCtx = subproofCtx.airsCtx[0];
 
-        let { result, airInstanceCtx } = this.proofSharedMemory.addAirInstance(airCtx.subproofId, airCtx.airId);
+        let { result, airInstanceCtx } = this.proofCtx.addAirInstance(airCtx.subproofId, airCtx.airId);
 
         if (result === false) {
             log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);

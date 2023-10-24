@@ -1,4 +1,5 @@
 const ProverFactory = require("./prover_factory.js");
+const { hashBTree } = require("./hash_binary_tree.js");
 
 const log = require('../logger.js');
 
@@ -6,9 +7,9 @@ const PROVER_OPENINGS_PENDING  = 1;
 const PROVER_OPENINGS_COMPLETED = 2;
 
 class ProversManager {
-    constructor(proofSharedMemory) {
+    constructor(proofCtx) {
         this.name = "ProversManager";
-        this.proofSharedMemory = proofSharedMemory;
+        this.proofCtx = proofCtx;
 
         this.initialized = false;
         this.provers = [];
@@ -30,7 +31,7 @@ class ProversManager {
 
         for( let i = 0; i < airout.airout.subproofs.length; i++) {
             for( let j = 0; j < airout.airout.subproofs[i].airs.length; j++) {
-                const prover = await ProverFactory.createProver(proverConfig.filename, this.proofSharedMemory);
+                const prover = await ProverFactory.createProver(proverConfig.filename, this.proofCtx);
 
                 const airName = airout.airout.subproofs[i].airs[j].name;
                 const N = airout.airout.subproofs[i].airs[j].numRows;
@@ -93,7 +94,7 @@ class ProversManager {
     }
 
     async computeStage(stageId, publics) {
-        const numStages = this.proofSharedMemory.getAirout().numStages + 1;
+        const numStages = this.proofCtx.getAirout().numStages + 1;
 
         if(stageId === 1) await this.newProof(publics);
         
@@ -101,15 +102,13 @@ class ProversManager {
             await this.commitStage(stageId);
         } else {
             const retValue = await this.openingStage(stageId - numStages);
-            if(retValue !== PROVER_OPENINGS_COMPLETED) {
-                this.computeProofChallenge(stageId);
-            }
+            await this.computeProofChallenge(stageId);
             return retValue;
         }
         
-        this.computeProofChallenge(stageId);
+        await this.computeProofChallenge(stageId);
 
-        this.setChallenges(stageId + 1, this.proofSharedMemory.getChallenge(stageId));
+        this.setChallenges(stageId + 1, this.proofCtx.getChallenge(stageId));
 
         return PROVER_OPENINGS_PENDING;
     }
@@ -118,57 +117,48 @@ class ProversManager {
         for(const instance of this.proofCtx.instances) {
             const subproofCtx = this.subproofsCtx[instance.subproofId];
             const airCtx = subproofCtx.airsCtx[instance.airId];
+
             const proverId = this.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.layout.numRows);
             await this.provers[proverId].commitStage(stageId, subproofCtx.proofCtx, instance);
         }
-        // for (const subproofCtx of this.subproofsCtx) {
-        //     for (const airCtx of subproofCtx.airsCtx) {
-        //         for (const airInstanceCtx of airCtx.instances) {
-        //             log.info(`[ProofOrchestrator]`, `··· Air '${airCtx.air.name}' Commiting stage ${stageId}.`);
-        //             const id = this.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.air.numRows);
 
-        //             await this.provers[id].commitStage(stageId, airInstanceCtx);
-        //         }
-        //     }
-        // }
         return PROVER_OPENINGS_PENDING;
     }
 
     async openingStage(openingId) {
+        let state;
         for(const instance of this.proofCtx.instances) {
             const subproofCtx = this.subproofsCtx[instance.subproofId];
             const airCtx = subproofCtx.airsCtx[instance.airId];
             const proverId = this.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.layout.numRows);
 
-            return await this.provers[proverId].openingStage(openingId, subproofCtx.proofCtx, instance);
+            // log.info(`[ProofOrchestrator]`, `··· Air '${airCtx.air.name}' Commiting stage ${openingId}.`);
+            state = await this.provers[proverId].openingStage(openingId, subproofCtx.proofCtx, instance);
         }
 
-
-        // for (const subproofCtx of this.subproofsCtx) {
-        //     for (const airCtx of subproofCtx.airsCtx) {
-        //         for (const airInstanceCtx of airCtx.instances) {
-        //             log.info(`[ProofOrchestrator]`, `··· Air '${airCtx.air.name}' Commiting stage ${openingId}.`);
-        //             const id = this.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.air.numRows);
-
-        //             return await this.provers[id].openingStage(openingId, airInstanceCtx);
-        //         }
-        //     }
-        // }
+        return state;
     }
 
-    computeProofChallenge(stageId) {
-        //TODO !!!
-        const challenge = this.proofCtx.instances[0].ctx.challenges[stageId];
-        this.proofSharedMemory.setChallenge(stageId, challenge);
+    async computeProofChallenge(stageId) {
+        for(let i = 0; i < this.subproofsCtx.length; i++) {
+            let challengeArr = [];
+            for(let j = 0; j < this.subproofsCtx[i].airsCtx.length; j++) {
+                const instancesCtx = this.proofCtx.getInstancesBySubproofIdAirId(i, j);
+                
+                const airCtx = this.subproofsCtx[i].airsCtx[j];
+                for(let k = 0; k < instancesCtx.length; k++) {
+                    log.info(`[ProofOrchestrator]`,
+                        `··· SubproofCtx '${this.subproofsCtx[i].name}' Air '${airCtx.name}' Instance '${instancesCtx[k].instanceId}' Computing proof challenge for stage ${stageId}.`);
 
-        // for (const subproofCtx of this.subproofsCtx) {
-        //     for (const airCtx of subproofCtx.airsCtx) {
-        //         for (const airInstanceCtx of airCtx.instances) {
-        //             log.info(`[ProofOrchestrator]`, `··· Air '${airCtx.air.name}' Computing proof challenge for stage ${stageId}.`);
-        //             this.proofSharedMemory.setChallenge(stageId, this.prover.computeProofChallenge(stageId, airInstanceCtx));
-        //         }
-        //     }
-        // }
+                    challengeArr.push(instancesCtx[k].ctx.challenges[stageId] ? instancesCtx[k].ctx.challenges[stageId] : 0);
+                }
+            }
+            const challenge = await hashBTree(challengeArr);
+
+            this.proofCtx.addChallengeToTranscript(stageId, challenge);
+        }
+
+        this.proofCtx.computeGlobalChallenge(stageId);
     }
 
     setChallenges(stageId, challenge) {
@@ -181,16 +171,6 @@ class ProversManager {
             this.provers[proverId].setChallenges(stageId, instance, challenge);
 
         }
-
-        // for (const subproofCtx of this.subproofsCtx) {
-        //     for (const airCtx of subproofCtx.airsCtx) {
-        //         for (const airInstanceCtx of airCtx.instances) {
-        //             const id = this.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.air.numRows);
-                    
-        //             this.provers[id].setChallenges(stageId, airInstanceCtx, challenge);
-        //         }
-        //     }
-        // }
     }
 
 }

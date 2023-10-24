@@ -44,8 +44,8 @@ module.exports = async function setupCmd(proofManagerConfig) {
             const starkStructFilename =  path.join(__dirname, "../../", settings.starkStruct);
             const starkStruct = require(starkStructFilename);
 
-            const airSymbols = airout.symbols.filter(symbol => symbol.subproofId === i && symbol.airId === j);
-
+            const airSymbols = airoutObj.getSymbolsBySubproofIdAirId(i, j);
+            
             const fixedPols = newConstantPolsArrayPil2(airSymbols, air.numRows, setupOptions.F)
             getFixedPolsPil2(air, fixedPols, setupOptions.F);
 

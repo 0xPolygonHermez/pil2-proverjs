@@ -9,9 +9,16 @@ async function proveAndVerifyTest(proofManagerConfig, publics) {
 
     const setup = await setupCmd(proofManagerConfig);
 
-    const proof = await proveCmd(proofManagerConfig, publics, options);
+    const { proof, challenges, challengesFRISteps } = await proveCmd(proofManagerConfig, publics, options);
 
-    const isValid = await verifyCmd(proofManagerConfig, setup, proof, options);
+    console.log("proof");
+    console.log(proof);
+    console.log("challenges");
+    console.log(challenges);
+    console.log("challengesFRISteps");
+    console.log(challengesFRISteps);
+
+    const isValid = await verifyCmd(proofManagerConfig, setup, proof, challenges, challengesFRISteps, options);
 
     assert(isValid == true, "Proof is not valid");
 

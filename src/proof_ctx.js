@@ -1,20 +1,22 @@
 const log = require("../logger.js");
 
 const { newCommitPolsArrayPil2 } = require("pilcom/src/polsarray.js");
+const { addTranscriptStark, getChallengeStark } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
+const { buildPoseidonGL, Transcript } = require("pil2-stark-js");
 
-class ProofSharedMemory {
+class ProofCtx {
     /**
-     * Creates a new ProofSharedMemory instance.
+     * Creates a new ProofCtx instance.
      * @constructor
      */
     constructor(name, finiteField) {
         this.name = name;
         this.F = finiteField;
 
-        this.resetProofSharedMemory();
+        this.resetProofCtx();
     }
 
-    resetProofSharedMemory() {
+    resetProofCtx() {
         this.publics = [];
         this.challenges = [];
         this.instances = [];
@@ -22,18 +24,26 @@ class ProofSharedMemory {
         this.subproofsCtx = [];
     }
 
-    initialize(publics) {
-        this.resetProofSharedMemory();
-        this.publics = publics;
+    async initialize(publics) {
+        // this.resetProofCtx(); 
+        // this.publics = publics;
+
+        const poseidon = await buildPoseidonGL();
+        this.transcript = new Transcript(poseidon);
     }
 
-    setChallenge(stageId, challenge) {
-        // if (stageId >= this.challenges.length) {
-        //     log.error(`The requested challenge is not within the valid bounds of proof challenges.`);
-        //     throw new Error(`The requested challenge is not within the valid bounds of proof challenges.`);
-        // }
+    addChallengeToTranscript(challenge) {
+        addTranscriptStark(this.transcript, challenge);
+    }
 
-        this.challenges[stageId] = challenge;
+    computeGlobalChallenge(stageId) {
+        if(this.challenges[stageId].length === 0) return;
+
+        this.challenges[stageId][0] = getChallengeStark(this.transcript);
+
+        for(let i =0; i< this.challenges[stageId].length; i++) {
+            this.challenges[stageId][i] = getChallengeStark(this.transcript);
+        }
     }
 
     getChallenge(stageId) {
@@ -68,31 +78,45 @@ class ProofSharedMemory {
         this.instances[instanceId] = airInstance;
 
         const air = this.airout.getAirBySubproofIdAirId(subproofId, airId);
-        const airSymbols = this.airout.airout.symbols.filter(symbol => symbol.subproofId === subproofId && symbol.airId === airId);
+        const airSymbols = this.airout.getSymbolsBySubproofIdAirId(subproofId, airId);
 
         airInstance.wtnsPols = newCommitPolsArrayPil2(airSymbols, air.numRows, subproofCtx.F);
 
         return { result: true, airInstance};
     }   
 
-    static createProofSharedMemoryFromAirout(name, airoutObj, finiteField) {
-        const proofSharedMemory = new ProofSharedMemory(name, finiteField);
-        proofSharedMemory.airout = airoutObj;
+    // Proof API
+    getInstancesBySubproofIdAirId(subproofId, airId) {
+        const instances = this.instances.filter(instance => instance.subproofId === subproofId && instance.airId === airId);
+        return instances.sort((a, b) => a.instanceId - b.instanceId);
+    }
+
+    // getAirCols(subproofId, airId)
+    //
+
+    static createProofCtxFromAirout(name, airoutObj, finiteField) {
+        const proofCtx = new ProofCtx(name, finiteField);
+        proofCtx.airout = airoutObj;
 
         const airout = airoutObj.airout;
         for(let i = 0; i < airout.subproofs.length; i++) {
-            proofSharedMemory.addNewSubproof(i, airout);
+            proofCtx.addNewSubproof(i, airout);
         }
 
         if (airout.numChallenges !== undefined) {
             for (let i = 0; i < airout.numChallenges.length; i++) {
                 if (airout.numChallenges[i] === undefined) continue;
 
-                proofSharedMemory.challenges.push(new Array(airout.numChallenges[i]).fill(null));
+                proofCtx.challenges.push(new Array(airout.numChallenges[i]).fill(null));
             }
         }
+
+        // qStage, evalsStage and friStage
+        proofCtx.challenges.push(new Array(1).fill(null));
+        proofCtx.challenges.push(new Array(1).fill(null));
+        proofCtx.challenges.push(new Array(2).fill(null));
     
-        return proofSharedMemory;
+        return proofCtx;
     }
 }
 
@@ -127,10 +151,6 @@ class SubproofCtx {
             this.airsCtx.push(airCtx);
         }
     }
-
-    addAirInstance(airId, numRows) {
-        return this.airsCtx[airId].addAirInstance(airId, numRows);
-    }
 }
 
 class AirCtx {
@@ -161,4 +181,4 @@ class AirInstance {
     }
 }
 
-module.exports = ProofSharedMemory;
+module.exports = ProofCtx;

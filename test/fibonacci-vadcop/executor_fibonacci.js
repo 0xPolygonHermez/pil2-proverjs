@@ -8,8 +8,8 @@ const {
 const log = require("../../logger.js");
 
 class FibonacciVadcop extends WitnessCalculatorComponent {
-    constructor(wcManager, proofSharedMemory) {
-        super("FibonacciExecutor", wcManager, proofSharedMemory);
+    constructor(wcManager, proofCtx) {
+        super("FibonacciExecutor", wcManager, proofCtx);
     }
 
     async witnessComputation(stageId, subproofCtx, airId, instanceId, publics) { 
@@ -23,8 +23,8 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
             await this.wcManager.writeData(this, "Module.createInstances", {"airId": 0});
             const airCtx = subproofCtx.airsCtx[1];
 
-            log.info(`[${this.name}]`, `Creating air instance for air '${airCtx.air.name}' with N=${airCtx.air.numRows} rows.`)
-            let { result, airInstanceCtx: instanceCtx } = this.proofSharedMemory.addAirInstance(airCtx.subproofId, airCtx.airId);
+            log.info(`[${this.name}]`, `Creating air instance for air '${airCtx.name}' with N=${airCtx.layout.numRows} rows.`)
+            let { result, airInstance } = this.proofCtx.addAirInstance(airCtx.subproofId, airCtx.airId);
 
             if (result === false) {
                 log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
@@ -32,20 +32,20 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
             }
         
             // TODO how to instanciate publics ? it will be at subproof level ?
-            this.createPolynomialTraces(subproofCtx, airCtx, instanceCtx,  publics);
+            this.createPolynomialTraces(subproofCtx, airCtx, airInstance,  publics);
         }
 
         return;
     }
 
-    createPolynomialTraces(subproofCtx, airCtx, airInstanceCtx, publics) {
+    createPolynomialTraces(subproofCtx, airCtx, airInstance, publics) {
         const N = airCtx.layout.numRows;
         const F = subproofCtx.proofCtx.F;
 
         const mod = publics.mod;
 
-        const polA = airInstanceCtx.wtnsPols.Fibonacci.a;
-        const polB = airInstanceCtx.wtnsPols.Fibonacci.b;
+        const polA = airInstance.wtnsPols.Fibonacci.a;
+        const polB = airInstance.wtnsPols.Fibonacci.b;
 
         polB[0] = publics.in1;
         polA[0] = publics.in2;

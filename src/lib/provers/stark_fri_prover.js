@@ -31,8 +31,8 @@ const path = require("path");
 const log = require('../../../logger.js');
 
 class StarkFriProver extends ProverComponent {
-    constructor(proofSharedMemory) {
-        super("FRI Prover", proofSharedMemory);
+    constructor(proofCtx) {
+        super("FRI Prover", proofCtx);
     }
 
     initialize(settings, options) {
@@ -46,8 +46,8 @@ class StarkFriProver extends ProverComponent {
 
     async setup(airCtx) {
         const subproofCtx = airCtx.subproofCtx;
-        const airout = this.proofSharedMemory.getAirout();
-        const airSymbols = airout.airout.symbols.filter(symbol => symbol.subproofId === subproofCtx.subproofId && symbol.airId === airCtx.airId);
+        const airout = this.proofCtx.getAirout();
+        const airSymbols = airout.getSymbolsBySubproofIdAirId(subproofCtx.subproofId, airCtx.airId);
 
         const air = airout.getAirBySubproofIdAirId(subproofCtx.subproofId, airCtx.airId);
 
@@ -78,7 +78,7 @@ class StarkFriProver extends ProverComponent {
         const debug = true;
         
         const airInstanceCtx = subproofCtx.airsCtx[airId].instances[instanceId];
-        const airout = this.proofSharedMemory.getAirout();
+        const airout = this.proofCtx.getAirout();
         const air = airout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
 
         const starkInfo = pilInfo(subproofCtx.F, air, stark, pil1, debug, {});
@@ -95,7 +95,7 @@ class StarkFriProver extends ProverComponent {
     async commitStage(stageId, proofCtx, airInstanceCtx) {
         this.checkInitialized();
 
-        const airout = this.proofSharedMemory.getAirout();
+        const airout = this.proofCtx.getAirout();
         const ctx = airInstanceCtx.ctx;
 
         if (stageId === 1) {
@@ -165,7 +165,7 @@ class StarkFriProver extends ProverComponent {
         this.checkInitialized();
 
         const isLastRound = openingId === 2 + airInstanceCtx.ctx.pilInfo.starkStruct.steps.length + 1;
-        const numStages = this.proofSharedMemory.getAirout().numStages + 1;
+        const numStages = this.proofCtx.getAirout().numStages + 1;
 
         if(openingId === 1) {
             await this.computeOpenings(numStages + openingId, proofCtx, airInstanceCtx);
@@ -205,7 +205,7 @@ class StarkFriProver extends ProverComponent {
             `Computing Openings for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
-        const challenge = this.proofSharedMemory.getChallenge(stageId - 1);
+        const challenge = this.proofCtx.getChallenge(stageId - 1);
         setChallengesStark(stageId, ctx, ctx.transcript, challenge, this.options);
 
         const evalCommits = await computeEvalsStark(ctx, this.options);
@@ -223,7 +223,7 @@ class StarkFriProver extends ProverComponent {
             `Computing FRI Stark for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
-        const challenge = this.proofSharedMemory.getChallenge(stageId - 1);
+        const challenge = this.proofCtx.getChallenge(stageId - 1);
         setChallengesStark(stageId, ctx, ctx.transcript, challenge, this.options);
 
         await computeFRIStark(ctx, this.options);
@@ -232,7 +232,7 @@ class StarkFriProver extends ProverComponent {
     }
 
     async computeFRIFolding(stageId, proofCtx, airInstance, params) {
-        const challenge = this.proofSharedMemory.getChallenge(stageId - 1);
+        const challenge = this.proofCtx.getChallenge(stageId - 1);
         const ctx = airInstance.ctx;
 
         const subproofCtx = proofCtx.subproofsCtx[airInstance.subproofId];
@@ -250,12 +250,13 @@ class StarkFriProver extends ProverComponent {
     async computeFRIQueries(stageId, proofCtx, airInstance, params) {
         const ctx = airInstance.ctx;
 
-        const challenge = this.proofSharedMemory.getChallenge(stageId - 1);
-    
+        const challenge = this.proofCtx.getChallenge(stageId - 1);
+        ctx.challenges[stageId] = challenge;
+        
         const friQueries = await getPermutationsStark(ctx, challenge);
 
         log.debug("··· FRI queries: [" + friQueries.join(",") + "]");
-    
+
         computeFRIQueries(ctx, friQueries);
 
         proofCtx.instances[airInstance.instanceId].proof = await genProofStark(airInstance.ctx, log);

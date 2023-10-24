@@ -3,8 +3,8 @@ const { WitnessCalculatorComponent } = require("../../src/witness_calculator_com
 const log = require("../../logger.js");
 
 class FibonacciVadcopModule extends WitnessCalculatorComponent {
-    constructor(wcManager, proofSharedMemory) {
-        super("ModuleExecutor", wcManager, proofSharedMemory);
+    constructor(wcManager, proofCtx) {
+        super("ModuleExecutor", wcManager, proofCtx);
     }
 
     async witnessComputation(stageId, subproofCtx, airId, instanceId, publics) {        
@@ -17,27 +17,27 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
             const instanceData = await this.wcManager.readData(this, "Module.createInstances");
             const airCtx = subproofCtx.airsCtx[instanceData.airId];
 
-            log.info(`[${this.name}]`, `Creating air instance for air '${airCtx.air.name}' with N=${airCtx.air.numRows} rows.`)
-            let { result, airInstanceCtx: instanceCtx } = this.proofSharedMemory.addAirInstance(airCtx.subproofId, airCtx.airId);
+            log.info(`[${this.name}]`, `Creating air instance for air '${airCtx.name}' with N=${airCtx.layout.numRows} rows.`)
+            let { result, airInstance } = this.proofCtx.addAirInstance(airCtx.subproofId, airCtx.airId);
 
             if (result === false) {
                 log.error(`[${this.name}]`, `New air instance for air '${airCtx.air.name}' with N=${air.numRows} rows failed.`);
                 throw new Error(`[${this.name}]`, `New air instance for air '${airCtx.air.name}' with N=${air.numRows} rows failed.`);
             }
         
-            this.createPolynomialTraces(subproofCtx, airCtx, instanceCtx, publics);
+            this.createPolynomialTraces(subproofCtx, airCtx, airInstance, publics);
         }
         
         return;
     }
 
-    createPolynomialTraces(subproofCtx, airCtx, airInstanceCtx, publics) {
+    createPolynomialTraces(subproofCtx, airCtx, airInstance, publics) {
         const N = airCtx.layout.numRows;
         const F = subproofCtx.proofCtx.F;
 
-        const polX = airInstanceCtx.wtnsPols.Module.x;
-        const polQ = airInstanceCtx.wtnsPols.Module.q;
-        const polX_mod = airInstanceCtx.wtnsPols.Module.x_mod;
+        const polX = airInstance.wtnsPols.Module.x;
+        const polQ = airInstance.wtnsPols.Module.q;
+        const polX_mod = airInstance.wtnsPols.Module.x_mod;
 
         let a = new Array(2);
         let b = new Array(2);

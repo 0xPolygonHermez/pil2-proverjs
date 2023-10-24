@@ -77,6 +77,10 @@ class AirOut {
         return this.airout.numChallenges?.length ?? 1;
     }
 
+    get totalChallenges() {
+        return this.airout.numChallenges.reduce((acc, numChallenges) => acc + (numChallenges || 1), 0);
+    }
+
     getSubproofById(subproofId) {
         if(this.airout.subproofs === undefined) return undefined;
 
@@ -130,9 +134,7 @@ class AirOut {
     getSymbolsBySubproofIdAirId(subproofId, airId) {
         if(this.airout.symbols === undefined) return [];
 
-        return this.airout.symbols.filter(
-            (symbol) => symbol.airId === airId && symbol.subproofId === subproofId
-        );
+        return this.airout.symbols.filter((symbol) => symbol.subproofId === subproofId && symbol.airId === airId);
     }
 
     getSymbolsByStage(subproofId, airId, stageId, symbolType) {

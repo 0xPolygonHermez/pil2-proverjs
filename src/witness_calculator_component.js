@@ -23,10 +23,10 @@ const ModuleTypeEnum = {
 
 // Abstract base class for all WitnessCalculator components
 class WitnessCalculatorComponent {
-    constructor(name, wcManager, proofSharedMemory, type = ModuleTypeEnum.REGULAR) {
+    constructor(name, wcManager, proofCtx, type = ModuleTypeEnum.REGULAR) {
         this.name = name;
         this.wcManager = wcManager;
-        this.proofSharedMemory = proofSharedMemory;
+        this.proofCtx = proofCtx;
         this.type = type;
 
         this.initialized = false;

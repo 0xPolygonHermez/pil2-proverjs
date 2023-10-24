@@ -32,11 +32,11 @@ const path = require("path");
 
 // WitnessCalculator class acting as the composite
 module.exports = class WitnessCalculatorManager {
-    constructor(proofSharedMemory) {
+    constructor(proofCtx) {
         this.initialized = false;
 
         this.name = WC_MANAGER_NAME;
-        this.proofSharedMemory = proofSharedMemory;
+        this.proofCtx = proofCtx;
 
         this.wc = [];
         this.wcLocks = [];        
@@ -64,7 +64,7 @@ module.exports = class WitnessCalculatorManager {
             log.info(`[${this.name}]`, "Initializing...");
 
             for(const config of witnessCalculatorsConfig) {
-                const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(config.witnessCalculatorLib, this, this.proofSharedMemory);
+                const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(config.witnessCalculatorLib, this, this.proofCtx);
                 newWitnessCalculator.initialize(config, options);
         
                 this.wc.push(newWitnessCalculator);
@@ -111,7 +111,7 @@ module.exports = class WitnessCalculatorManager {
 
                     // TODO change!!!!!!!
                     // if(stageId===2 && instance.instanceId !== -1) instance.ctx.publics = publics;
-                    // instance.ctx.subproofValues.push(1n);
+                    instance.ctx.subproofValues.push(1n);
                     // TODO change this
 
                     const subproofCtx = this.subproofsCtx[instance.subproofId];
@@ -215,7 +215,7 @@ module.exports = class WitnessCalculatorManager {
     async readData(module, dataId) {
         this.airBusMutex.lock();
 
-        //TODO read data from proofSharedMemory
+        //TODO read data from proofCtx
         if(!this.data[dataId]) {
             const payload = new AirBusPayload(module.name, this.name, PayloadTypeEnum.NOTIFICATION, "resolve", { dataId });
             await this.addBusPayload(payload, true);

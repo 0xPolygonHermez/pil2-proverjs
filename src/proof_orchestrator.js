@@ -7,7 +7,7 @@ const {
 
 const CheckerFactory = require("./checker_factory.js");
 const { AirOut } = require("./airout.js");
-const ProofSharedMemory = require("./proof_shared_memory.js");
+const ProofCtx = require("./proof_ctx.js");
 
 const { fileExists } = require("./utils.js");
 const path = require("path");
@@ -73,28 +73,28 @@ module.exports = class ProofOrchestrator {
             }
         }
 
-        const proofSharedMemory = ProofSharedMemory.createProofSharedMemoryFromAirout(
+        const proofCtx = ProofCtx.createProofCtxFromAirout(
             this.proofManagerConfig.name,
             this.airout,
             finiteField
         );
-        this.proofCtx = proofSharedMemory;
-        this.subproofsCtx = proofSharedMemory.subproofsCtx;
+        this.proofCtx = proofCtx;
+        this.subproofsCtx = proofCtx.subproofsCtx;
         
-        this.wcManager = new WitnessCalculatorManager(proofSharedMemory);
+        this.wcManager = new WitnessCalculatorManager(proofCtx);
         await this.wcManager.initialize(proofConfig.witnessCalculators, this.options);
 
-        this.proversManager = new ProversManager(proofSharedMemory);
+        this.proversManager = new ProversManager(proofCtx);
         await this.proversManager.initialize(this.proofManagerConfig.prover, this.airout, this.options);
 
         this.checker = await CheckerFactory.createChecker(proofConfig.checker.filename);
         this.checker.initialize(proofConfig.checker.settings, this.options);        
 
-        this.wcManager.proofCtx = proofSharedMemory;
-        this.wcManager.subproofsCtx = proofSharedMemory.subproofsCtx;
+        this.wcManager.proofCtx = proofCtx;
+        this.wcManager.subproofsCtx = proofCtx.subproofsCtx;
 
-        this.proversManager.proofCtx = proofSharedMemory;
-        this.proversManager.subproofsCtx = proofSharedMemory.subproofsCtx;
+        this.proversManager.proofCtx = proofCtx;
+        this.proversManager.subproofsCtx = proofCtx.subproofsCtx;
 
         this.initialized = true;
         log.info(`[${this.name}]`, `< Initialized`);
@@ -213,7 +213,8 @@ module.exports = class ProofOrchestrator {
         }
     }
 
-    async newProof() {
+    async newProof(publics) {
+        this.proofCtx.initialize(publics);
         for (const subproofCtx of this.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
                 airCtx.instances = [];
@@ -229,7 +230,7 @@ module.exports = class ProofOrchestrator {
 
             await this.proversManager.setup();
 
-            await this.newProof();
+            await this.newProof(publics);
 
             let proverStatus = PROVER_OPENINGS_PENDING;
             for (let stageId = 1; proverStatus !== PROVER_OPENINGS_COMPLETED; stageId++) {
@@ -243,9 +244,6 @@ module.exports = class ProofOrchestrator {
                 log.info(`[${this.name}]`, `<== ${str} ${stageId}`);
             }
 
-            // TODO now proof is hardcoded as the proof in subproof[0].air[0]
-            // TODO this has to change to generate a proof from all subproofs (airs)
-
             log.info(`[${this.name}]`, `<- Proof '${this.proofManagerConfig.name}' successfully generated.`);
 
         } catch (error) {
@@ -255,8 +253,11 @@ module.exports = class ProofOrchestrator {
             this.finalizeProve();
         }
 
-        // TODO remove
-        return this.proofCtx.instances[0].proof;
+        return {
+            proof: this.proofCtx.instances[0].proof,
+            challenges: this.proofCtx.challenges.slice(0, this.airout.totalChallenges + 4),
+            challengesFRISteps: this.proofCtx.challenges.slice(this.airout.totalChallenges + 4)
+        };
     }
 
     finalizeProve() {

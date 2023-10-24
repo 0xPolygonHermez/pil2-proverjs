@@ -2,9 +2,9 @@
 const log = require('../logger.js');
 
 class ProverComponent {
-    constructor(name, proofSharedMemory) {
+    constructor(name, proofCtx) {
         this.name = name;
-        this.proofSharedMemory = proofSharedMemory;
+        this.proofCtx = proofCtx;
 
         this.initialized = false;
         this.settings = null;
