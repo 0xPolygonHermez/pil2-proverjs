@@ -7,12 +7,12 @@ class CheckerA extends CheckerComponent {
         super("FRI Checker");
     }
 
-    async checkProof(proof, constRoot, starkInfo, challenges, challengesFRISteps) {
+    async checkProof(proof, constRoot, starkInfo, challenges, challengesFRISteps, options) {
         this.checkInitialized();
 
         log.info(`[${this.name}]`, "Checking...");
 
-        const isValid = await starkVerify(proof.proof, proof.publics, constRoot, { challenges, challengesFRISteps}, starkInfo, { logger: log, vadcop: true });
+        const isValid = await starkVerify(proof.proof, proof.publics, constRoot, { challenges, challengesFRISteps }, starkInfo, options);
 
         if (isValid === false) {
             log.error(`[${this.name}]`, `STARK proof is invalid`);

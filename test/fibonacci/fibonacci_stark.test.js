@@ -24,14 +24,10 @@ function getSettings() {
 
 }
 
-async function runPilVerifier(publics) {
-    const proofManagerConfig = getSettings();
+async function runPilVerifier(publics, options) {
+    options = {...options, debug: true};
 
-    const options = {
-        debug: true,
-        parallelExec: false,
-        useThreads: false
-    };
+    const proofManagerConfig = getSettings();
 
     const proofOrchestrator = new ProofOrchestrator("FibonacciProofOrchestrator");
 
@@ -43,11 +39,18 @@ async function runPilVerifier(publics) {
 describe("PIL2 proof manager stark simple tests", async function () {
     this.timeout(10000000);
 
+    const options = {
+        parallelExec: false,
+        useThreads: false,
+        hashCommits: false,
+        vadcop: false,
+    };
+
     it("prove Fibonacci", async () => {
-        await proveAndVerifyTest(getSettings(), inputs);
+        await proveAndVerifyTest(getSettings(), inputs, options);
     });
 
     it("verify Fibonacci", async () => {
-        await runPilVerifier(inputs);
+        await runPilVerifier(inputs, options);
     });
 });

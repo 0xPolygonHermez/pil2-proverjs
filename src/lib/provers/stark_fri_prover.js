@@ -6,15 +6,11 @@ const { initProverStark,
     computeEvalsStark,
     computeFRIStark,
     genProofStark,
-    setChallengesStark,
-    calculateChallengeStark,
     extendAndMerkelize,
     getPermutationsStark,
     computeFRIFolding,
     computeFRIQueries,
     computeQStark,
-    addTranscriptStark,
-    getChallengeStark,
 } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 const {
     calculatePublics,
@@ -92,7 +88,7 @@ class StarkFriProver extends ProverComponent {
         return await starkGen(airInstanceCtx.wtnsPols, setup.fixedPols, {}, starkInfo, publics, optionsPilVerify);
     }
 
-    async commitStage(stageId, proofCtx, airInstanceCtx) {
+    async commitStage(stageId, airInstanceCtx) {
         this.checkInitialized();
 
         const airout = this.proofCtx.getAirout();
@@ -100,8 +96,6 @@ class StarkFriProver extends ProverComponent {
 
         if (stageId === 1) {
             airInstanceCtx.wtnsPols.writeToBigBuffer(ctx.cm1_n, ctx.pilInfo.mapSectionsN.cm1);
-            const airCtx = proofCtx.subproofsCtx[airInstanceCtx.subproofId].airsCtx[airInstanceCtx.airId];
-            addTranscriptStark(ctx.transcript, [ctx.MH.root(airCtx.setup.constTree)]);
             this.calculatePublics(airInstanceCtx);
         }
 
@@ -130,35 +124,17 @@ class StarkFriProver extends ProverComponent {
             }
         }
 
-        let challenge;
         if(!this.options.debug) {
             let commits = stageId === airout.numStages + 1 ? await computeQStark(ctx, log) : await extendAndMerkelize(stageId, ctx, log);
-
-            addTranscriptStark(ctx.transcript, commits);
-
-            challenge = getChallengeStark(ctx.transcript);
+            ctx.challengeValue = commits;
         } else {
-            challenge = ctx.F.random();
+            ctx.challengeValue = ctx.F.randomValue();
         }
-
-        airInstanceCtx.ctx.challenges[stageId] = challenge;
     }
 
     async calculatePublics(airInstanceCtx) {
         const ctx = airInstanceCtx.ctx;
-        
         calculatePublics(ctx, airInstanceCtx.publics);
-
-        let publicsCommits = [];
-
-        if (this.options.hashCommits) {
-            const publicsRoot = await calculateHash(ctx, ctx.publics);
-            publicsCommits.push(publicsRoot);
-        } else {
-            publicsCommits.push(...ctx.publics);
-        }
-
-        addTranscriptStark(ctx.transcript, publicsCommits);
     }
 
     async openingStage(openingId, proofCtx, airInstanceCtx) {
@@ -168,9 +144,9 @@ class StarkFriProver extends ProverComponent {
         const numStages = this.proofCtx.getAirout().numStages + 1;
 
         if(openingId === 1) {
-            await this.computeOpenings(numStages + openingId, proofCtx, airInstanceCtx);
+            await this.computeOpenings(proofCtx, airInstanceCtx);
         } else if(openingId === 2) {
-            await this.computeFRIStark(numStages + openingId, proofCtx, airInstanceCtx);
+            await this.computeFRIStark(proofCtx, airInstanceCtx);
         } else if(openingId <= 2 + airInstanceCtx.ctx.pilInfo.starkStruct.steps.length) {
             await this.computeFRIFolding(numStages + openingId, proofCtx, airInstanceCtx, { step: openingId - 3});
         } else if(openingId === 2 + airInstanceCtx.ctx.pilInfo.starkStruct.steps.length + 1) {
@@ -184,19 +160,7 @@ class StarkFriProver extends ProverComponent {
         return isLastRound ? PROVER_OPENINGS_COMPLETED : PROVER_OPENINGS_PENDING;
     }
 
-    async computeAirChallenges(stageId, airInstanceCtx) {
-        this.checkInitialized();
-
-        airInstanceCtx.ctx.challenges[stageId] = await calculateChallengeStark(stageId, airInstanceCtx.ctx);
-    }
-
-    setChallenges(stageId, airInstanceCtx, challenge) {
-        this.checkInitialized();
-
-        setChallengesStark(stageId, airInstanceCtx.ctx, airInstanceCtx.ctx.transcript, challenge, log);
-    }
-
-    async computeOpenings(stageId, proofCtx, airInstance) {
+    async computeOpenings(proofCtx, airInstance) {
         const ctx = airInstance.ctx;
 
         const subproofCtx = proofCtx.subproofsCtx[airInstance.subproofId];
@@ -205,16 +169,12 @@ class StarkFriProver extends ProverComponent {
             `Computing Openings for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
-        const challenge = this.proofCtx.getChallenge(stageId - 1);
-        setChallengesStark(stageId, ctx, ctx.transcript, challenge, this.options);
-
         const evalCommits = await computeEvalsStark(ctx, this.options);
-
-        addTranscriptStark(ctx.transcript, evalCommits);
-        ctx.challenges[stageId] = getChallengeStark(ctx.transcript);
+        
+        ctx.challengeValue = evalCommits;
     }
 
-    async computeFRIStark(stageId, proofCtx, airInstance) {
+    async computeFRIStark(proofCtx, airInstance) {
         const ctx = airInstance.ctx;
 
         const subproofCtx = proofCtx.subproofsCtx[airInstance.subproofId];
@@ -223,16 +183,13 @@ class StarkFriProver extends ProverComponent {
             `Computing FRI Stark for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
-        const challenge = this.proofCtx.getChallenge(stageId - 1);
-        setChallengesStark(stageId, ctx, ctx.transcript, challenge, this.options);
-
         await computeFRIStark(ctx, this.options);
 
-        ctx.challenges[stageId] = getChallengeStark(ctx.transcript);
+        ctx.challengeValue = [];
     }
 
     async computeFRIFolding(stageId, proofCtx, airInstance, params) {
-        const challenge = this.proofCtx.getChallenge(stageId - 1);
+        const challenge = this.proofCtx.getChallenge(stageId - 1)[0];
         const ctx = airInstance.ctx;
 
         const subproofCtx = proofCtx.subproofsCtx[airInstance.subproofId];
@@ -243,15 +200,13 @@ class StarkFriProver extends ProverComponent {
 
         const friCommits = await computeFRIFolding(params.step, ctx, challenge, this.options);
 
-        addTranscriptStark(ctx.transcript, friCommits);
-        ctx.challenges[stageId] = getChallengeStark(ctx.transcript);
+        ctx.challengeValue = friCommits;
     }
 
-    async computeFRIQueries(stageId, proofCtx, airInstance, params) {
+    async computeFRIQueries(stageId, proofCtx, airInstance) {
         const ctx = airInstance.ctx;
 
-        const challenge = this.proofCtx.getChallenge(stageId - 1);
-        ctx.challenges[stageId] = challenge;
+        const challenge = this.proofCtx.getChallenge(stageId - 1)[0];
         
         const friQueries = await getPermutationsStark(ctx, challenge);
 

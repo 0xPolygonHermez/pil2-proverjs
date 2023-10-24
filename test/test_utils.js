@@ -4,9 +4,7 @@ const verifyCmd = require("../src/cmd/verify_cmd.js");
 const verifyCircomCmd = require("../src/cmd/verify_circom_cmd.js");
 const { assert } = require("chai");
 
-async function proveAndVerifyTest(proofManagerConfig, publics) {
-    const options = { verify: true, parallelExec: false, useThreads: false };
-
+async function proveAndVerifyTest(proofManagerConfig, publics, options) {
     const setup = await setupCmd(proofManagerConfig);
 
     const { proof, challenges, challengesFRISteps } = await proveCmd(proofManagerConfig, publics, options);
@@ -18,6 +16,7 @@ async function proveAndVerifyTest(proofManagerConfig, publics) {
     console.log("challengesFRISteps");
     console.log(challengesFRISteps);
 
+    
     const isValid = await verifyCmd(proofManagerConfig, setup, proof, challenges, challengesFRISteps, options);
 
     assert(isValid == true, "Proof is not valid");

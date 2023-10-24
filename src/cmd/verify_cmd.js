@@ -8,5 +8,5 @@ module.exports = async function verifyCmd(proofManagerConfig, setup, proof, chal
     const constRoot = setup[0][0].constRoot;
     const starkInfo = setup[0][0].starkInfo;
 
-    return await checker.checkProof(proof, constRoot, starkInfo, challenges, challengesFRISteps);
+    return await checker.checkProof(proof, constRoot, starkInfo, challenges, challengesFRISteps, options);
 }

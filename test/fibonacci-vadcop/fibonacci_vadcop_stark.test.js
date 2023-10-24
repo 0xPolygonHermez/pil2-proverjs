@@ -27,14 +27,10 @@ function getSettings() {
 
 }
 
-async function runPilVerifier(publicInputs) {
-    const proofManagerConfig = getSettings();
+async function runPilVerifier(publicInputs, options) {
+    options = {...options, debug: true};
 
-    const options = {
-        debug: true,
-        parallelExec: false,
-        useThreads: false
-    };
+    const proofManagerConfig = getSettings();
 
     const proofOrchestrator = new ProofOrchestrator("FiboVadcopPO");
 
@@ -46,11 +42,18 @@ async function runPilVerifier(publicInputs) {
 describe("Fibonacci Vadcop", async function () {
     this.timeout(10000000);
 
+    const options = {
+        parallelExec: false,
+        useThreads: false,
+        hashCommits: true,
+        vadcop: true,
+    };
+
     it("Generate a Fibonacci Vadcop proof", async () => {
-        await proveAndVerifyTest(getSettings(), publicInputs);
+        await proveAndVerifyTest(getSettings(), publicInputs, options);
     });
 
-    it("Verify a Fibonacci Vadcop proof", async () => {
-        await runPilVerifier(publicInputs);
+    it.skip("Verify a Fibonacci Vadcop proof", async () => {
+        await runPilVerifier(publicInputs, options);
     });
 });

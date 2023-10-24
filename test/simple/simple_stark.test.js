@@ -31,15 +31,10 @@ function getInputs(prefix) {
     }
 }
 
-async function runPilVerifier(prefix) {
-    const proofManagerConfig = getSettings(prefix);
+async function runPilVerifier(prefix, options) {
+    options = {...options, debug: true};
 
-    const options = {
-        debug: true,
-        hashCommits: true,
-        parallelExec: false,
-        useThreads: false
-    };
+    const proofManagerConfig = getSettings(prefix);
 
     const proofOrchestrator = new ProofOrchestrator("SimpleProofOrchestrator");
 
@@ -51,35 +46,41 @@ async function runPilVerifier(prefix) {
 describe("PIL2 proof manager stark simple tests", async function () {
     this.timeout(10000000);
 
+    const options = {
+        hashCommits: true,
+        parallelExec: false,
+        useThreads: false
+    };
+
     it("prove Simple1", async () => {
-        await proveAndVerifyTest(getSettings("Simple1"), {});
+        await proveAndVerifyTest(getSettings("Simple1"), {}, options);
     });
 
     it("prove Simple2", async () => {
-        await proveAndVerifyTest(getSettings("Simple2"), {});
+        await proveAndVerifyTest(getSettings("Simple2"), {}, options);
     });
 
     it("prove Simple3", async () => {
-        await proveAndVerifyTest(getSettings("Simple3"), {});
+        await proveAndVerifyTest(getSettings("Simple3"), {}, options);
     });
 
     it("prove Simple4", async () => {
-        await proveAndVerifyTest(getSettings("Simple4"), { in1: 2, in2: 3 });
+        await proveAndVerifyTest(getSettings("Simple4"), { in1: 2, in2: 3 }, options);
     });
 
     it("verify PIL Simple1", async () => {
-        await runPilVerifier("Simple1");
+        await runPilVerifier("Simple1", options);
     });
 
     it("verify PIL Simple2", async () => {
-        await runPilVerifier("Simple2");
+        await runPilVerifier("Simple2", options);
     });
 
     it("verify PIL Simple3", async () => {
-        await runPilVerifier("Simple3");
+        await runPilVerifier("Simple3", options);
     });
 
     it("verify PIL Simple4", async () => {
-        await runPilVerifier("Simple4");
+        await runPilVerifier("Simple4", options);
     });
 });

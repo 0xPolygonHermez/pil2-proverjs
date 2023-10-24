@@ -77,10 +77,6 @@ class AirOut {
         return this.airout.numChallenges?.length ?? 1;
     }
 
-    get totalChallenges() {
-        return this.airout.numChallenges.reduce((acc, numChallenges) => acc + (numChallenges || 1), 0);
-    }
-
     getSubproofById(subproofId) {
         if(this.airout.subproofs === undefined) return undefined;
 

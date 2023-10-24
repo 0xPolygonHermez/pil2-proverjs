@@ -25,8 +25,8 @@ class ProofCtx {
     }
 
     async initialize(publics) {
-        // this.resetProofCtx(); 
-        // this.publics = publics;
+        //this.resetProofCtx(); 
+        this.publics = publics;
 
         const poseidon = await buildPoseidonGL();
         this.transcript = new Transcript(poseidon);
@@ -39,9 +39,7 @@ class ProofCtx {
     computeGlobalChallenge(stageId) {
         if(this.challenges[stageId].length === 0) return;
 
-        this.challenges[stageId][0] = getChallengeStark(this.transcript);
-
-        for(let i =0; i< this.challenges[stageId].length; i++) {
+        for(let i = 0; i< this.challenges[stageId].length; i++) {
             this.challenges[stageId][i] = getChallengeStark(this.transcript);
         }
     }
@@ -109,13 +107,22 @@ class ProofCtx {
 
                 proofCtx.challenges.push(new Array(airout.numChallenges[i]).fill(null));
             }
+        } else {
+            proofCtx.challenges.push([]);
         }
 
         // qStage, evalsStage and friStage
         proofCtx.challenges.push(new Array(1).fill(null));
         proofCtx.challenges.push(new Array(1).fill(null));
         proofCtx.challenges.push(new Array(2).fill(null));
-    
+        
+        // TODO: Calculate friStages
+        proofCtx.challenges.push(new Array(1).fill(null));
+        proofCtx.challenges.push(new Array(1).fill(null));
+        proofCtx.challenges.push(new Array(1).fill(null));
+        proofCtx.challenges.push(new Array(1).fill(null));
+        
+
         return proofCtx;
     }
 }

@@ -239,7 +239,7 @@ module.exports = class ProofOrchestrator {
 
                 await this.wcManager.witnessComputation(stageId, publics);
 
-                proverStatus = await this.proversManager.computeStage(stageId, publics);
+                proverStatus = await this.proversManager.computeStage(stageId, publics, this.options);
 
                 log.info(`[${this.name}]`, `<== ${str} ${stageId}`);
             }
@@ -255,8 +255,8 @@ module.exports = class ProofOrchestrator {
 
         return {
             proof: this.proofCtx.instances[0].proof,
-            challenges: this.proofCtx.challenges.slice(0, this.airout.totalChallenges + 4),
-            challengesFRISteps: this.proofCtx.challenges.slice(this.airout.totalChallenges + 4)
+            challenges: this.proofCtx.challenges.slice(0, this.airout.numStages + 3),
+            challengesFRISteps: this.proofCtx.challenges.slice(this.airout.numStages + 3).map(c => c[0])
         };
     }
 
