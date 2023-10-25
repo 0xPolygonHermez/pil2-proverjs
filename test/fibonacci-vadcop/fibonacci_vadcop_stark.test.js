@@ -32,7 +32,7 @@ async function runPilVerifier(publicInputs, options) {
 
     const proofManagerConfig = getSettings();
 
-    const proofOrchestrator = new ProofOrchestrator("FiboVadcopPO");
+    const proofOrchestrator = new ProofOrchestrator("Proof Orch");
 
     await proofOrchestrator.initialize(proofManagerConfig, options);
 
@@ -49,7 +49,7 @@ describe("Fibonacci Vadcop", async function () {
         vadcop: true,
     };
 
-    it("Generate a Fibonacci Vadcop proof", async () => {
+    it.only("Generate a Fibonacci Vadcop proof", async () => {
         await proveAndVerifyTest(getSettings(), publicInputs, options);
     });
 
