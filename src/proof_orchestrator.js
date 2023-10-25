@@ -191,16 +191,14 @@ module.exports = class ProofOrchestrator {
             await this.wcManager.witnessComputation(1, publics);
 
             let result = true;
-            for (const subproofCtx of this.subproofsCtx) {
-                for (const airCtx of subproofCtx.airsCtx) {
-                    for (const airInstanceCtx of airCtx.instances) {
-                        const id = this.proversManager.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.air.numRows);
-                        result = result && await this.proversManager.provers[id].verifyPil(subproofCtx, airCtx.airId, airInstanceCtx.instanceId, publics);
-                        if (result === false) {
-                            log.error(`[${this.name}]`, `PIL verification failed for subproof '${subproofCtx.name}' and air '${airCtx.name}' with N=${airCtx.air.numRows} rows.`);
-                            break;
-                        }
-                    }
+            for (const instance of this.proofCtx.instances) {
+                const proverId = this.proversManager.getProverIdFromInstance(instance);
+
+                result = result && await this.proversManager.provers[proverId].verifyPil(instance, publics);
+                
+                if (result === false) {
+                    log.error(`[${this.name}]`, `PIL verification failed for subproof ${instance.subproofId} and air ${instance.airId} with N=${airCtx.air.numRows} rows.`);
+                    break;
                 }
             }
             

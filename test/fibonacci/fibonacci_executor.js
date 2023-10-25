@@ -18,7 +18,7 @@ class ExecutorFibonacci extends WitnessCalculatorComponent {
         // For this test we only use airsCtx[0]
         const airCtx = subproofCtx.airsCtx[0];
 
-        let { result, airInstanceCtx } = this.proofCtx.addAirInstance(airCtx.subproofId, airCtx.airId);
+        let { result, airInstance } = this.proofCtx.addAirInstance(airCtx.subproofId, airCtx.airId);
 
         if (result === false) {
             log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
@@ -28,8 +28,8 @@ class ExecutorFibonacci extends WitnessCalculatorComponent {
         const N = airCtx.layout.numRows;
         const F = subproofCtx.proofCtx.F;
 
-        const polA = subproofCtx.proofCtx.instances[0].wtnsPols.Fibonacci.a;
-        const polB = subproofCtx.proofCtx.instances[0].wtnsPols.Fibonacci.b;
+        const polA = airInstance.wtnsPols.Fibonacci.a;
+        const polB = airInstance.wtnsPols.Fibonacci.b;
 
         polB[0] = publics.in1;
         polA[0] = publics.in2;

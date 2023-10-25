@@ -18,7 +18,6 @@ const {
     applyHints,
 } = require("pil2-stark-js/src/prover/prover_helpers.js");
 
-const pilInfo = require("pil2-stark-js/src/pil_info/pil_info.js");
 const { newConstantPolsArrayPil2 } = require("pilcom/src/polsarray.js");
 const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
 
@@ -62,41 +61,34 @@ class StarkFriProver extends ProverComponent {
     }
 
     async newProof(airCtx, publics) {
-        for (const airInstanceCtx of airCtx.subproofCtx.proofCtx.instances) {   
-            airInstanceCtx.ctx = await initProverStark(airCtx.setup.starkInfo, airCtx.setup.fixedPols, airCtx.setup.constTree, this.options);                   
-            airInstanceCtx.publics = publics;
+        const instances = this.proofCtx.getInstancesBySubproofIdAirId(airCtx.subproofId, airCtx.airId);
+        for (const airInstance of instances) {   
+            airInstance.ctx = await initProverStark(airCtx.setup.starkInfo, airCtx.setup.fixedPols, airCtx.setup.constTree, this.options);                   
+            airInstance.publics = publics;
         }
     }
 
-    async verifyPil(subproofCtx, airId, instanceId, publics) {
-        const pil1 = false;
-        const stark = true;
-        const debug = true;
-        
-        const airInstanceCtx = subproofCtx.airsCtx[airId].instances[instanceId];
-        const airout = this.proofCtx.getAirout();
-        const air = airout.getAirBySubproofIdAirId(subproofCtx.subproofId, airId);
+    async verifyPil(instance, publics) {        
+        const setup = this.proofCtx.subproofsCtx[instance.subproofId].airsCtx[instance.airId].setup;
 
-        const starkInfo = pilInfo(subproofCtx.F, air, stark, pil1, debug, {});
+        const optionsPilVerify = {
+            ...this.options,
+            verificationHashType: setup.starkInfo.starkStruct.verificationHashType,
+            splitLinearHash: false
+        };
 
-        const verificationHashType = "GL";
-        const splitLinearHash = false;
-        const optionsPilVerify = {logger:log, debug, useThreads: false, parallelExec: false, verificationHashType, splitLinearHash};
-
-        const setup = airInstanceCtx.airCtx.setup;
-        
-        return await starkGen(airInstanceCtx.wtnsPols, setup.fixedPols, {}, starkInfo, publics, optionsPilVerify);
+        return await starkGen(instance.wtnsPols, setup.fixedPols, {}, setup.starkInfo, publics, optionsPilVerify);
     }
 
-    async commitStage(stageId, airInstanceCtx) {
+    async commitStage(stageId, airInstance) {
         this.checkInitialized();
 
         const airout = this.proofCtx.getAirout();
-        const ctx = airInstanceCtx.ctx;
+        const ctx = airInstance.ctx;
 
         if (stageId === 1) {
-            airInstanceCtx.wtnsPols.writeToBigBuffer(ctx.cm1_n, ctx.pilInfo.mapSectionsN.cm1);
-            this.calculatePublics(airInstanceCtx);
+            airInstance.wtnsPols.writeToBigBuffer(ctx.cm1_n, ctx.pilInfo.mapSectionsN.cm1);
+            this.calculatePublics(airInstance);
         }
 
         if(stageId <= airout.numStages + 1) {
@@ -132,38 +124,37 @@ class StarkFriProver extends ProverComponent {
         }
     }
 
-    async calculatePublics(airInstanceCtx) {
-        const ctx = airInstanceCtx.ctx;
-        calculatePublics(ctx, airInstanceCtx.publics);
+    async calculatePublics(airInstance) {
+        const ctx = airInstance.ctx;
+        calculatePublics(ctx, airInstance.publics);
     }
 
-    async openingStage(openingId, proofCtx, airInstanceCtx) {
+    async openingStage(openingId, airInstance) {
         this.checkInitialized();
 
-        const isLastRound = openingId === 2 + airInstanceCtx.ctx.pilInfo.starkStruct.steps.length + 1;
+        const isLastRound = openingId === 2 + airInstance.ctx.pilInfo.starkStruct.steps.length + 1;
         const numStages = this.proofCtx.getAirout().numStages + 1;
 
         if(openingId === 1) {
-            await this.computeOpenings(proofCtx, airInstanceCtx);
+            await this.computeOpenings(airInstance);
         } else if(openingId === 2) {
-            await this.computeFRIStark(proofCtx, airInstanceCtx);
-        } else if(openingId <= 2 + airInstanceCtx.ctx.pilInfo.starkStruct.steps.length) {
-            await this.computeFRIFolding(numStages + openingId, proofCtx, airInstanceCtx, { step: openingId - 3});
-        } else if(openingId === 2 + airInstanceCtx.ctx.pilInfo.starkStruct.steps.length + 1) {
-            await this.computeFRIQueries(numStages + openingId, proofCtx, airInstanceCtx);
+            await this.computeFRIStark(airInstance);
+        } else if(openingId <= 2 + airInstance.ctx.pilInfo.starkStruct.steps.length) {
+            await this.computeFRIFolding(numStages + openingId, airInstance, { step: openingId - 3});
+        } else if(openingId === 2 + airInstance.ctx.pilInfo.starkStruct.steps.length + 1) {
+            await this.computeFRIQueries(numStages + openingId, airInstance);
         } else {
             log.error(`[${this.name}]`, `Invalid openingId ${openingId}.`);
             throw new Error(`[${this.name}]`, `Invalid openingId ${openingId}.`);
         }
 
-
         return isLastRound ? PROVER_OPENINGS_COMPLETED : PROVER_OPENINGS_PENDING;
     }
 
-    async computeOpenings(proofCtx, airInstance) {
+    async computeOpenings(airInstance) {
         const ctx = airInstance.ctx;
 
-        const subproofCtx = proofCtx.subproofsCtx[airInstance.subproofId];
+        const subproofCtx = this.proofCtx.subproofsCtx[airInstance.subproofId];
         log.info(
             `[${this.name}]`,
             `Computing Openings for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
@@ -174,10 +165,10 @@ class StarkFriProver extends ProverComponent {
         ctx.challengeValue = evalCommits;
     }
 
-    async computeFRIStark(proofCtx, airInstance) {
+    async computeFRIStark(airInstance) {
         const ctx = airInstance.ctx;
 
-        const subproofCtx = proofCtx.subproofsCtx[airInstance.subproofId];
+        const subproofCtx = this.proofCtx.subproofsCtx[airInstance.subproofId];
         log.info(
             `[${this.name}]`,
             `Computing FRI Stark for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
@@ -188,11 +179,11 @@ class StarkFriProver extends ProverComponent {
         ctx.challengeValue = [];
     }
 
-    async computeFRIFolding(stageId, proofCtx, airInstance, params) {
+    async computeFRIFolding(stageId, airInstance, params) {
         const challenge = this.proofCtx.getChallenge(stageId - 1)[0];
         const ctx = airInstance.ctx;
 
-        const subproofCtx = proofCtx.subproofsCtx[airInstance.subproofId];
+        const subproofCtx = this.proofCtx.subproofsCtx[airInstance.subproofId];
         log.info(
             `[${this.name}]`,
             `Computing FRI Folding for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
@@ -203,7 +194,7 @@ class StarkFriProver extends ProverComponent {
         ctx.challengeValue = friCommits;
     }
 
-    async computeFRIQueries(stageId, proofCtx, airInstance) {
+    async computeFRIQueries(stageId, airInstance) {
         const ctx = airInstance.ctx;
 
         const challenge = this.proofCtx.getChallenge(stageId - 1)[0];
@@ -214,7 +205,7 @@ class StarkFriProver extends ProverComponent {
 
         computeFRIQueries(ctx, friQueries);
 
-        proofCtx.instances[airInstance.instanceId].proof = await genProofStark(ctx, log);
+        this.proofCtx.instances[airInstance.instanceId].proof = await genProofStark(ctx, log);
     }    
 
 }

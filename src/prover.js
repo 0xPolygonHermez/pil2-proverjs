@@ -30,7 +30,7 @@ class ProverComponent {
         throw new Error("Method 'newProof' must be implemented in concrete classes.");
     }
 
-    async commitStage(stageId, airInstanceCtx) {
+    async commitStage(stageId, airInstance) {
         throw new Error("Method 'commitStage' must be implemented in concrete classes.");
     }
 

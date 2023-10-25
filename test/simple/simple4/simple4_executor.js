@@ -18,7 +18,7 @@ class ExecutorSimple4 extends WitnessCalculatorComponent {
         // For this test we only use airsCtx[0]
         const airCtx = subproofCtx.airsCtx[0];
 
-        let { result, airInstanceCtx } = this.proofCtx.addAirInstance(airCtx.subproofId, airCtx.airId);
+        let { result, airInstance } = this.proofCtx.addAirInstance(airCtx.subproofId, airCtx.airId);
 
         if (result === false) {
             log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
@@ -31,8 +31,8 @@ class ExecutorSimple4 extends WitnessCalculatorComponent {
         for (let i = 0; i < N; i++) {
             const v = BigInt(i);
 
-            subproofCtx.proofCtx.instances[0].wtnsPols.Simple4.a[i] = v;
-            subproofCtx.proofCtx.instances[0].wtnsPols.Simple4.b[i] = F.square(v);
+            airInstance.wtnsPols.Simple4.a[i] = v;
+            airInstance.wtnsPols.Simple4.b[i] = F.square(v);
         }
 
         return;
