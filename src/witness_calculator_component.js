@@ -59,7 +59,7 @@ class WitnessCalculatorComponent {
     async _witnessComputation(stageId, subproofCtx, airId, instanceId, publics) {
         return new Promise(async (resolve, reject) => {
             try {
-                log.info(`[${this.name}]`, `-> stageId: ${stageId} airId: ${airId} instanceId: ${instanceId}`);
+                // log.info(`[${this.name}]`, `-> stageId: ${stageId} airId: ${airId} instanceId: ${instanceId}`);
 
                 await this.witnessComputation(stageId, subproofCtx, airId, instanceId, publics);
 
@@ -67,7 +67,7 @@ class WitnessCalculatorComponent {
                 
                 resolve();
 
-                log.info(`[${this.name}]`, `<- stageId: ${stageId} airId: ${airId} instanceId: ${instanceId}`);
+                // log.info(`[${this.name}]`, `<- stageId: ${stageId} airId: ${airId} instanceId: ${instanceId}`);
             } catch (err) {
                 log.error(`[${this.name}]`, `Witness computation failed.`, err);
                 reject(err);

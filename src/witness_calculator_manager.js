@@ -87,7 +87,7 @@ module.exports = class WitnessCalculatorManager {
     async witnessComputation(stageId, publics) {
         this.checkInitialized();
 
-        log.info(`[${this.name}]`, `==> Computing witness stage ${stageId}.`);
+        log.info(`[${this.name}]`, `--> Computing witness stage ${stageId}.`);
         
         const regulars = this.wc.filter(wc => wc.type === ModuleTypeEnum.REGULAR);
         const executors = [];
@@ -128,7 +128,7 @@ module.exports = class WitnessCalculatorManager {
             throw new Error(`Some witness calculators have pending payloads for stage ${stageId}. Unable to continue`);
         }
 
-        log.info(`[${this.name}]`, `<== Computing witness stage ${stageId}.`);
+        log.info(`[${this.name}]`, `<-- Computing witness stage ${stageId}.`);
     }
 
     async addBusPayload(payload, lock = false) {

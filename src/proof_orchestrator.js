@@ -233,7 +233,6 @@ module.exports = class ProofOrchestrator {
             await this.proversManager.setup();
 
             await this.newProof(publics);
-            console.log("PUBLICS", publics);
 
             let proverStatus = PROVER_OPENINGS_PENDING;
             for (let stageId = 1; proverStatus !== PROVER_OPENINGS_COMPLETED; stageId++) {

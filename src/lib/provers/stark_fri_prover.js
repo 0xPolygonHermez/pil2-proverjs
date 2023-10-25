@@ -157,7 +157,7 @@ class StarkFriProver extends ProverComponent {
         const subproofCtx = this.proofCtx.subproofsCtx[airInstance.subproofId];
         log.info(
             `[${this.name}]`,
-            `Computing Openings for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
+            `··· Computing Openings for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
         const evalCommits = await computeEvalsStark(ctx, this.options);
@@ -171,7 +171,7 @@ class StarkFriProver extends ProverComponent {
         const subproofCtx = this.proofCtx.subproofsCtx[airInstance.subproofId];
         log.info(
             `[${this.name}]`,
-            `Computing FRI Stark for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
+            `··· Computing FRI Stark for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
         await computeFRIStark(ctx, this.options);
@@ -186,7 +186,7 @@ class StarkFriProver extends ProverComponent {
         const subproofCtx = this.proofCtx.subproofsCtx[airInstance.subproofId];
         log.info(
             `[${this.name}]`,
-            `Computing FRI Folding for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
+            `··· Computing FRI Folding for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
         const friCommits = await computeFRIFolding(params.step, ctx, challenge, this.options);
