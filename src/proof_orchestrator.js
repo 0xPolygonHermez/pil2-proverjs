@@ -195,9 +195,10 @@ module.exports = class ProofOrchestrator {
                 const proverId = this.proversManager.getProverIdFromInstance(instance);
 
                 result = result && await this.proversManager.provers[proverId].verifyPil(instance, publics);
-                
+
+                const airCtx = this.proofCtx.subproofsCtx[instance.subproofId].airsCtx[instance.airId];
                 if (result === false) {
-                    log.error(`[${this.name}]`, `PIL verification failed for subproof ${instance.subproofId} and air ${instance.airId} with N=${airCtx.air.numRows} rows.`);
+                    log.error(`[${this.name}]`, `PIL verification failed for subproof ${instance.subproofId} and air ${instance.airId} with N=${airCtx.layout.numRows} rows.`);
                     break;
                 }
             }

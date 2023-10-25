@@ -49,11 +49,11 @@ describe("Fibonacci Vadcop", async function () {
         vadcop: true,
     };
 
-    it.only("Generate a Fibonacci Vadcop proof", async () => {
+    it("Generate a Fibonacci Vadcop proof", async () => {
         await proveAndVerifyTest(getSettings(), publicInputs, options);
     });
 
-    it.skip("Verify a Fibonacci Vadcop proof", async () => {
+    it("Verify a Fibonacci Vadcop proof", async () => {
         await runPilVerifier(publicInputs, options);
     });
 });
