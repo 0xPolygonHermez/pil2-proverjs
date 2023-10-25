@@ -21,7 +21,7 @@ const { AirBus, AirBusPayload, PayloadTypeEnum } = require("./proof_bus.js");
 
 const { ModuleTypeEnum } = require("./witness_calculator_component.js");
 
-const WC_MANAGER_NAME = "wcManager";
+const WC_MANAGER_NAME = "WC Manager";
 
 const log = require('../logger.js');
 const Mutex = require("./concurrency/mutex.js");
@@ -109,8 +109,7 @@ module.exports = class WitnessCalculatorManager {
             for (const wc of regulars) {
                 for(const instance of this.proofCtx.instances) {
 
-                    // TODO change!!!!!!!
-                    // if(stageId===2 && instance.instanceId !== -1) instance.ctx.publics = publics;
+                    // TODO change this
                     instance.ctx.subproofValues.push(1n);
                     // TODO change this
 
@@ -120,27 +119,6 @@ module.exports = class WitnessCalculatorManager {
                     executors.push(wc._witnessComputation(stageId, subproofCtx, airCtx.airId, instance.instanceId, publics));
                 }
             }
-            // for (const subproofCtx of this.subproofsCtx) {
-            //     for (const airCtx of subproofCtx.airsCtx) {
-            //         for (const wc of regulars) {
-            //             if(!wc.sm || airCtx.air.name.startsWith(wc.sm)) {
-            //                 if(airCtx.instances.length > 0) {
-            //                     const instances = airCtx.instances.map(airInstanceCtx => airInstanceCtx.instanceId);
-            
-            //                     for (const instanceId of instances) {
-            //                         const airInstanceCtx = airCtx.instances[instanceId];
-            //                         // TODO change!!!!!!!
-            //                         // if(stageId===2 && instanceId !== -1) airInstanceCtx.ctx.publics = publics;
-            //                         if(airInstanceCtx.ctx.subproofValues) airInstanceCtx.ctx.subproofValues.push(1n);
-            //                         // TODO change this
-
-            //                         executors.push(wc._witnessComputation(stageId, subproofCtx, airCtx.airId, instanceId, publics));
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
         }        
 
         await Promise.all(executors);

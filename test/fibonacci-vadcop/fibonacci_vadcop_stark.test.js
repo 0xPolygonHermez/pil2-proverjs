@@ -2,7 +2,7 @@ const ProofOrchestrator = require("../../src/proof_orchestrator.js");
 
 const { proveAndVerifyTest } = require("../test_utils.js");
 
-const publicInputs = { in1: 1n, in2: 2n, mod: 5n };
+const publicInputs = { in1: 1n, in2: 1n, mod: 5n };
 
 function getSettings() {
     return {

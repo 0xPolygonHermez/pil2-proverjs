@@ -226,7 +226,7 @@ module.exports = class ProofOrchestrator {
         this.checkInitialized();
 
         try {
-            log.info(`[${this.name}]`, `-> Initiating the generation of the proof '${this.proofManagerConfig.name}'.`);
+            log.info(`[${this.name}]`, `==> STARTING GENERATION OF THE PROOF '${this.proofManagerConfig.name}'.`);
 
             await this.proversManager.setup();
 
@@ -245,8 +245,8 @@ module.exports = class ProofOrchestrator {
                 log.info(`[${this.name}]`, `<== ${str} ${stageId}`);
             }
 
-            log.info(`[${this.name}]`, `<- Proof '${this.proofManagerConfig.name}' successfully generated.`);
-
+            log.info(`[${this.name}]`, `<== PROOF '${this.proofManagerConfig.name}' SUCCESSFULLY GENERATED.`);
+            console.log();
         } catch (error) {
             log.error(`[${this.name}]`, `Error while generating proof: ${error}`);
             throw error;

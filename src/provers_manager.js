@@ -9,7 +9,7 @@ const PROVER_OPENINGS_COMPLETED = 2;
 
 class ProversManager {
     constructor(proofCtx) {
-        this.name = "ProversManager";
+        this.name = "ProversMan";
         this.proofCtx = proofCtx;
 
         this.initialized = false;
@@ -190,10 +190,10 @@ class ProversManager {
                 
                 const airCtx = this.subproofsCtx[i].airsCtx[j];
                 for(let k = 0; k < instancesCtx.length; k++) {
-                    log.info(`[ProofOrchestrator]`,
+                    log.info(`[${this.name}]`,
                         `··· SubproofCtx '${this.subproofsCtx[i].name}' Air '${airCtx.name}' Instance '${instancesCtx[k].instanceId}' Computing proof challenge for stage ${stageId}.`);
 
-                    const value = instancesCtx[k].ctx.challengeValue && instancesCtx[k].ctx.challengeValue.length > 0 ? instancesCtx[k].ctx.challengeValue : [0];
+                    const value = instancesCtx[k].ctx.challengeValue?.length > 0 ? instancesCtx[k].ctx.challengeValue : [0];
                     challengeArr.push(...value);
                 }
             }

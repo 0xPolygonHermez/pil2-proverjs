@@ -36,7 +36,7 @@ async function runPilVerifier(prefix, publics, options) {
 
     const proofManagerConfig = getSettings(prefix);
 
-    const proofOrchestrator = new ProofOrchestrator("SimpleProofOrchestrator");
+    const proofOrchestrator = new ProofOrchestrator("SimpleOrchestrator");
 
     await proofOrchestrator.initialize(proofManagerConfig, options);
 

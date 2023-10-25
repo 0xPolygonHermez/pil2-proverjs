@@ -9,7 +9,7 @@ const log = require("../../logger.js");
 
 class FibonacciVadcop extends WitnessCalculatorComponent {
     constructor(wcManager, proofCtx) {
-        super("FibonacciExecutor", wcManager, proofCtx);
+        super("FibonccExe", wcManager, proofCtx);
     }
 
     async witnessComputation(stageId, subproofCtx, airId, instanceId, publics) { 
@@ -31,7 +31,6 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
                 throw new Error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
             }
         
-            // TODO how to instanciate publics ? it will be at subproof level ?
             this.createPolynomialTraces(subproofCtx, airCtx, airInstance,  publics);
         }
 
@@ -50,12 +49,12 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
         polB[0] = publics.in1;
         polA[0] = publics.in2;
 
+        console.log(polA[0], polB[0]);
         for (let i = 1; i < N; i++) {
-            polA[i] = F.div(
-                F.add(F.square(polA[i - 1]), F.square(polB[i - 1])),
-                mod
-            );
+            polA[i] = (polA[i - 1]*polA[i - 1] + polB[i - 1]*polB[i - 1]) % mod;
             polB[i] = polA[i-1];
+
+            console.log(polA[i], polB[i]);
         }
 
         publics.out = polA[N-1];

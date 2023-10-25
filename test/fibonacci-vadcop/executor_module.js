@@ -4,7 +4,7 @@ const log = require("../../logger.js");
 
 class FibonacciVadcopModule extends WitnessCalculatorComponent {
     constructor(wcManager, proofCtx) {
-        super("ModuleExecutor", wcManager, proofCtx);
+        super("Module Exe", wcManager, proofCtx);
     }
 
     async witnessComputation(stageId, subproofCtx, airId, instanceId, publics) {        
@@ -33,32 +33,25 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
 
     createPolynomialTraces(subproofCtx, airCtx, airInstance, publics) {
         const N = airCtx.layout.numRows;
-        const F = subproofCtx.proofCtx.F;
 
         const polX = airInstance.wtnsPols.Module.x;
         const polQ = airInstance.wtnsPols.Module.q;
         const polX_mod = airInstance.wtnsPols.Module.x_mod;
 
-        let a = new Array(2);
-        let b = new Array(2);
-
         const mod = publics.mod;
 
-        a[0] = publics.in2;
-        b[0] = publics.in1;
+        let a = publics.in2;
+        let b = publics.in1;
 
         for (let i = 0; i < N; i++) {
-            a[1] = F.add(F.square(a[0]), F.square(b[0]));
-            b[1] = a[0];
+            polX[i] = a * a + b * b;
 
-            polX[i] = a[1];
+            polQ[i] = polX[i] / mod;
+            polX_mod[i] = polX[i] % mod;
 
-            polQ[i] = F.div(polX[i], mod); // TODO, how to get the floor?
-            polX_mod[i] = 1n; //F.mod(polX[i], mod);
-
-            a[0] = a[1];
-            b[0] = b[1];
-            // console.log(a[1], b[1]);
+            b = a;
+            a = polX_mod[i];
+            // console.log(polX[i], polQ[i], polX_mod[i]);
         }
     }
 }
