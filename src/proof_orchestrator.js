@@ -231,6 +231,7 @@ module.exports = class ProofOrchestrator {
             await this.proversManager.setup();
 
             await this.newProof(publics);
+            console.log("PUBLICS", publics);
 
             let proverStatus = PROVER_OPENINGS_PENDING;
             for (let stageId = 1; proverStatus !== PROVER_OPENINGS_COMPLETED; stageId++) {
@@ -253,11 +254,28 @@ module.exports = class ProofOrchestrator {
             this.finalizeProve();
         }
 
+        let proofs = [];
+
+        for(let i = 0; i < this.proofCtx.challenges.length; i++) {
+            if(this.proofCtx.challenges[i].length > 0) {
+                for(let j = 0; j < this.proofCtx.challenges[i].length; j++) {
+                    log.info(`[${this.name}]`, `!!! challenge ${i}: ${this.proofCtx.F.toString(this.proofCtx.challenges[i][j])}`);
+                }
+            }
+        }
+
+        for(const instance of this.proofCtx.instances) {
+            instance.proof.subproofId = instance.subproofId;
+            instance.proof.airId = instance.airId;
+            proofs.push(instance.proof);
+        }
+
         return {
-            proof: this.proofCtx.instances[0].proof,
+            proofs,
             challenges: this.proofCtx.challenges.slice(0, this.airout.numStages + 3),
-            challengesFRISteps: this.proofCtx.challenges.slice(this.airout.numStages + 3).map(c => c[0])
+            challengesFRISteps: this.proofCtx.challenges.slice(this.airout.numStages + 3).map(c => c[0]),
         };
+
     }
 
     finalizeProve() {

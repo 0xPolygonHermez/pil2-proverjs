@@ -7,21 +7,20 @@ const { assert } = require("chai");
 async function proveAndVerifyTest(proofManagerConfig, publics, options) {
     const setup = await setupCmd(proofManagerConfig);
 
-    const { proof, challenges, challengesFRISteps } = await proveCmd(proofManagerConfig, publics, options);
+    const { proofs, challenges, challengesFRISteps } = await proveCmd(proofManagerConfig, publics, options);
 
-    console.log("proof");
-    console.log(proof);
-    console.log("challenges");
-    console.log(challenges);
-    console.log("challengesFRISteps");
-    console.log(challengesFRISteps);
-
+    // console.log("proof");
+    // console.log(proofs);
+    // console.log("challenges");
+    // console.log(challenges);
+    // console.log("challengesFRISteps");
+    // console.log(challengesFRISteps);
     
-    const isValid = await verifyCmd(proofManagerConfig, setup, proof, challenges, challengesFRISteps, options);
+    const isValid = await verifyCmd(proofManagerConfig, setup, proofs, challenges, challengesFRISteps, options);
 
     assert(isValid == true, "Proof is not valid");
 
-    await verifyCircomCmd(proofManagerConfig, setup, proof, publics);
+    await verifyCircomCmd(proofManagerConfig, setup, proofs, publics);
 }
 
 module.exports = {

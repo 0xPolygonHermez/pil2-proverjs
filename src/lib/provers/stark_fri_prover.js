@@ -214,7 +214,7 @@ class StarkFriProver extends ProverComponent {
 
         computeFRIQueries(ctx, friQueries);
 
-        proofCtx.instances[airInstance.instanceId].proof = await genProofStark(airInstance.ctx, log);
+        proofCtx.instances[airInstance.instanceId].proof = await genProofStark(ctx, log);
     }    
 
 }

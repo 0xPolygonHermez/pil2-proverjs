@@ -7,7 +7,7 @@ const path = require("path");
 
 const log = require("../../logger.js");
 
-module.exports = async function verifyCircomCmd(proofManagerConfig, setup, proof, output) {
+module.exports = async function verifyCircomCmd(proofManagerConfig, setup, proofs, output) {
     const tmpPath =  path.join(__dirname, "../..", "tmp");
     if(!fs.existsSync(tmpPath)) fs.mkdirSync(tmpPath);
     const verifierFilename = path.join(tmpPath, "basic_stark_verifier_" + proofManagerConfig.name + ".circom");
@@ -19,20 +19,22 @@ module.exports = async function verifyCircomCmd(proofManagerConfig, setup, proof
     const verifierCircomTemplate = await pil2circom(constRoot, starkInfo, { hashCommits: true });
     await fs.promises.writeFile(verifierFilename, verifierCircomTemplate, "utf8");
 
-    try {
-        const circuit = await wasm_tester(verifierFilename, { O:1, prime: "goldilocks", include: "node_modules/pil2-stark-js/circuits.gl", verbose: true });
+    for(const proof of proofs) {
+        try {
+            const circuit = await wasm_tester(verifierFilename, { O:1, prime: "goldilocks", include: "node_modules/pil2-stark-js/circuits.gl", verbose: true });
 
-        const input = proof2zkin(proof.proof, starkInfo);
-        input.publics = proof.publics;
+            const input = proof2zkin(proof.proof, starkInfo);
+            input.publics = proof.publics;
 
-        //const witness = await circuit.calculateWitness(input, true);
+            //const witness = await circuit.calculateWitness(input, true);
 
-        // TODO change this to check all outputs
-        //await circuit.assertOut(witness, output);
-    } catch (error) {
-        log.error(`[${this.name}]`, `Error while verifying proof: ${error}`);
-        throw error;
-    } finally {
-        await fs.promises.unlink(verifierFilename);
+            // TODO change this to check all outputs
+            //await circuit.assertOut(witness, output);
+        } catch (error) {
+            log.error(`[${this.name}]`, `Error while verifying proof: ${error}`);
+            throw error;
+        } finally {
+            await fs.promises.unlink(verifierFilename);
+        }
     }
 }

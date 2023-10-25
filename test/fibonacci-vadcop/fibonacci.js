@@ -21,10 +21,10 @@ for (let i = 0; i < pot; i++) {
     x_mod[i] = x[i] % mod;
 }
 
-for (let i = 0; i < pot; i++) {
-    console.log(a[i], b[i]);
-}
+// for (let i = 0; i < pot; i++) {
+//     console.log(a[i], b[i]);
+// }
 
-for (let i = 0; i < pot; i++) {
-    console.log(x[i], q[i], x_mod[i]);
-}
+// for (let i = 0; i < pot; i++) {
+//     console.log(x[i], q[i], x_mod[i]);
+// }

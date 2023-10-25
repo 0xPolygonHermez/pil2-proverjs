@@ -31,7 +31,7 @@ function getInputs(prefix) {
     }
 }
 
-async function runPilVerifier(prefix, options) {
+async function runPilVerifier(prefix, publics, options) {
     options = {...options, debug: true};
 
     const proofManagerConfig = getSettings(prefix);
@@ -40,17 +40,19 @@ async function runPilVerifier(prefix, options) {
 
     await proofOrchestrator.initialize(proofManagerConfig, options);
 
-    await proofOrchestrator.verifyPil({});
+    await proofOrchestrator.verifyPil(publics);
 }
 
 describe("PIL2 proof manager stark simple tests", async function () {
     this.timeout(10000000);
 
     const options = {
-        hashCommits: true,
         parallelExec: false,
-        useThreads: false
+        useThreads: false,
+        hashCommits: false,
+        vadcop: false,
     };
+
 
     it("prove Simple1", async () => {
         await proveAndVerifyTest(getSettings("Simple1"), {}, options);
@@ -65,22 +67,22 @@ describe("PIL2 proof manager stark simple tests", async function () {
     });
 
     it("prove Simple4", async () => {
-        await proveAndVerifyTest(getSettings("Simple4"), { in1: 2, in2: 3 }, options);
+        await proveAndVerifyTest(getSettings("Simple4"), { in1: 1n , in2: 343n }, options);
     });
 
     it("verify PIL Simple1", async () => {
-        await runPilVerifier("Simple1", options);
+        await runPilVerifier("Simple1", {}, options);
     });
 
     it("verify PIL Simple2", async () => {
-        await runPilVerifier("Simple2", options);
+        await runPilVerifier("Simple2", {}, options);
     });
 
     it("verify PIL Simple3", async () => {
-        await runPilVerifier("Simple3", options);
+        await runPilVerifier("Simple3", {}, options);
     });
 
     it("verify PIL Simple4", async () => {
-        await runPilVerifier("Simple4", options);
+        await runPilVerifier("Simple4", { in1: 1n , in2: 343n }, options);
     });
 });

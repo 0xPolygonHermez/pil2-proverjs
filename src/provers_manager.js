@@ -160,7 +160,7 @@ class ProversManager {
                         challengeArr.push(instancesCtx[k].ctx.MH.root(airCtx.setup.constTree)); //TODO: Calculate one time
                     }
                 }
-    
+
                 if(options.vadcop) {
                     const challenge = await hashBTree(challengeArr);
                     this.proofCtx.addChallengeToTranscript(challenge);

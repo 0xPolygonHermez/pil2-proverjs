@@ -34,7 +34,7 @@ class ExecutorSimple4 extends WitnessCalculatorComponent {
             subproofCtx.proofCtx.instances[0].wtnsPols.Simple4.a[i] = v;
             subproofCtx.proofCtx.instances[0].wtnsPols.Simple4.b[i] = F.square(v);
         }
-        
+
         return;
     }
 }

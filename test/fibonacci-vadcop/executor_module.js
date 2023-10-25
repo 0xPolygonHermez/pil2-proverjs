@@ -58,7 +58,7 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
 
             a[0] = a[1];
             b[0] = b[1];
-            console.log(a[1], b[1]);
+            // console.log(a[1], b[1]);
         }
     }
 }
