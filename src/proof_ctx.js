@@ -40,6 +40,7 @@ class ProofCtx {
         if(this.challenges[stageId].length === 0) return;
 
         for(let i = 0; i< this.challenges[stageId].length; i++) {
+            // this.challenges[stageId][i] = [0n, 0n, 0n];
             this.challenges[stageId][i] = getChallengeStark(this.transcript);
         }
     }

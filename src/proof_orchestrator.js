@@ -63,11 +63,7 @@ module.exports = class ProofOrchestrator {
         // TODO change this, I did it to maintain compatibility with pil2-stark code
         for( let i = 0; i < this.airout.airout.subproofs.length; i++) {
             for( let j = 0; j < this.airout.airout.subproofs[i].airs.length; j++) {
-                // this.airout.airout.subproofs[i].airs[j].symbols = this.airout.airout.symbols.filter(symbol => symbol.subproofId === i && symbol.airId === j);
-                // this.airout.airout.subproofs[i].airs[j].numChallenges = this.airout.airout.numChallenges;
-
-                // TODO change this
-                this.airout.airout.subproofs[i].airs[j].symbols = this.airout.airout.symbols;
+                this.airout.airout.subproofs[i].airs[j].symbols = this.airout.airout.symbols.filter(symbol => (!symbol.subproofId) || (symbol.subproofId === i && symbol.airId === j));
                 this.airout.airout.subproofs[i].airs[j].hints = this.airout.airout.hints;
                 this.airout.airout.subproofs[i].airs[j].numChallenges = this.airout.airout.numChallenges;
             }
