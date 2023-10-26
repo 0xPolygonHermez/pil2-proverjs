@@ -109,9 +109,6 @@ module.exports = class WitnessCalculatorManager {
             for (const wc of regulars) {
                 for(const instance of this.proofCtx.instances) {
                     const subproofCtx = this.subproofsCtx[instance.subproofId];
-                        // TODO change this
-                        instance.ctx.subproofValues.push(1n);
-                        // TODO change this
 
                     if(!wc.sm || subproofCtx.name === wc.sm) {
                         executors.push(wc._witnessComputation(stageId, subproofCtx, instance.airId, instance.instanceId, publics));

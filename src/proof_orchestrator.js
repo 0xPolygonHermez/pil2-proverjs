@@ -213,11 +213,12 @@ module.exports = class ProofOrchestrator {
                 log.info(`[${this.name}]`, `<== ${str} ${stageId}`);
 
                 if(this.options.onlyCheck) {
+                    log.info(`[${this.name}]`, `==> CHECKING CONSTRAINTS STAGE ${stageId}`);
                     result = true;
                     for (const instance of this.proofCtx.instances) {
                         const proverId = this.proversManager.getProverIdFromInstance(instance);
         
-                        result = result && await this.proversManager.provers[proverId].verifyPil(stageId, instance, publics);
+                        result = result && await this.proversManager.provers[proverId].verifyPil(stageId, instance);
         
                         const airCtx = this.proofCtx.subproofsCtx[instance.subproofId].airsCtx[instance.airId];
                         if (result === false) {
@@ -227,10 +228,12 @@ module.exports = class ProofOrchestrator {
                     }
                     
                     if(result) {
-                        log.info(`[${this.name}]`, `PIL verification successful.`);
+                        log.info(`[${this.name}]`, `Checking constraints successfully for stage ${stageId}.`);
+                        log.info(`[${this.name}]`, `<== CHECKING CONSTRAINTS STAGE ${stageId}`);
                     } else {
-                        log.error(`[${this.name}]`, `PIL verification failed.`);
-                        throw new Error(`[${this.name}]`, `PIL verification failed.`);
+                        log.error(`[${this.name}]`, `PIL verification failed at stage ${stageId}.`);
+                        log.error(`[${this.name}]`, `<== CHECKING CONSTRAINTS STAGE ${stageId}`);
+                        throw new Error(`[${this.name}]`, `PIL verification failed at stage ${stageId}.`);
                     }
 
                     if(stageId === this.airout.numStages) break;
@@ -243,11 +246,7 @@ module.exports = class ProofOrchestrator {
         } finally {
             this.finalizeProve();
 
-            if(this.options.onlyCheck) {
-                const logX = result ? log.info : log.error;
-                logX(`[${this.name}]`, `<== CHECKING CONSTRAINTS.`);
-                return result;
-            } else {                
+            if(!this.options.onlyCheck) {
                 log.info(`[${this.name}]`, `<== PROOF '${this.proofManagerConfig.name}' SUCCESSFULLY GENERATED.`);
             }
             console.log();
@@ -255,13 +254,16 @@ module.exports = class ProofOrchestrator {
 
         let proofs = [];
 
-        // for(let i = 0; i < this.proofCtx.challenges.length; i++) {
-        //     if(this.proofCtx.challenges[i].length > 0) {
-        //         for(let j = 0; j < this.proofCtx.challenges[i].length; j++) {
-        //             log.info(`[${this.name}]`, `!!! challenge ${i}: ${this.proofCtx.F.toString(this.proofCtx.challenges[i][j])}`);
-        //         }
-        //     }
-        // }
+        // NOTE: For debug pruposes only
+        if(!this.options.onlyCheck) {
+            for(let i = 0; i < this.proofCtx.challenges.length; i++) {
+                if(this.proofCtx.challenges[i].length > 0) {
+                    for(let j = 0; j < this.proofCtx.challenges[i].length; j++) {
+                        log.info(`[${this.name}]`, `!!! challenge ${i}: ${this.proofCtx.F.toString(this.proofCtx.challenges[i][j])}`);
+                    }
+                }
+            }
+        }
 
         for(const instance of this.proofCtx.instances) {
             instance.proof.subproofId = instance.subproofId;
@@ -270,7 +272,7 @@ module.exports = class ProofOrchestrator {
         }
 
         if(this.options.onlyCheck) {
-            return false;
+            return result;
         } else {
             return {
                 proofs,

@@ -69,7 +69,7 @@ class StarkFriProver extends ProverComponent {
         }
     }
 
-    async verifyPil(stageId, instance, publics) {
+    async verifyPil(stageId, instance) {
         const ctx = instance.ctx;
 
         ctx.errors = [];
@@ -77,29 +77,18 @@ class StarkFriProver extends ProverComponent {
         const nConstraintsStage = ctx.pilInfo.constraints[`stage${stageId}`].length;
         for(let i = 0; i < nConstraintsStage; i++) {
             const constraint = ctx.pilInfo.constraints[`stage${stageId}`][i];
-            log.info(`[${this.name}]`, `Checking constraint ${i + 1}/${nConstraintsStage}: line ${constraint.line} `);
+            log.info(`[${this.name}]`, `··· Checking constraint ${i + 1}/${nConstraintsStage}: ${constraint.line} `);
             await callCalculateExps(`stage${stageId}`, constraint, "n", ctx, this.options.parallelExec, this.options.useThreads, true);
         }
 
-        if (ctx.errors.length !== 0) {
-            log.error(`[${this.name}]`, "Pil does not pass");
-            for (let i=0; i<ctx.errors.length; i++) log.error(`[${this.name}]`, ctx.errors[i]);
-            return false;
-        } else {
-            log.info(`[${this.name}]`, "PIL OK!");
-            return true;
+        const isValid = ctx.errors.length === 0;
+        
+        if (!isValid) {
+            log.error(`[${this.name}]`, `PIL constraints have not been fulfilled!`);
+            for (let i = 0; i < ctx.errors.length; i++) log.error(`[${this.name}]`, ctx.errors[i]);
         }
-    
-        // const setup = this.proofCtx.subproofsCtx[instance.subproofId].airsCtx[instance.airId].setup;
 
-        // const optionsPilVerify = {
-        //     ...this.options,
-        //     debug: true,
-        //     verificationHashType: setup.starkInfo.starkStruct.verificationHashType,
-        //     splitLinearHash: false
-        // };
-
-        // return await starkGen(instance.wtnsPols, setup.fixedPols, {}, setup.starkInfo, publics, optionsPilVerify);
+        return isValid;
     }
 
     async commitStage(stageId, airInstance) {

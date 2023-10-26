@@ -42,7 +42,7 @@ describe("Fibonacci Vadcop", async function () {
         await proveAndVerifyTest(getSettings(), publicInputs, options);
     });
 
-    it.only("Verify a Fibonacci Vadcop proof", async () => {
+    it("Verify a Fibonacci Vadcop proof", async () => {
         const ret = await proveAndVerifyTest(getSettings(), publicInputs, { ...options, onlyCheck: true });
         assert(ret === true);
     });

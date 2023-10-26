@@ -30,7 +30,6 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
         
             this.createPolynomialTraces(subproofCtx, airCtx, airInstance,  publics);
         } else if(stageId === 2) {
-            console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             const instance = this.proofCtx.instances[instanceId];
             const gsumName = "Fibonacci.gsum";
             const polIdx = instance.ctx.pilInfo.cmPolsMap.findIndex(c => c.name === gsumName);
@@ -61,7 +60,6 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
         for (let i = 1; i < N; i++) {
             polA[i] = (polA[i - 1]*polA[i - 1] + polB[i - 1]*polB[i - 1]) % mod;
             polB[i] = polA[i-1];
-
             // console.log(polA[i], polB[i]);
         }
 
@@ -88,24 +86,29 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
 
         const den = new Array(airCtx.layout.numRows);
 
+        // for (let i = 0; i < numRows; i++) {
+        //     den[i] = F.div(F.negone, MODULE_ID);
+        //     if(i!==0) den[i] = F.add(den[i], den[i-1]);
+
+        // }
+
+        const polA = instance.wtnsPols.Fibonacci.a;
+        const polB = instance.wtnsPols.Fibonacci.b;
+
         for (let i = 0; i < numRows; i++) {
-            den[i] = F.div(F.negone, MODULE_ID);
+            const isLast = i === numRows - 1;
+            const iPrime = isLast ? 0 : i + 1;
+
+            den[i] = gsumitem(polA[i], polA[iPrime], polB[i], this.proofCtx.publics.out, std_alpha, std_beta, MODULE_ID, isLast);
         }
-        // const polA = instance.wtnsPols.Fibonacci.a;
-        // const polB = instance.wtnsPols.Fibonacci.b;
 
-        // den[0] = gsumitem(polA[0], polA[1], polB[0], this.proofCtx.publics.out, std_alpha, std_beta, MODULE_ID, false);
-        // for (let i = 1; i < numRows; i++) {
-        //     const isLast = i === numRows - 1;
-        //     const iPrime = isLast ? 0 : i + 1;
-        //     den[i] = gsumitem(polA[i], polA[iPrime], polB[i], this.proofCtx.publics.out, std_alpha, std_beta, MODULE_ID, isLast);
-        // }
+        //TODO apply montgomery batch division
+        for (let i = 0; i < numRows; i++) {
+            den[i] = F.div(F.negone, den[i]);
+            if(i!==0) den[i] = F.add(den[i], den[i-1]);
+        }
 
-        // //TODO apply montgomery batch division
-        // for (let i = 1; i < numRows; i++) {
-        //     den[i] = F.div(F.negone, den[i]);
-        // }
-
+        instance.ctx.subproofValues.push(den[numRows - 1]);
         return den;
 
         function gsumitem(a, aprime, b, out, alpha, beta, MODULE_ID, isLast) {

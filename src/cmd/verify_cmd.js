@@ -8,8 +8,6 @@ module.exports = async function verifyCmd(proofManagerConfig, setup, proofs, cha
         const constRoot = setup[proof.subproofId][proof.airId].constRoot;
         const starkInfo = setup[proof.subproofId][proof.airId].starkInfo;
 
-        console.log("Checking proof for subproofId", proof.subproofId, "airId", proof.airId);
-
         const isValid = await checker.checkProof(proof, constRoot, starkInfo, challenges, challengesFRISteps, options);
         if(!isValid) return false
     }
