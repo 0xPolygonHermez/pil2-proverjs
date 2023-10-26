@@ -63,7 +63,11 @@ class StarkFriProver extends ProverComponent {
     // TODO instances has to be here or to be called from provers manager?
     async newProof(airCtx, publics) {
         const instances = this.proofCtx.getInstancesBySubproofIdAirId(airCtx.subproofId, airCtx.airId);
-        for (const airInstance of instances) {   
+        for (const airInstance of instances) {  
+            const subproofCtx = this.proofCtx.subproofsCtx[airInstance.subproofId];
+            const airCtx = subproofCtx.airsCtx[airInstance.airId];
+            log.info(`${this.name}`, `Initializing new proof for air '${airCtx.name}'`);
+ 
             airInstance.ctx = await initProverStark(airCtx.setup.starkInfo, airCtx.setup.fixedPols, airCtx.setup.constTree, this.options);                   
             airInstance.publics = publics;
         }
