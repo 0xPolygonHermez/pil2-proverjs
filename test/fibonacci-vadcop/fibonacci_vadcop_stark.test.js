@@ -1,3 +1,4 @@
+const { assert } = require("chai");
 const ProofOrchestrator = require("../../src/proof_orchestrator.js");
 
 const { proveAndVerifyTest } = require("../test_utils.js");
@@ -27,18 +28,6 @@ function getSettings() {
 
 }
 
-async function runPilVerifier(publicInputs, options) {
-    options = {...options, debug: true};
-
-    const proofManagerConfig = getSettings();
-
-    const proofOrchestrator = new ProofOrchestrator("Proof Orch");
-
-    await proofOrchestrator.initialize(proofManagerConfig, options);
-
-    await proofOrchestrator.verifyPil(publicInputs);
-}
-
 describe("Fibonacci Vadcop", async function () {
     this.timeout(10000000);
 
@@ -53,7 +42,8 @@ describe("Fibonacci Vadcop", async function () {
         await proveAndVerifyTest(getSettings(), publicInputs, options);
     });
 
-    it("Verify a Fibonacci Vadcop proof", async () => {
-        await runPilVerifier(publicInputs, options);
+    it.only("Verify a Fibonacci Vadcop proof", async () => {
+        const ret = await proveAndVerifyTest(getSettings(), publicInputs, { ...options, onlyCheck: true });
+        assert(ret === true);
     });
 });

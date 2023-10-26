@@ -51,7 +51,13 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
 
             b = a;
             a = polX_mod[i];
-            // console.log(polX[i], polQ[i], polX_mod[i]);
+            console.log(polX[i], polQ[i], polX_mod[i]);
+        }
+
+        console.log("Checking polynomials...");
+        const F = subproofCtx.proofCtx.F;
+        for(let i = 0; i < N; i++) {
+            console.log(polX[i], "===", F.add(F.mul(polQ[i], mod), polX_mod[i]));
         }
     }
 }

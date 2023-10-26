@@ -4,6 +4,5 @@ module.exports = async function proveCmd(proofManagerConfig, publics, options) {
     const proofOrchestrator = new ProofOrchestrator("Proof Orch");
 
     await proofOrchestrator.initialize(proofManagerConfig, options);
-
     return await proofOrchestrator.generateProof(publics);
 }

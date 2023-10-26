@@ -180,42 +180,6 @@ module.exports = class ProofOrchestrator {
         }
     }
 
-    async verifyPil(publics) {
-        this.checkInitialized();
-
-        try {
-            await this.proversManager.setup();
-
-            await this.newProof(publics);
-
-            await this.wcManager.witnessComputation(1, publics);
-
-            let result = true;
-            for (const instance of this.proofCtx.instances) {
-                const proverId = this.proversManager.getProverIdFromInstance(instance);
-
-                result = result && await this.proversManager.provers[proverId].verifyPil(instance, publics);
-
-                const airCtx = this.proofCtx.subproofsCtx[instance.subproofId].airsCtx[instance.airId];
-                if (result === false) {
-                    log.error(`[${this.name}]`, `PIL verification failed for subproof ${instance.subproofId} and air ${instance.airId} with N=${airCtx.layout.numRows} rows.`);
-                    break;
-                }
-            }
-            
-            if(result) {
-                log.info(`[${this.name}]`, `PIL verification successful.`);
-            } else {
-                log.error(`[${this.name}]`, `PIL verification failed.`);
-            }
-        } catch (error) {
-            log.error(`[${this.name}]`, `Error while verifying PIL: ${error}`);
-            throw error;
-        } finally {
-            this.finalizeProve();
-        }
-    }
-
     async newProof(publics) {
         this.proofCtx.initialize(publics);
         for (const subproofCtx of this.subproofsCtx) {
@@ -228,8 +192,14 @@ module.exports = class ProofOrchestrator {
     async generateProof(publics) {
         this.checkInitialized();
 
+        let result;
         try {
-            log.info(`[${this.name}]`, `==> STARTING GENERATION OF THE PROOF '${this.proofManagerConfig.name}'.`);
+
+            if(this.options.onlyCheck) {
+                log.info(`[${this.name}]`, `==> CHECKING CONSTRAINTS.`);
+            } else {                
+                log.info(`[${this.name}]`, `==> STARTING GENERATION OF THE PROOF '${this.proofManagerConfig.name}'.`);
+            }
 
             await this.proversManager.setup();
 
@@ -245,26 +215,57 @@ module.exports = class ProofOrchestrator {
                 proverStatus = await this.proversManager.computeStage(stageId, publics, this.options);
 
                 log.info(`[${this.name}]`, `<== ${str} ${stageId}`);
+
+                if(this.options.onlyCheck) {
+                    result = true;
+                    for (const instance of this.proofCtx.instances) {
+                        const proverId = this.proversManager.getProverIdFromInstance(instance);
+        
+                        result = result && await this.proversManager.provers[proverId].verifyPil(stageId, instance, publics);
+        
+                        const airCtx = this.proofCtx.subproofsCtx[instance.subproofId].airsCtx[instance.airId];
+                        if (result === false) {
+                            log.error(`[${this.name}]`, `PIL verification failed for subproof ${instance.subproofId} and air ${instance.airId} with N=${airCtx.layout.numRows} rows.`);
+                            break;
+                        }
+                    }
+                    
+                    if(result) {
+                        log.info(`[${this.name}]`, `PIL verification successful.`);
+                    } else {
+                        log.error(`[${this.name}]`, `PIL verification failed.`);
+                        throw new Error(`[${this.name}]`, `PIL verification failed.`);
+                    }
+
+                    if(stageId === this.airout.numStages) break;
+                }
             }
 
-            log.info(`[${this.name}]`, `<== PROOF '${this.proofManagerConfig.name}' SUCCESSFULLY GENERATED.`);
-            console.log();
         } catch (error) {
             log.error(`[${this.name}]`, `Error while generating proof: ${error}`);
             throw error;
         } finally {
             this.finalizeProve();
+
+            if(this.options.onlyCheck) {
+                const logX = result ? log.info : log.error;
+                logX(`[${this.name}]`, `<== CHECKING CONSTRAINTS.`);
+                return result;
+            } else {                
+                log.info(`[${this.name}]`, `<== PROOF '${this.proofManagerConfig.name}' SUCCESSFULLY GENERATED.`);
+            }
+            console.log();
         }
 
         let proofs = [];
 
-        for(let i = 0; i < this.proofCtx.challenges.length; i++) {
-            if(this.proofCtx.challenges[i].length > 0) {
-                for(let j = 0; j < this.proofCtx.challenges[i].length; j++) {
-                    log.info(`[${this.name}]`, `!!! challenge ${i}: ${this.proofCtx.F.toString(this.proofCtx.challenges[i][j])}`);
-                }
-            }
-        }
+        // for(let i = 0; i < this.proofCtx.challenges.length; i++) {
+        //     if(this.proofCtx.challenges[i].length > 0) {
+        //         for(let j = 0; j < this.proofCtx.challenges[i].length; j++) {
+        //             log.info(`[${this.name}]`, `!!! challenge ${i}: ${this.proofCtx.F.toString(this.proofCtx.challenges[i][j])}`);
+        //         }
+        //     }
+        // }
 
         for(const instance of this.proofCtx.instances) {
             instance.proof.subproofId = instance.subproofId;
@@ -272,12 +273,15 @@ module.exports = class ProofOrchestrator {
             proofs.push(instance.proof);
         }
 
-        return {
-            proofs,
-            challenges: this.proofCtx.challenges.slice(0, this.airout.numStages + 3),
-            challengesFRISteps: this.proofCtx.challenges.slice(this.airout.numStages + 3).map(c => c[0]),
-        };
-
+        if(this.options.onlyCheck) {
+            return false;
+        } else {
+            return {
+                proofs,
+                challenges: this.proofCtx.challenges.slice(0, this.airout.numStages + 3),
+                challengesFRISteps: this.proofCtx.challenges.slice(this.airout.numStages + 3).map(c => c[0]),
+            };
+        }
     }
 
     finalizeProve() {

@@ -7,6 +7,9 @@ const { assert } = require("chai");
 async function proveAndVerifyTest(proofManagerConfig, publics, options) {
     const setup = await setupCmd(proofManagerConfig);
 
+
+    if(options.onlyCheck) return await proveCmd(proofManagerConfig, publics, options);
+
     const { proofs, challenges, challengesFRISteps } = await proveCmd(proofManagerConfig, publics, options);
 
     // console.log("proof");

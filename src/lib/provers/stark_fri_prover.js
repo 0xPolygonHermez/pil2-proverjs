@@ -60,6 +60,7 @@ class StarkFriProver extends ProverComponent {
         airCtx.setup.fixedPols = fixedPols;
     }
 
+    // TODO instances has to be here or to be called from provers manager?
     async newProof(airCtx, publics) {
         const instances = this.proofCtx.getInstancesBySubproofIdAirId(airCtx.subproofId, airCtx.airId);
         for (const airInstance of instances) {   
@@ -68,16 +69,37 @@ class StarkFriProver extends ProverComponent {
         }
     }
 
-    async verifyPil(instance, publics) {        
-        const setup = this.proofCtx.subproofsCtx[instance.subproofId].airsCtx[instance.airId].setup;
+    async verifyPil(stageId, instance, publics) {
+        const ctx = instance.ctx;
 
-        const optionsPilVerify = {
-            ...this.options,
-            verificationHashType: setup.starkInfo.starkStruct.verificationHashType,
-            splitLinearHash: false
-        };
+        ctx.errors = [];
 
-        return await starkGen(instance.wtnsPols, setup.fixedPols, {}, setup.starkInfo, publics, optionsPilVerify);
+        const nConstraintsStage = ctx.pilInfo.constraints[`stage${stageId}`].length;
+        for(let i = 0; i < nConstraintsStage; i++) {
+            const constraint = ctx.pilInfo.constraints[`stage${stageId}`][i];
+            log.info(`[${this.name}]`, `Checking constraint ${i + 1}/${nConstraintsStage}: line ${constraint.line} `);
+            await callCalculateExps(`stage${stageId}`, constraint, "n", ctx, this.options.parallelExec, this.options.useThreads, true);
+        }
+
+        if (ctx.errors.length !== 0) {
+            log.error(`[${this.name}]`, "Pil does not pass");
+            for (let i=0; i<ctx.errors.length; i++) log.error(`[${this.name}]`, ctx.errors[i]);
+            return false;
+        } else {
+            log.info(`[${this.name}]`, "PIL OK!");
+            return true;
+        }
+    
+        // const setup = this.proofCtx.subproofsCtx[instance.subproofId].airsCtx[instance.airId].setup;
+
+        // const optionsPilVerify = {
+        //     ...this.options,
+        //     debug: true,
+        //     verificationHashType: setup.starkInfo.starkStruct.verificationHashType,
+        //     splitLinearHash: false
+        // };
+
+        // return await starkGen(instance.wtnsPols, setup.fixedPols, {}, setup.starkInfo, publics, optionsPilVerify);
     }
 
     async commitStage(stageId, airInstance) {

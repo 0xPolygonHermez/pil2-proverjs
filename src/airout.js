@@ -115,6 +115,12 @@ class AirOut {
         return this.airout.symbols.find(symbol => symbol.id === symbolId);
     }
 
+    getSymbolByName(name) {
+        if(this.airout.symbols === undefined) return undefined;
+
+        return this.airout.symbols.find(symbol => symbol.name === name);
+    }
+
     getSymbolsBySubproofId(subproofId) {
         if(this.airout.symbols === undefined) return [];
 

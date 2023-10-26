@@ -21,36 +21,24 @@ function getSettings() {
             },
         },        checker: { filename: "./src/lib/checkers/stark_fri_checker.js", settings: {} },
     };
-
 }
 
-async function runPilVerifier(publics, options) {
-    options = {...options, debug: true};
+const options = {
+    parallelExec: false,
+    useThreads: false,
+    hashCommits: false,
+    vadcop: false,
+};
 
-    const proofManagerConfig = getSettings();
-
-    const proofOrchestrator = new ProofOrchestrator("FibonacciProofOrchestrator");
-
-    await proofOrchestrator.initialize(proofManagerConfig, options);
-
-    await proofOrchestrator.verifyPil(publics);
-}
 
 describe("PIL2 proof manager stark simple tests", async function () {
     this.timeout(10000000);
-
-    const options = {
-        parallelExec: false,
-        useThreads: false,
-        hashCommits: false,
-        vadcop: false,
-    };
 
     it("prove Fibonacci", async () => {
         await proveAndVerifyTest(getSettings(), inputs, options);
     });
 
     it("verify Fibonacci", async () => {
-        await runPilVerifier(inputs, options);
+        await proveAndVerifyTest(getSettings(), inputs, { ...options, onlyCheck: true });
     });
 });

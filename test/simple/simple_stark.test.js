@@ -1,5 +1,3 @@
-const ProofOrchestrator = require("../../src/proof_orchestrator.js");
-
 const { proveAndVerifyTest } = require("../test_utils.js");
 
 function getSettings(prefix) {
@@ -23,24 +21,6 @@ function getSettings(prefix) {
             settings: {},
         },
     };
-}
-
-function getInputs(prefix) {
-    return {
-        filename: `./test/simple/${prefix}/${prefix}_inputs.json`,
-    }
-}
-
-async function runPilVerifier(prefix, publics, options) {
-    options = {...options, debug: true};
-
-    const proofManagerConfig = getSettings(prefix);
-
-    const proofOrchestrator = new ProofOrchestrator("SimpleOrchestrator");
-
-    await proofOrchestrator.initialize(proofManagerConfig, options);
-
-    await proofOrchestrator.verifyPil(publics);
 }
 
 describe("PIL2 proof manager stark simple tests", async function () {
@@ -71,18 +51,18 @@ describe("PIL2 proof manager stark simple tests", async function () {
     });
 
     it("verify PIL Simple1", async () => {
-        await runPilVerifier("Simple1", {}, options);
+        await proveAndVerifyTest(getSettings("Simple1"), {}, { ...options, onlyCheck: true });
     });
 
     it("verify PIL Simple2", async () => {
-        await runPilVerifier("Simple2", {}, options);
+        await proveAndVerifyTest(getSettings("Simple2"), {}, { ...options, onlyCheck: true });
     });
 
     it("verify PIL Simple3", async () => {
-        await runPilVerifier("Simple3", {}, options);
+        await proveAndVerifyTest(getSettings("Simple3"), {}, { ...options, onlyCheck: true });
     });
 
     it("verify PIL Simple4", async () => {
-        await runPilVerifier("Simple4", { in1: 1n , in2: 343n }, options);
+        await proveAndVerifyTest(getSettings("Simple4"), { in1: 1n , in2: 343n }, { ...options, onlyCheck: true });
     });
 });

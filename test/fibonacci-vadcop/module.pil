@@ -10,37 +10,8 @@ subproof Module(2**4) {
     // TODO: verify range checks and x_mod < mod
     x === q * mod + x_mod;
 
-
-    // multiset_provide(MODULE_ID, 1, [x, x_mod])
-
-
-    // * cols compressed
-    // gsum_provide_mul_count[0] = 1;
-    // gsum_provide[0] = ((x_mod * std_alpha + x) * std_alpha) + MODULE_ID + std_beta
-
-
     col witness stage(2) gsum;
 
-    // LHS = 1
-    // RHS1 = 0
-
-    // * LHS = LHS * gsum_provide[i];
-    // LHS = ((x_mod * std_alpha + x) * std_alpha) + MODULE_ID + std_beta;
-
-    // * RHS1 = RHS1 + gsum_provide_mul_count[i];
-    // RHS1 = 1;
-
-    // * RHS2a = LHS;
-    // RHS2a = ((x_mod * std_alpha + x) * std_alpha) + MODULE_ID + std_beta;
-    // RHS2b = 0;
-
-    // * RHS2 = RHS2a * RHS2b;
-    // RHS2 = 0;
-
-    // * RHS = RHS1 - RHS2;
-    // RHS = 1 - 0 = 1
-
-    // (gsum - 'gsum * (1 - L1)) * LHS === RHS;
     (gsum - 'gsum * (1 - L1)) * (((x_mod * std_alpha + x) * std_alpha) + MODULE_ID + std_beta) === 1;
 
     L1' * (gsum - gsum_module) === 0;
