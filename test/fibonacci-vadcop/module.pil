@@ -2,7 +2,7 @@ constant MODULE_ID = 1;
 
 subproof Module(2**4) {
 
-    // subproofval aggregate(sum) gsum_module;
+    subproofval aggregate(sum) gsum_module;
 
     col fixed L1 = [1,0...];
     col witness x, q, x_mod;
@@ -14,5 +14,5 @@ subproof Module(2**4) {
 
     (gsum - 'gsum * (1 - L1)) * (((x_mod * std_alpha + x) * std_alpha) + MODULE_ID + std_beta) - 1 === 0;
 
-    // L1' * (gsum - gsum_module) === 0;
+    L1' * (gsum - gsum_module) === 0;
 }

@@ -14,7 +14,7 @@ public out;
 
 subproof aggregate Fibonacci(2**2, 2**4) {
 
-    // subproofval aggregate(sum) gsum_fibonacci;
+    subproofval aggregate(sum) gsum_fibonacci;
 
     col fixed L1 = [1,0...];
     col witness a,b;
@@ -28,7 +28,7 @@ subproof aggregate Fibonacci(2**2, 2**4) {
     col witness stage(2) gsum;
 
     (gsum - 'gsum * (1 - L1)) * (((( (L1' * out) + ((1-L1') * a') ) * std_alpha + a * a + b * b) * std_alpha) + 1 + std_beta) + 1 === 0;
-    // L1' * (gsum - gsum_fibonacci) === 0;
+    L1' * (gsum - gsum_fibonacci) === 0;
 
     // on final proof final_function();
 };
