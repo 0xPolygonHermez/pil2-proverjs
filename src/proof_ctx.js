@@ -6,7 +6,7 @@ const { buildPoseidonGL, Transcript } = require("pil2-stark-js");
 
 class ProofCtx {
     /**
-     * Creates a new ProofCtx instance.
+     * Creates a new ProofCtx
      * @constructor
      */
     constructor(name, finiteField) {

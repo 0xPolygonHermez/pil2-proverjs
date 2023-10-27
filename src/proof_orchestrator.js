@@ -167,7 +167,6 @@ module.exports = class ProofOrchestrator {
                 log.info(`[${this.name}]`, `==> STARTING GENERATION OF THE PROOF '${this.proofManagerConfig.name}'.`);
             }
 
-            await this.proversManager.setup();
 
             await this.newProof(publics);
 
@@ -177,6 +176,8 @@ module.exports = class ProofOrchestrator {
                 log.info(`[${this.name}]`, `==> ${str} ${stageId}`);
 
                 await this.wcManager.witnessComputation(stageId, publics);
+
+                if (stageId === 1) await this.proversManager.setup();
 
                 proverStatus = await this.proversManager.computeStage(stageId, publics, this.options);
 

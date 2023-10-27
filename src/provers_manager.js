@@ -86,12 +86,10 @@ class ProversManager {
     async setup() {
         this.checkInitialized();
 
-        for (const subproofCtx of this.proofCtx.subproofsCtx) {
-            for (const airCtx of subproofCtx.airsCtx) {
-                const proverId = this.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.layout.numRows);
+        for (const instance of this.proofCtx.instances) {
+            const proverId = this.getProverIdFromInstance(instance);
 
-                await this.provers[proverId].setup(airCtx);
-            }
+            await this.provers[proverId].setup(instance);
         }
     }
 

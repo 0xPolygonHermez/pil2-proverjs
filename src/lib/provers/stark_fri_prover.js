@@ -39,24 +39,19 @@ class StarkFriProver extends ProverComponent {
         this.starkStruct = require(starkStructFilename);
     }
 
-    async setup(airCtx) {
-        const subproofCtx = airCtx.subproofCtx;
-        const airout = this.proofCtx.getAirout();
-        const airSymbols = airout.getSymbolsBySubproofIdAirId(subproofCtx.subproofId, airCtx.airId);
+    async setup(instance) {
+        const air = this.proofCtx.airout.getAirBySubproofIdAirId(instance.subproofId, instance.airId);
+        const airCtx = this.proofCtx.subproofsCtx[instance.subproofId].airsCtx[instance.airId];
 
-        const air = airout.getAirBySubproofIdAirId(subproofCtx.subproofId, airCtx.airId);
-
-        const fixedPols = newConstantPolsArrayPil2(airSymbols, airCtx.layout.numRows, subproofCtx.F);
-
-        getFixedPolsPil2(air, fixedPols, subproofCtx.F);
+        const fixedPols = newConstantPolsArrayPil2(air.symbols, airCtx.layout.numRows, this.proofCtx.F);
+        getFixedPolsPil2(air, fixedPols, this.proofCtx.F);
 
         const options = {
-            F: subproofCtx.F,
+            F: this.proofCtx.F,
             pil1: false,
         };
 
         airCtx.setup = await starkSetup(fixedPols, air, this.starkStruct, options);
-        airCtx.setup.name = (airCtx.name ? airCtx.name : airCtx.airId) + "-" + airCtx.layout.numRows;;
         airCtx.setup.fixedPols = fixedPols;
     }
 
