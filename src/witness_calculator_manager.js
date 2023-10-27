@@ -117,6 +117,7 @@ module.exports = class WitnessCalculatorManager {
             }
         }        
 
+        //Executor deferred exits before it has to do it...
         await Promise.all(executors);
 
         if(this.airBus.hasPendingPayloads()) {

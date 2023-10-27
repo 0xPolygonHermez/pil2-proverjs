@@ -140,7 +140,7 @@ class AirOut {
     }
 
     getSymbolsByStage(subproofId, airId, stageId, symbolType) {
-        if (!this.airout.symbols) return [];
+        if (this.airout.symbols === undefined) return [];
     
         const symbols = this.airout.symbols.filter(symbol =>
             symbol.subproofId === subproofId &&
@@ -153,7 +153,7 @@ class AirOut {
     }
 
     getColsBySubproofIdAirId(subproofId, airId) {
-        if (!this.airout.symbols) return [];
+        if (this.airout.symbols === undefined) return [];
     
         const symbols = this.airout.symbols.filter(symbol =>
             symbol.subproofId === subproofId &&

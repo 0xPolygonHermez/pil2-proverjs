@@ -64,8 +64,6 @@ class StarkFriProver extends ProverComponent {
     async newProof(airCtx, publics) {
         const instances = this.proofCtx.getInstancesBySubproofIdAirId(airCtx.subproofId, airCtx.airId);
         for (const airInstance of instances) {  
-            const subproofCtx = this.proofCtx.subproofsCtx[airInstance.subproofId];
-            const airCtx = subproofCtx.airsCtx[airInstance.airId];
             log.info(`[${this.name}]`, `Initializing new proof for air '${airCtx.name}'`);
  
             airInstance.ctx = await initProverStark(airCtx.setup.starkInfo, airCtx.setup.fixedPols, airCtx.setup.constTree, this.options);                   
@@ -216,7 +214,7 @@ class StarkFriProver extends ProverComponent {
         
         const friQueries = await getPermutationsStark(ctx, challenge);
 
-        log.debug("··· FRI queries: [" + friQueries.join(",") + "]");
+        log.info(`[${this.name}]`, `··· FRI queries: [${friQueries.join(",")}]`);
 
         computeFRIQueries(ctx, friQueries);
 

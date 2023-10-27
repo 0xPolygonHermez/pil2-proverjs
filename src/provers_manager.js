@@ -112,10 +112,9 @@ class ProversManager {
 
         log.info(`[${this.name}]`, `--> Computing stage ${stageId}.`);
 
-        const numStages = this.proofCtx.getAirout().numStages + 1;
-
         if (stageId === 1) await this.newProof(publics);
 
+        const numStages = this.proofCtx.getAirout().numStages + 1;
         const retValue =
             stageId <= numStages
                 ? await this.commitStage(stageId)

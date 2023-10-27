@@ -5,16 +5,14 @@
   "author": "Polygon Hermez",
   "main": "index.js",
   "scripts": {
-    "test": "mocha test/simple/simple_stark.test.js test/fibonacci/fibonacci_stark.test.js test/wc_manager/wc_manager.test.js",
-    "test:coverage": "nyc mocha test/simple/simple_stark.test.js test/fibonacci/fibonacci_stark.test.js test/wc_manager/wc_manager.test.js",
-
+    "test": "mocha test/simple/simple_stark.test.js test/fibonacci/fibonacci_stark.test.js test/fibonacci-vadcop/fibonacci_vadcop_stark.test.js test/wc_manager/wc_manager.test.js",
+    "test:coverage": "nyc mocha test/simple/simple_stark.test.js test/fibonacci/fibonacci_stark.test.js test/fibonacci-vadcop/fibonacci_vadcop_stark.test.js test/wc_manager/wc_manager.test.js",
     "test:simple": "mocha test/simple/simple_stark.test.js",
     "test:fibonacci": "mocha test/fibonacci/fibonacci_stark.test.js",
     "test:fibonacci_vadcop": "mocha test/fibonacci-vadcop/fibonacci_vadcop_stark.test.js",
-
     "test:simple:coverage": "nyc mocha test/simple/simple_stark.test.js",
     "test:fibonacci:coverage": "nyc mocha test/fibonacci/fibonacci_stark.test.js",
-
+    "test:fibonacci_vadcop:coverage": "nyc mocha test/fibonacci-vadcop/fibonacci_vadcop_stark.test.js",
     "test:wc_manager": "mocha test/wc_manager/wc_manager.test.js",
     "test:wc_manager:coverage": "nyc mocha test/wc_manager/wc_manager.test.js"
   },

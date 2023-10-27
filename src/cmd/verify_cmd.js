@@ -21,7 +21,8 @@ module.exports = async function verifyCmd(proofManagerConfig, setup, proofs, cha
         const starkInfo = setup[proof.subproofId][proof.airId].starkInfo;
 
         const isValid = await verifier.checkProof(proof, constRoot, starkInfo, challenges, challengesFRISteps, options);
-        if(!isValid) return false
+        
+        if(!isValid) return false;
     }
 
     return true;

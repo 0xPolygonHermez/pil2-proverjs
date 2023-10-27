@@ -25,7 +25,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
         for( let j = 0; j < airout.subproofs[i].airs.length; j++) {
             log.info("[Setup  Cmd]", `Setup for air '${airout.subproofs[i].airs[j].name}'`);
             const air = airout.subproofs[i].airs[j];
-            air.symbols = airout.symbols;
+            air.symbols = airout.symbols.filter(symbol => (symbol.subproofId === undefined) || (symbol.subproofId === i && symbol.airId === j));
             air.hints = airout.hints;
             air.numChallenges = airout.numChallenges;
             air.subproofId = i;

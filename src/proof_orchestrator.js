@@ -163,7 +163,7 @@ module.exports = class ProofOrchestrator {
 
         let result;
         try {
-            if(!this.options.onlyCheck) {
+            if(this.options.onlyCheck === undefined || this.options.onlyCheck === false) {
                 log.info(`[${this.name}]`, `==> STARTING GENERATION OF THE PROOF '${this.proofManagerConfig.name}'.`);
             }
 
@@ -240,7 +240,7 @@ module.exports = class ProofOrchestrator {
 
     finalizeProve() {
         // TODO Finalize airout
-        if (this.wcManager) delete this.wcManager;
+        //if (this.wcManager) delete this.wcManager;
         // TODO Finalize prover
         // TODO Finalize setup
     }
