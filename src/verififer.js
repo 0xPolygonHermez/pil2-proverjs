@@ -1,7 +1,7 @@
-// Abstract base class for all Checker components
+// Abstract base class for all Verifier components
 const log = require('../logger.js');
 
-class CheckerComponent {
+class VerifierComponent {
     constructor(name) {
         this.name = name;
 
@@ -30,4 +30,4 @@ class CheckerComponent {
     }
 }
 
-module.exports = CheckerComponent;
+module.exports = VerifierComponent;

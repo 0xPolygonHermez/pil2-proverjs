@@ -1,7 +1,6 @@
 const { assert } = require("chai");
-const ProofOrchestrator = require("../../src/proof_orchestrator.js");
 
-const { proveAndVerifyTest } = require("../test_utils.js");
+const { executeFullProveTest, checkConstraintsTest } = require("../test_utils.js");
 
 const publicInputs = { in1: 1n, in2: 1n, mod: 5n };
 
@@ -23,7 +22,7 @@ function getSettings() {
                 Fibonacci_2: {starkStruct: `./test/fibonacci-vadcop/fibonacci_vadcop_stark_struct_2_2.json` },
             },
         },
-        checker: { filename: "./src/lib/checkers/stark_fri_checker.js", settings: {} },
+        verifier: { filename: "./src/lib/verifiers/stark_fri_verifier.js", settings: {} },
     };
 
 }
@@ -39,11 +38,10 @@ describe("Fibonacci Vadcop", async function () {
     };
 
     it("Generate a Fibonacci Vadcop proof", async () => {
-        await proveAndVerifyTest(getSettings(), publicInputs, options);
+        await executeFullProveTest(getSettings(), publicInputs, options, true);
     });
 
     it("Verify a Fibonacci Vadcop proof", async () => {
-        const ret = await proveAndVerifyTest(getSettings(), publicInputs, { ...options, onlyCheck: true });
-        assert(ret === true);
+        await checkConstraintsTest(getSettings(), publicInputs, options);
     });
 });

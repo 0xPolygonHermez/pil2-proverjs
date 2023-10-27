@@ -23,7 +23,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
     for( let i = 0; i < airout.subproofs.length; i++) {
         setup[i] = [];
         for( let j = 0; j < airout.subproofs[i].airs.length; j++) {
-            log.info("[setupCmd]", `Setup for air '${airout.subproofs[i].airs[j].name}'`);
+            log.info("[Setup  Cmd]", `Setup for air '${airout.subproofs[i].airs[j].name}'`);
             const air = airout.subproofs[i].airs[j];
             air.symbols = airout.symbols;
             air.hints = airout.hints;

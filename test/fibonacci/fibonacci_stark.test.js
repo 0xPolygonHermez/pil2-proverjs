@@ -1,6 +1,4 @@
-const ProofOrchestrator = require("../../src/proof_orchestrator.js");
-
-const { proveAndVerifyTest } = require("../test_utils.js");
+const { executeFullProveTest, checkConstraintsTest } = require("../test_utils.js");
 
 const inputs = { in1: 1n, in2: 2n };
 
@@ -19,7 +17,8 @@ function getSettings() {
             settings: {
                 default: { starkStruct: `./test/fibonacci/fibonacci_stark_struct.json` },
             },
-        },        checker: { filename: "./src/lib/checkers/stark_fri_checker.js", settings: {} },
+        },
+        verifier: { filename: "./src/lib/verifiers/stark_fri_verifier.js", settings: {} },
     };
 }
 
@@ -35,10 +34,10 @@ describe("PIL2 proof manager stark simple tests", async function () {
     this.timeout(10000000);
 
     it("prove Fibonacci", async () => {
-        await proveAndVerifyTest(getSettings(), inputs, options);
+        await executeFullProveTest(getSettings(), inputs, options, true);
     });
 
     it("verify Fibonacci", async () => {
-        await proveAndVerifyTest(getSettings(), inputs, { ...options, onlyCheck: true });
+        await checkConstraintsTest(getSettings(), inputs, options);
     });
 });

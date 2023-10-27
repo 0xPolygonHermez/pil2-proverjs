@@ -77,7 +77,7 @@ describe("Witnes Computation Manager tests", async function () {
 
         await wcManager.initialize(settings.witnessCalculators, {});
 
-        wcManager.subproofsCtx = subproofsCtx;
+        wcManager.proofCtx = { subproofsCtx };
 
         return await wcManager.witnessComputation(1);
     }

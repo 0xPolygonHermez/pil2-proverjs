@@ -18,7 +18,7 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
 
             /// NOTE: Here we decide for test purposes to create a fibonacci 2**4 and a module 2**4
             await this.wcManager.writeData(this, "Module.createInstances", {"airId": 0});
-            const airCtx = subproofCtx.airsCtx[1];
+            const airCtx = subproofCtx.airsCtx[0];
 
             log.info(`[${this.name}]`, `Creating air instance for air '${airCtx.name}' with N=${airCtx.layout.numRows} rows.`)
             let { result, airInstance } = this.proofCtx.addAirInstance(airCtx.subproofId, airCtx.airId);
@@ -108,7 +108,7 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
             if(i!==0) den[i] = F.add(den[i], den[i-1]);
         }
 
-        instance.ctx.subproofValues.push(den[numRows - 1]);
+        instance.ctx.subproofValues = den[numRows - 1];
         return den;
 
         function gsumitem(a, aprime, b, out, alpha, beta, MODULE_ID, isLast) {

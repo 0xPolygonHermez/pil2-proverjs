@@ -1,4 +1,4 @@
-const { proveAndVerifyTest } = require("../test_utils.js");
+const { executeFullProveTest, checkConstraintsTest } = require("../test_utils.js");
 
 function getSettings(prefix) {
     return {
@@ -16,8 +16,8 @@ function getSettings(prefix) {
                 default: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json` },
             },
         },
-        checker: {
-            filename: "./src/lib/checkers/stark_fri_checker.js",
+        verifier: {
+            filename: "./src/lib/verifiers/stark_fri_verifier.js",
             settings: {},
         },
     };
@@ -33,36 +33,35 @@ describe("PIL2 proof manager stark simple tests", async function () {
         vadcop: false,
     };
 
-
     it("prove Simple1", async () => {
-        await proveAndVerifyTest(getSettings("Simple1"), {}, options);
+        await executeFullProveTest(getSettings("Simple1"), {}, options, true);
     });
 
     it("prove Simple2", async () => {
-        await proveAndVerifyTest(getSettings("Simple2"), {}, options);
+        await executeFullProveTest(getSettings("Simple2"), {}, options, true);
     });
 
     it("prove Simple3", async () => {
-        await proveAndVerifyTest(getSettings("Simple3"), {}, options);
+        await executeFullProveTest(getSettings("Simple3"), {}, options, true);
     });
 
     it("prove Simple4", async () => {
-        await proveAndVerifyTest(getSettings("Simple4"), { in1: 1n , in2: 343n }, options);
+        await executeFullProveTest(getSettings("Simple4"), { in1: 1n , in2: 343n }, options, true);
     });
 
     it("verify PIL Simple1", async () => {
-        await proveAndVerifyTest(getSettings("Simple1"), {}, { ...options, onlyCheck: true });
+        await checkConstraintsTest(getSettings("Simple1"), {}, options);
     });
 
     it("verify PIL Simple2", async () => {
-        await proveAndVerifyTest(getSettings("Simple2"), {}, { ...options, onlyCheck: true });
+        await checkConstraintsTest(getSettings("Simple2"), {}, options);
     });
 
     it("verify PIL Simple3", async () => {
-        await proveAndVerifyTest(getSettings("Simple3"), {}, { ...options, onlyCheck: true });
+        await checkConstraintsTest(getSettings("Simple3"), {}, options);
     });
 
     it("verify PIL Simple4", async () => {
-        await proveAndVerifyTest(getSettings("Simple4"), { in1: 1n , in2: 343n }, { ...options, onlyCheck: true });
+        await checkConstraintsTest(getSettings("Simple4"), { in1: 1n , in2: 343n }, options);
     });
 });

@@ -4,7 +4,7 @@ const log = require("../../../logger.js");
 
 class ExecutorSimple4 extends WitnessCalculatorComponent {
     constructor(wcManager, proofCtx) {
-        super("Simple4Ex", wcManager, proofCtx);
+        super("Simple4 Ex", wcManager, proofCtx);
     }
 
     async witnessComputation(stageId, subproofCtx, airId, instanceId) {

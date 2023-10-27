@@ -32,11 +32,10 @@ const path = require("path");
 
 // WitnessCalculator class acting as the composite
 module.exports = class WitnessCalculatorManager {
-    constructor(proofCtx) {
+    constructor() {
         this.initialized = false;
 
         this.name = WC_MANAGER_NAME;
-        this.proofCtx = proofCtx;
 
         this.wc = [];
         this.wcLocks = [];        
@@ -52,13 +51,14 @@ module.exports = class WitnessCalculatorManager {
         this.options;
     }
 
-    async initialize(witnessCalculatorsConfig, options) {
+    async initialize(witnessCalculatorsConfig, proofCtx, options) {
         if (this.initialized) {
             log.error(`[${this.name}]`, "Already initialized.");
             throw new Error(`[${this.name}] Witness Calculator Manager already initialized.`);
         }
 
         try {
+            this.proofCtx = proofCtx;
             this.options = options;
 
             log.info(`[${this.name}]`, "Initializing...");
@@ -95,10 +95,10 @@ module.exports = class WitnessCalculatorManager {
         this.wcDeferredLock = new TargetLock(regulars.length, 0);
 
         // NOTE: The first witness calculator is always the witness calculator deferred
-        executors.push(this.witnessComputationDeferred(stageId, this.subproofsCtx, -1, -1));
+        executors.push(this.witnessComputationDeferred(stageId, this.proofCtx.subproofsCtx, -1, -1));
 
         if(stageId === 1) {
-            for (const subproofCtx of this.subproofsCtx) {
+            for (const subproofCtx of this.proofCtx.subproofsCtx) {
                 for (const wc of regulars) {
                     if(!wc.sm || subproofCtx.name === wc.sm) {
                         executors.push(wc._witnessComputation(stageId, subproofCtx, -1, -1, publics));
@@ -108,7 +108,7 @@ module.exports = class WitnessCalculatorManager {
         } else {
             for (const wc of regulars) {
                 for(const instance of this.proofCtx.instances) {
-                    const subproofCtx = this.subproofsCtx[instance.subproofId];
+                    const subproofCtx = this.proofCtx.subproofsCtx[instance.subproofId];
 
                     if(!wc.sm || subproofCtx.name === wc.sm) {
                         executors.push(wc._witnessComputation(stageId, subproofCtx, instance.airId, instance.instanceId, publics));

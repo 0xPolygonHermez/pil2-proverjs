@@ -5,7 +5,6 @@ const {
     PROVER_OPENINGS_PENDING,
 } = require("./provers_manager.js");
 
-const CheckerFactory = require("./checker_factory.js");
 const { AirOut } = require("./airout.js");
 const ProofCtx = require("./proof_ctx.js");
 
@@ -20,7 +19,7 @@ module.exports = class ProofOrchestrator {
     constructor(name) {
         this.initialized = false;
 
-        this.name = name ?? "ProofOrchestrator";
+        this.name = name ?? "Proof Orch";
     }
 
     checkInitialized() {
@@ -46,7 +45,6 @@ module.exports = class ProofOrchestrator {
          * - airout: airout of the proof
          * - witnessCalculators: array of witnessCalculator types
          * - prover: prover 
-         * - checker: prover type
          * - setup: setup data
          */
         if (!await proofManagerConfigIsValid(proofConfig)) {
@@ -55,45 +53,28 @@ module.exports = class ProofOrchestrator {
         }
         this.proofManagerConfig = proofConfig;
 
-        this.airout = new AirOut(this.proofManagerConfig.airout.airoutFilename, this.proofManagerConfig.airout.airoutProto);
+        const airout = new AirOut(this.proofManagerConfig.airout.airoutFilename, this.proofManagerConfig.airout.airoutProto);
 
-        // Create the finite field object
-        const finiteField = FiniteFieldFactory.createFiniteField(this.airout.airout.baseField);
-
-        // TODO change this, I did it to maintain compatibility with pil2-stark code
-        for( let i = 0; i < this.airout.airout.subproofs.length; i++) {
-            for( let j = 0; j < this.airout.airout.subproofs[i].airs.length; j++) {
-                this.airout.airout.subproofs[i].airs[j].symbols = this.airout.airout.symbols.filter(symbol => (!symbol.subproofId) || (symbol.subproofId === i && symbol.airId === j));
-                this.airout.airout.subproofs[i].airs[j].hints = this.airout.airout.hints;
-                this.airout.airout.subproofs[i].airs[j].numChallenges = this.airout.airout.numChallenges;
+        for( let i = 0; i < airout.airout.subproofs.length; i++) {
+            for( let j = 0; j < airout.airout.subproofs[i].airs.length; j++) {
+                airout.airout.subproofs[i].airs[j].symbols = airout.airout.symbols.filter(symbol => (symbol.subproofId === undefined) || (symbol.subproofId === i && symbol.airId === j));
+                //TODO next line must be with filter active
+                airout.airout.subproofs[i].airs[j].hints = airout.airout.hints; //?.filter(hint => (hint.subproofId === undefined) || (hint.subproofId === i && hint.airId === j));
+                airout.airout.subproofs[i].airs[j].numChallenges = airout.airout.numChallenges;
             }
         }
 
-        const proofCtx = ProofCtx.createProofCtxFromAirout(
-            this.proofManagerConfig.name,
-            this.airout,
-            finiteField
-        );
-        this.proofCtx = proofCtx;
-        this.subproofsCtx = proofCtx.subproofsCtx;
+        // Create the finite field object
+        const finiteField = FiniteFieldFactory.createFiniteField(airout.airout.baseField);
+        this.proofCtx = ProofCtx.createProofCtxFromAirout(this.proofManagerConfig.name, airout, finiteField);
         
-        this.wcManager = new WitnessCalculatorManager(proofCtx);
-        await this.wcManager.initialize(proofConfig.witnessCalculators, this.options);
+        this.wcManager = new WitnessCalculatorManager();
+        await this.wcManager.initialize(proofConfig.witnessCalculators, this.proofCtx, this.options);
 
-        this.proversManager = new ProversManager(proofCtx);
-        await this.proversManager.initialize(this.proofManagerConfig.prover, this.airout, this.options);
-
-        this.checker = await CheckerFactory.createChecker(proofConfig.checker.filename);
-        this.checker.initialize(proofConfig.checker.settings, this.options);        
-
-        this.wcManager.proofCtx = proofCtx;
-        this.wcManager.subproofsCtx = proofCtx.subproofsCtx;
-
-        this.proversManager.proofCtx = proofCtx;
-        this.proversManager.subproofsCtx = proofCtx.subproofsCtx;
+        this.proversManager = new ProversManager();
+        await this.proversManager.initialize(proofConfig.prover, this.proofCtx, this.options);
 
         this.initialized = true;
-        log.info(`[${this.name}]`, `< Initialized`);
         
         return;
 
@@ -164,21 +145,13 @@ module.exports = class ProofOrchestrator {
                 // TODO
             }
 
-            const checkerFilename =  path.join(__dirname, "..", proofManagerConfig.checker.filename);
-
-            if (!await fileExists(checkerFilename)) {
-                log.error(`[${this.name}]`, `Checker ${checkerFilename} does not exist.`);
-                return false;
-            }
-            proofManagerConfig.checker.filename = checkerFilename;
-
             return true;
         }
     }
 
     async newProof(publics) {
         this.proofCtx.initialize(publics);
-        for (const subproofCtx of this.subproofsCtx) {
+        for (const subproofCtx of this.proofCtx.subproofsCtx) {
             for (const airCtx of subproofCtx.airsCtx) {
                 airCtx.instances = [];
             }
@@ -200,7 +173,7 @@ module.exports = class ProofOrchestrator {
 
             let proverStatus = PROVER_OPENINGS_PENDING;
             for (let stageId = 1; proverStatus !== PROVER_OPENINGS_COMPLETED; stageId++) {
-                let str = stageId <= this.airout.numStages + 1 ? "STAGE" : "OPENINGS";
+                let str = stageId <= this.proofCtx.airout.numStages + 1 ? "STAGE" : "OPENINGS";
                 log.info(`[${this.name}]`, `==> ${str} ${stageId}`);
 
                 await this.wcManager.witnessComputation(stageId, publics);
@@ -234,8 +207,8 @@ module.exports = class ProofOrchestrator {
                         throw new Error(`[${this.name}]`, `PIL verification failed at stage ${stageId}.`);
                     }
 
-                    if(stageId === this.airout.numStages) {
-                        log.info(`[${this.name}]`, `<== PROOF '${this.proofManagerConfig.name}' CONSTRAINTS SUCCESSFULLY FULLFILLED.`);
+                    if(stageId === this.proofCtx.airout.numStages) {
+                        log.info(`[${this.name}]`, `<== CONSTRAINTS SUCCESSFULLY FULLFILLED.`);
                         return result;
                     }
                 }
@@ -245,17 +218,6 @@ module.exports = class ProofOrchestrator {
             console.log();
 
             let proofs = [];
-
-            // NOTE: For debug pruposes only
-            if(!this.options.onlyCheck) {
-                for(let i = 0; i < this.proofCtx.challenges.length; i++) {
-                    if(this.proofCtx.challenges[i].length > 0) {
-                        for(let j = 0; j < this.proofCtx.challenges[i].length; j++) {
-                            log.info(`[${this.name}]`, `!!! challenge ${i}: ${this.proofCtx.F.toString(this.proofCtx.challenges[i][j])}`);
-                        }
-                    }
-                }
-            }
     
             for(const instance of this.proofCtx.instances) {
                 instance.proof.subproofId = instance.subproofId;
@@ -265,8 +227,8 @@ module.exports = class ProofOrchestrator {
     
             return {
                 proofs,
-                challenges: this.proofCtx.challenges.slice(0, this.airout.numStages + 3),
-                challengesFRISteps: this.proofCtx.challenges.slice(this.airout.numStages + 3).map(c => c[0]),
+                challenges: this.proofCtx.challenges.slice(0, this.proofCtx.airout.numStages + 3),
+                challengesFRISteps: this.proofCtx.challenges.slice(this.proofCtx.airout.numStages + 3).map(c => c[0]),
             };    
         } catch (error) {
             log.error(`[${this.name}]`, `Error while generating proof: ${error}`);

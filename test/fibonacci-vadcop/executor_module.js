@@ -69,7 +69,7 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
 
         // for(let i = 0; i < N; i++) {
         //     console.log(polX[i], polQ[i], polX_mod[i]);
-        //     // console.log(polX[i], "===", F.add(F.mul(polQ[i], mod), polX_mod[i]));
+        //     console.log(polX[i], "===", F.add(F.mul(polQ[i], mod), polX_mod[i]));
         // }
     }
 
@@ -106,7 +106,7 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
             if(i!==0) den[i] = F.add(den[i], den[i-1]);
         }
 
-        instance.ctx.subproofValues.push(den[numRows - 1]);
+        instance.ctx.subproofValues = den[numRows - 1];
         return den;
 
         function gsumitem(x, x_mod, alpha, beta, MODULE_ID) {
