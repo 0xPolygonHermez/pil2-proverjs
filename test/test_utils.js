@@ -11,14 +11,6 @@ async function executeFullProveTest(proofManagerConfig, publics, options, execut
     const setup = await setupCmd(proofManagerConfig);
 
     const { proofs, challenges, challengesFRISteps } = await proveCmd(proofManagerConfig, publics, options);
-
-    // console.log("proof");
-    // console.log(proofs[0].proof);
-    // console.log(proofs[1].proof);
-    // console.log("challenges");
-    // console.log(challenges);
-    // console.log("challengesFRISteps");
-    // console.log(challengesFRISteps);
     
     log.info("[FULLPROVE ]", "==> VERIFYING PROOF")
     const isValid = await verifyCmd(proofManagerConfig, setup, proofs, challenges, challengesFRISteps, options);

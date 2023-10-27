@@ -12,7 +12,7 @@ public out;
 //     gsum_fibonacci + gsum_module === 0;
 // }
 
-subproof aggregate Fibonacci(2**4) {
+subproof aggregate Fibonacci(2**2, 2**4) {
 
     // subproofval aggregate(sum) gsum_fibonacci;
 

@@ -18,7 +18,7 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
 
             /// NOTE: Here we decide for test purposes to create a fibonacci 2**4 and a module 2**4
             await this.wcManager.writeData(this, "Module.createInstances", {"airId": 0});
-            const airCtx = subproofCtx.airsCtx[0];
+            const airCtx = subproofCtx.airsCtx[1];
 
             log.info(`[${this.name}]`, `Creating air instance for air '${airCtx.name}' with N=${airCtx.layout.numRows} rows.`)
             let { result, airInstance } = this.proofCtx.addAirInstance(airCtx.subproofId, airCtx.airId);
