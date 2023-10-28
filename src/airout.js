@@ -31,7 +31,8 @@ class AirOut {
 
         const airoutEncoded = fs.readFileSync(airoutFilename);
         const AirOut = protobuf.loadSync(protoFilename).lookupType("PilOut");
-        this.airout = AirOut.toObject(AirOut.decode(airoutEncoded));
+
+        Object.assign(this, AirOut.toObject(AirOut.decode(airoutEncoded)));
 
         this.printInfo();
 
@@ -39,20 +40,20 @@ class AirOut {
     }
 
     printInfo() {
-        log.info("[AirOutPrsr]", `AirOut name: ${this.airout.name}`);
-        log.info("[AirOutPrsr]", `  #subproofs: ${this.airout.subproofs.length}`);
+        log.info("[AirOutPrsr]", `AirOut name: ${this.name}`);
+        log.info("[AirOutPrsr]", `  #subproofs: ${this.subproofs.length}`);
 
-        for(const subproof of this.airout.subproofs) this.printSubproofInfo(subproof);
+        for(const subproof of this.subproofs) this.printSubproofInfo(subproof);
 
-        log.info("[AirOutPrsr]", `  #proofValues: ${this.airout.numProofValues}`);
-        log.info("[AirOutPrsr]", `  #publicValues: ${this.airout.numPublicValues}`);
+        log.info("[AirOutPrsr]", `  #proofValues: ${this.numProofValues}`);
+        log.info("[AirOutPrsr]", `  #publicValues: ${this.numPublicValues}`);
 
 
-        if(this.airout.publicTables) log.info("[AirOutPrsr]", `  #publicTables: ${this.airout.publicTables.length}`);
-        if(this.airout.expressions) log.info("[AirOutPrsr]", `  #expressions: ${this.airout.expressions.length}`);
-        if(this.airout.constraints) log.info("[AirOutPrsr]", `  #constraints: ${this.airout.constraints.length}`);
-        if(this.airout.hints) log.info("[AirOutPrsr]", `  #hints: ${this.airout.hints.length}`);
-        if(this.airout.symbols) log.info("[AirOutPrsr]", `  #symbols: ${this.airout.symbols.length}`);
+        if(this.publicTables) log.info("[AirOutPrsr]", `  #publicTables: ${this.publicTables.length}`);
+        if(this.expressions) log.info("[AirOutPrsr]", `  #expressions: ${this.expressions.length}`);
+        if(this.constraints) log.info("[AirOutPrsr]", `  #constraints: ${this.constraints.length}`);
+        if(this.hints) log.info("[AirOutPrsr]", `  #hints: ${this.hints.length}`);
+        if(this.symbols) log.info("[AirOutPrsr]", `  #symbols: ${this.symbols.length}`);
     }
 
     printSubproofInfo(subproof) {
@@ -70,33 +71,33 @@ class AirOut {
     }
 
     get numSubproofs() {
-        return this.airout.subproofs === undefined ? 0 : this.airout.subproofs.length;
+        return this.subproofs === undefined ? 0 : this.subproofs.length;
     }
 
     get numStages() {
-        return this.airout.numChallenges?.length ?? 1;
+        return this.numChallenges?.length ?? 1;
     }
 
     getSubproofById(subproofId) {
-        if(this.airout.subproofs === undefined) return undefined;
+        if(this.subproofs === undefined) return undefined;
 
-        return this.airout.subproofs[subproofId];
+        return this.subproofs[subproofId];
     }
 
     getAirBySubproofIdAirId(subproofId, airId) {
-        if(this.airout.subproofs === undefined) return undefined;
-        if(this.airout.subproofs[subproofId].airs === undefined) return undefined;
+        if(this.subproofs === undefined) return undefined;
+        if(this.subproofs[subproofId].airs === undefined) return undefined;
 
-        const air = this.airout.subproofs[subproofId].airs[airId];
+        const air = this.subproofs[subproofId].airs[airId];
         air.subproofId = subproofId;
         air.airId = airId;
         return air;
     }
 
     getNumChallenges(stageId) {
-        if(this.airout.numChallenges === undefined) return 0;
+        if(this.numChallenges === undefined) return 0;
 
-        return this.airout.numChallenges[stageId - 1];
+        return this.numChallenges[stageId - 1];
     }
 
     //TODO access to AirOut numPublicValues ?
@@ -104,46 +105,46 @@ class AirOut {
     //TODO access to AirOut AirOutPublicTables ?
 
     getExpressionById(expressionId) {
-        if(this.airout.expressions === undefined) return undefined;
+        if(this.expressions === undefined) return undefined;
 
-        return this.airout.expressions[expressionId];
+        return this.expressions[expressionId];
     }
 
     getSymbolById(symbolId) {
-        if(this.airout.symbols === undefined) return undefined;
+        if(this.symbols === undefined) return undefined;
 
-        return this.airout.symbols.find(symbol => symbol.id === symbolId);
+        return this.symbols.find(symbol => symbol.id === symbolId);
     }
 
     getSymbolByName(name) {
-        if(this.airout.symbols === undefined) return undefined;
+        if(this.symbols === undefined) return undefined;
 
-        return this.airout.symbols.find(symbol => symbol.name === name);
+        return this.symbols.find(symbol => symbol.name === name);
     }
 
     getSymbolsBySubproofId(subproofId) {
-        if(this.airout.symbols === undefined) return [];
+        if(this.symbols === undefined) return [];
 
-        return this.airout.symbols.filter(symbol => symbol.subproofId === subproofId);
+        return this.symbols.filter(symbol => symbol.subproofId === subproofId);
     }
 
     getSymbolsByAirId(airId) {
-        if(this.airout.symbols === undefined) return [];
+        if(this.symbols === undefined) return [];
 
-        return this.airout.symbols.filter(symbol => symbol.airId === airId);
+        return this.symbols.filter(symbol => symbol.airId === airId);
     }
 
     getSymbolsBySubproofIdAirId(subproofId, airId) {
-        if(this.airout.symbols === undefined) return [];
+        if(this.symbols === undefined) return [];
 
-        return this.airout.symbols.filter(
+        return this.symbols.filter(
             (symbol) => (symbol.subproofId === undefined) || (symbol.subproofId === subproofId && symbol.airId === airId));
     }
 
     getSymbolsByStage(subproofId, airId, stageId, symbolType) {
-        if (this.airout.symbols === undefined) return [];
+        if (this.symbols === undefined) return [];
     
-        const symbols = this.airout.symbols.filter(symbol =>
+        const symbols = this.symbols.filter(symbol =>
             symbol.subproofId === subproofId &&
             symbol.airId === airId &&
             symbol.stage === stageId &&
@@ -154,9 +155,9 @@ class AirOut {
     }
 
     getColsBySubproofIdAirId(subproofId, airId) {
-        if (this.airout.symbols === undefined) return [];
+        if (this.symbols === undefined) return [];
     
-        const symbols = this.airout.symbols.filter(symbol =>
+        const symbols = this.symbols.filter(symbol =>
             symbol.subproofId === subproofId &&
             symbol.airId === airId &&
             ([1, 2, 3].includes(symbol.type))
@@ -170,33 +171,33 @@ class AirOut {
     }
 
     getSymbolByName(name) {
-        if(this.airout.symbols === undefined) return undefined;
+        if(this.symbols === undefined) return undefined;
 
-        return this.airout.symbols.find(symbol => symbol.name === name);
+        return this.symbols.find(symbol => symbol.name === name);
     }
 
     getHintById(hintId) {
-        if(this.airout.hints === undefined) return undefined;
+        if(this.hints === undefined) return undefined;
 
-        return this.airout.hints[hintId];
+        return this.hints[hintId];
     }
 
     getHintsBySubproofId(subproofId) {
-        if(this.airout.hints === undefined) return [];
+        if(this.hints === undefined) return [];
 
-        return this.airout.hints.filter(hint => hint.subproofId === subproofId);
+        return this.hints.filter(hint => hint.subproofId === subproofId);
     }
 
     getHintsByAirId(airId) {
-        if(this.airout.hints === undefined) return [];
+        if(this.hints === undefined) return [];
 
-        return this.airout.hints.filter(hint => hint.airId === airId);
+        return this.hints.filter(hint => hint.airId === airId);
     }
 
     getHintsBySubproofIdAirId(subproofId, airId) {
-        if(this.airout.hints === undefined) return [];
+        if(this.hints === undefined) return [];
 
-        return this.airout.hints.filter(
+        return this.hints.filter(
             (hint) => (hint.subproofId === undefined) || ( hint.subproofId === subproofId && hint.airId === airId));
     }
 }

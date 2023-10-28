@@ -40,15 +40,15 @@ class ProversManager {
 
         this.initialized = true;
 
-        for (let i = 0; i < proofCtx.airout.airout.subproofs.length; i++) {
-            for (let j = 0; j < proofCtx.airout.airout.subproofs[i].airs.length; j++) {
+        for (let i = 0; i < proofCtx.airout.subproofs.length; i++) {
+            for (let j = 0; j < proofCtx.airout.subproofs[i].airs.length; j++) {
                 const prover = await ProverFactory.createProver(
                     config.filename,
                     this.proofCtx
                 );
 
-                const airName = proofCtx.airout.airout.subproofs[i].airs[j].name;
-                const N = proofCtx.airout.airout.subproofs[i].airs[j].numRows;
+                const airName = proofCtx.airout.subproofs[i].airs[j].name;
+                const N = proofCtx.airout.subproofs[i].airs[j].numRows;
                 let settings =
                     config.settings[airName] ||
                     // proverConfig.settings[airName]?.default ||
@@ -61,7 +61,7 @@ class ProversManager {
 
                 prover.initialize(settings, options);
 
-                const id = this.getProverId(i, j, proofCtx.airout.airout.subproofs[i].airs[j].numRows);
+                const id = this.getProverId(i, j, proofCtx.airout.subproofs[i].airs[j].numRows);
 
                 this.provers[id] = prover;
             }

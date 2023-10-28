@@ -8,10 +8,9 @@ const log = require("../logger.js");
 async function executeFullProveTest(proofManagerConfig, publics, options, executeCircom) {
     log.info("[FULLPROVE ]", "==> FULL PROVE TEST")
 
-    const setup = await setupCmd(proofManagerConfig);
-
     const { proofs, challenges, challengesFRISteps } = await proveCmd(proofManagerConfig, publics, options);
     
+    const setup = await setupCmd(proofManagerConfig);
     const isValid = await verifyCmd(proofManagerConfig, setup, proofs, challenges, challengesFRISteps, options);
 
     assert(isValid == true, "PROOF NOT VALID");

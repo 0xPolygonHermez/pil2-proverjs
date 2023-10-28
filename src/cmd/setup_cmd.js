@@ -11,8 +11,7 @@ const log = require("../../logger.js");
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
 module.exports = async function setupCmd(proofManagerConfig) {
-    const airoutObj = new AirOut(proofManagerConfig.airout.airoutFilename, proofManagerConfig.airout.airoutProto);
-    const airout = airoutObj.airout;
+    const airout = new AirOut(proofManagerConfig.airout.airoutFilename, proofManagerConfig.airout.airoutProto);
 
     const setupOptions = {
         F: new F3g("0xFFFFFFFF00000001"),
@@ -25,7 +24,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
         for( let j = 0; j < airout.subproofs[i].airs.length; j++) {
             log.info("[Setup  Cmd]", `Setup for air '${airout.subproofs[i].airs[j].name}'`);
             const air = airout.subproofs[i].airs[j];
-            air.symbols = airoutObj.getSymbolsBySubproofIdAirId(i, j);
+            air.symbols = airout.getSymbolsBySubproofIdAirId(i, j);
             air.hints = airout.hints;
             air.numChallenges = airout.numChallenges;
             air.subproofId = i;
@@ -44,7 +43,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
             const starkStructFilename =  path.join(__dirname, "../../", settings.starkStruct);
             const starkStruct = require(starkStructFilename);
 
-            const airSymbols = airoutObj.getSymbolsBySubproofIdAirId(i, j);
+            const airSymbols = airout.getSymbolsBySubproofIdAirId(i, j);
             
             const fixedPols = newConstantPolsArrayPil2(airSymbols, air.numRows, setupOptions.F)
             getFixedPolsPil2(air, fixedPols, setupOptions.F);

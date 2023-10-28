@@ -55,16 +55,16 @@ module.exports = class ProofOrchestrator {
 
         const airout = new AirOut(this.config.airout.airoutFilename, this.config.airout.airoutProto);
 
-        for( let i = 0; i < airout.airout.subproofs.length; i++) {
-            for( let j = 0; j < airout.airout.subproofs[i].airs.length; j++) {
-                airout.airout.subproofs[i].airs[j].symbols = airout.getSymbolsBySubproofIdAirId(i, j);
-                airout.airout.subproofs[i].airs[j].hints = airout.getHintsBySubproofIdAirId(i, j);
-                airout.airout.subproofs[i].airs[j].numChallenges = airout.airout.numChallenges;
+        for( let i = 0; i < airout.subproofs.length; i++) {
+            for( let j = 0; j < airout.subproofs[i].airs.length; j++) {
+                airout.subproofs[i].airs[j].symbols = airout.getSymbolsBySubproofIdAirId(i, j);
+                airout.subproofs[i].airs[j].hints = airout.getHintsBySubproofIdAirId(i, j);
+                airout.subproofs[i].airs[j].numChallenges = airout.numChallenges;
             }
         }
 
         // Create the finite field object
-        const finiteField = FiniteFieldFactory.createFiniteField(airout.airout.baseField);
+        const finiteField = FiniteFieldFactory.createFiniteField(airout.baseField);
         this.proofCtx = ProofCtx.createProofCtxFromAirout(this.config.name, airout, finiteField);
         
         this.wcManager = new WitnessCalculatorManager();

@@ -91,11 +91,10 @@ class ProofCtx {
     // getAirCols(subproofId, airId)
     //
 
-    static createProofCtxFromAirout(name, airoutObj, finiteField) {
+    static createProofCtxFromAirout(name, airout, finiteField) {
         const proofCtx = new ProofCtx(name, finiteField);
-        proofCtx.airout = airoutObj;
+        proofCtx.airout = airout;
 
-        const airout = airoutObj.airout;
         for(let i = 0; i < airout.subproofs.length; i++) {
             proofCtx.addNewSubproof(i, airout);
         }
