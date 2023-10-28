@@ -136,7 +136,8 @@ class AirOut {
     getSymbolsBySubproofIdAirId(subproofId, airId) {
         if(this.airout.symbols === undefined) return [];
 
-        return this.airout.symbols.filter((symbol) => symbol.subproofId === subproofId && symbol.airId === airId);
+        return this.airout.symbols.filter(
+            (symbol) => (symbol.subproofId === undefined) || (symbol.subproofId === subproofId && symbol.airId === airId));
     }
 
     getSymbolsByStage(subproofId, airId, stageId, symbolType) {
@@ -196,8 +197,7 @@ class AirOut {
         if(this.airout.hints === undefined) return [];
 
         return this.airout.hints.filter(
-            (hint) => hint.airId === airId && hint.subproofId === subproofId
-        );
+            (hint) => (hint.subproofId === undefined) || ( hint.subproofId === subproofId && hint.airId === airId));
     }
 }
 

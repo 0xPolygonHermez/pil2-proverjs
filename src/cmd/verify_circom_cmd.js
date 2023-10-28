@@ -8,6 +8,8 @@ const path = require("path");
 const log = require("../../logger.js");
 
 module.exports = async function verifyCircomCmd(proofManagerConfig, setup, proofs, output) {
+    log.info("[FULLPROVE ]", "==> CIRCOM VERIFICATION")
+    
     const tmpPath =  path.join(__dirname, "../..", "tmp");
     if(!fs.existsSync(tmpPath)) fs.mkdirSync(tmpPath);
     const verifierFilename = path.join(tmpPath, "basic_stark_verifier_" + proofManagerConfig.name + ".circom");
@@ -37,4 +39,6 @@ module.exports = async function verifyCircomCmd(proofManagerConfig, setup, proof
             await fs.promises.unlink(verifierFilename);
         }
     }
+
+    log.info("[FULLPROVE ]", "<== CIRCOM VERIFICATION")
 }

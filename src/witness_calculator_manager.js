@@ -51,7 +51,7 @@ module.exports = class WitnessCalculatorManager {
         this.options;
     }
 
-    async initialize(witnessCalculatorsConfig, proofCtx, options) {
+    async initialize(config, proofCtx, options) {
         if (this.initialized) {
             log.error(`[${this.name}]`, "Already initialized.");
             throw new Error(`[${this.name}] Witness Calculator Manager already initialized.`);
@@ -63,9 +63,9 @@ module.exports = class WitnessCalculatorManager {
 
             log.info(`[${this.name}]`, "Initializing...");
 
-            for(const config of witnessCalculatorsConfig) {
-                const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(config.witnessCalculatorLib, this, this.proofCtx);
-                newWitnessCalculator.initialize(config, options);
+            for(const setting of config) {
+                const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(setting.witnessCalculatorLib, this, this.proofCtx);
+                newWitnessCalculator.initialize(setting, options);
         
                 this.wc.push(newWitnessCalculator);
             }

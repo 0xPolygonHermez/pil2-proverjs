@@ -29,7 +29,7 @@ module.exports = class ProofOrchestrator {
         }
     }
 
-    async initialize(proofConfig, options) {
+    async initialize(config, options) {
         if (this.initialized) {
             log.error(`[${this.name}]`, "Already initialized.");
             throw new Error(`[${this.name}] Proof Orchestrator already initialized.`);
@@ -40,65 +40,64 @@ module.exports = class ProofOrchestrator {
         this.options = options;
 
         /*
-         * settings is a JSON object containing the following fields:
+         * config is a JSON object containing the following fields:
          * - name: name of the proof
          * - airout: airout of the proof
          * - witnessCalculators: array of witnessCalculator types
          * - prover: prover 
          * - setup: setup data
          */
-        if (!await proofManagerConfigIsValid(proofConfig)) {
-            log.error(`[${this.name}]`, "Invalid proofManagerConfig.");
-            throw new Error("Invalid proofManagerConfig.");
+        if (!await configValid(config)) {
+            log.error(`[${this.name}]`, "Invalid proof orchestrator config.");
+            throw new Error("Invalid proof orchestrator config.");
         }
-        this.proofManagerConfig = proofConfig;
+        this.config = config;
 
-        const airout = new AirOut(this.proofManagerConfig.airout.airoutFilename, this.proofManagerConfig.airout.airoutProto);
+        const airout = new AirOut(this.config.airout.airoutFilename, this.config.airout.airoutProto);
 
         for( let i = 0; i < airout.airout.subproofs.length; i++) {
             for( let j = 0; j < airout.airout.subproofs[i].airs.length; j++) {
-                airout.airout.subproofs[i].airs[j].symbols = airout.airout.symbols.filter(symbol => (symbol.subproofId === undefined) || (symbol.subproofId === i && symbol.airId === j));
-                //TODO next line must be with filter active
-                airout.airout.subproofs[i].airs[j].hints = airout.airout.hints; //?.filter(hint => (hint.subproofId === undefined) || (hint.subproofId === i && hint.airId === j));
+                airout.airout.subproofs[i].airs[j].symbols = airout.getSymbolsBySubproofIdAirId(i, j);
+                airout.airout.subproofs[i].airs[j].hints = airout.getHintsBySubproofIdAirId(i, j);
                 airout.airout.subproofs[i].airs[j].numChallenges = airout.airout.numChallenges;
             }
         }
 
         // Create the finite field object
         const finiteField = FiniteFieldFactory.createFiniteField(airout.airout.baseField);
-        this.proofCtx = ProofCtx.createProofCtxFromAirout(this.proofManagerConfig.name, airout, finiteField);
+        this.proofCtx = ProofCtx.createProofCtxFromAirout(this.config.name, airout, finiteField);
         
         this.wcManager = new WitnessCalculatorManager();
-        await this.wcManager.initialize(proofConfig.witnessCalculators, this.proofCtx, this.options);
+        await this.wcManager.initialize(config.witnessCalculators, this.proofCtx, this.options);
 
         this.proversManager = new ProversManager();
-        await this.proversManager.initialize(proofConfig.prover, this.proofCtx, this.options);
+        await this.proversManager.initialize(config.prover, this.proofCtx, this.options);
 
         this.initialized = true;
         
         return;
 
-        async function proofManagerConfigIsValid(proofManagerConfig) {
+        async function configValid(config) {
             const fields = ["airout", "witnessCalculators", "prover"];
             for (const field of fields) {
-                if (proofManagerConfig[field] === undefined) {
-                    log.error(`[${this.name}]`, `No ${field} provided in the proofManagerConfig.`);
+                if (config[field] === undefined) {
+                    log.error(`[${this.name}]`, `No ${field} provided in config.`);
                     return false;
                 }
             }
 
-            if (proofManagerConfig.name === undefined) {
-                proofManagerConfig.name = "proof-" + Date.now();
-                log.warn(`[${this.name}]`, `No name provided in the proofManagerConfig, assigning a default name ${proofManagerConfig.name}.`);
+            if (config.name === undefined) {
+                config.name = "proof-" + Date.now();
+                log.warn(`[${this.name}]`, `No name provided in config, assigning a default name ${config.name}.`);
             }
 
-            if (proofManagerConfig.witnessCalculators.length === 0) {
-                log.error(`[${this.name}]`, "No witnessCalculators provided in the proofManagerConfig.");
+            if (config.witnessCalculators.length === 0) {
+                log.error(`[${this.name}]`, "No witnessCalculators provided in config.");
                 return false;
             }
     
-            if (!await validateFileNameCorrectness(proofManagerConfig)) {
-                log.error(`[${this.name}]`, "Invalid proofManagerConfig.");
+            if (!await validateFileNameCorrectness(config)) {
+                log.error(`[${this.name}]`, "Invalid config.");
                 return false;
             }
     
@@ -108,22 +107,22 @@ module.exports = class ProofOrchestrator {
             return true;
         }
 
-        async function validateFileNameCorrectness(proofManagerConfig) {
-            const airoutFilename =  path.join(__dirname, "..", proofManagerConfig.airout.airoutFilename);
+        async function validateFileNameCorrectness(config) {
+            const airoutFilename =  path.join(__dirname, "..", config.airout.airoutFilename);
             if (!await fileExists(airoutFilename)) {
                 log.error(`[${this.name}]`, `Airout ${airoutFilename} does not exist.`);
                 return false;
             }
-            proofManagerConfig.airout.airoutFilename = airoutFilename;
+            config.airout.airoutFilename = airoutFilename;
 
-            const airoutProto =  path.join(__dirname, "..", proofManagerConfig.airout.airoutProto);
+            const airoutProto =  path.join(__dirname, "..", config.airout.airoutProto);
             if (!await fileExists(airoutProto)) {
                 log.error(`[${this.name}]`, `Airout proto ${airoutProto} does not exist.`);
                 return false;
             }
-            proofManagerConfig.airout.airoutProto = airoutProto;
+            config.airout.airoutProto = airoutProto;
 
-            for(const witnessCalculator of proofManagerConfig.witnessCalculators) {
+            for(const witnessCalculator of config.witnessCalculators) {
                 const witnessCalculatorLib =  path.join(__dirname, "..", witnessCalculator.filename);
 
                 if (!await fileExists(witnessCalculatorLib)) {
@@ -133,15 +132,15 @@ module.exports = class ProofOrchestrator {
                 witnessCalculator.witnessCalculatorLib = witnessCalculatorLib;
             }                
     
-            const proverFilename =  path.join(__dirname, "..", proofManagerConfig.prover.filename);
+            const proverFilename =  path.join(__dirname, "..", config.prover.filename);
 
             if (!await fileExists(proverFilename)) {
                 log.error(`[${this.name}]`, `Prover ${proverFilename} does not exist.`);
                 return false;
             }
-            proofManagerConfig.prover.filename = proverFilename;
+            config.prover.filename = proverFilename;
 
-            if (proofManagerConfig.setup !== undefined) {
+            if (config.setup !== undefined) {
                 // TODO
             }
 
@@ -164,7 +163,7 @@ module.exports = class ProofOrchestrator {
         let result;
         try {
             if(this.options.onlyCheck === undefined || this.options.onlyCheck === false) {
-                log.info(`[${this.name}]`, `==> STARTING GENERATION OF THE PROOF '${this.proofManagerConfig.name}'.`);
+                log.info(`[${this.name}]`, `==> STARTING GENERATION OF THE PROOF '${this.config.name}'.`);
             }
 
 
@@ -215,7 +214,7 @@ module.exports = class ProofOrchestrator {
                 }
             }
 
-            log.info(`[${this.name}]`, `<== PROOF '${this.proofManagerConfig.name}' SUCCESSFULLY GENERATED.`);
+            log.info(`[${this.name}]`, `<== PROOF '${this.config.name}' SUCCESSFULLY GENERATED.`);
             console.log();
 
             let proofs = [];

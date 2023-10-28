@@ -20,7 +20,8 @@ class StarkFriVerififer extends VerifierComponent {
             log.info(`[${this.name}]`, `STARK proof successfully verified`);
         }
 
-        log.info(`[${this.name}]`, `<-- STARK verification (subproofId ${proof.subproofId} airId ${proof.airId})`);
+        const logX = isValid ? log.info : log.error;
+        logX(`[${this.name}]`, `<-- STARK verification (subproofId ${proof.subproofId} airId ${proof.airId})`);
 
         return isValid;
     }

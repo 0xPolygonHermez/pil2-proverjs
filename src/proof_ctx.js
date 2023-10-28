@@ -76,9 +76,8 @@ class ProofCtx {
         this.instances[instanceId] = airInstance;
 
         const air = this.airout.getAirBySubproofIdAirId(subproofId, airId);
-        const airSymbols = this.airout.getSymbolsBySubproofIdAirId(subproofId, airId);
 
-        airInstance.wtnsPols = newCommitPolsArrayPil2(airSymbols, air.numRows, subproofCtx.F);
+        airInstance.wtnsPols = newCommitPolsArrayPil2(air.symbols, air.numRows, subproofCtx.F);
 
         return { result: true, airInstance};
     }   

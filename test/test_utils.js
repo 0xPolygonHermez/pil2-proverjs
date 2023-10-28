@@ -12,17 +12,12 @@ async function executeFullProveTest(proofManagerConfig, publics, options, execut
 
     const { proofs, challenges, challengesFRISteps } = await proveCmd(proofManagerConfig, publics, options);
     
-    log.info("[FULLPROVE ]", "==> VERIFYING PROOF")
     const isValid = await verifyCmd(proofManagerConfig, setup, proofs, challenges, challengesFRISteps, options);
 
     assert(isValid == true, "PROOF NOT VALID");
-    log.info("[FULLPROVE ]", "<== VERIFYING PROOF")
 
-    if(executeCircom) {
-        log.info("[FULLPROVE ]", "==> CIRCOM VERIFICATION")
-        //await verifyCircomCmd(proofManagerConfig, setup, proofs, publics);
-        log.info("[FULLPROVE ]", "<== CIRCOM VERIFICATION")
-    }
+    // if(executeCircom) await verifyCircomCmd(proofManagerConfig, setup, proofs, publics);
+
     log.info("[FULLPROVE ]", "<== FULL PROVE TEST")
 }
 
@@ -34,6 +29,7 @@ async function checkConstraintsTest(proofManagerConfig, publics, options) {
     const isValid = await proveCmd(proofManagerConfig, publics, options);
 
     assert(isValid == true, "PROOF CONSTRAINTS UNSUCCESSFULLY FULLFILLED.");
+    
     log.info("[CHECK TEST]", "<== CHECK CONSTRAINTS TEST")
 }
 

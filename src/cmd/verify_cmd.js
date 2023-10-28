@@ -6,6 +6,7 @@ const path = require("path");
 const log = require("../../logger.js");
 
 module.exports = async function verifyCmd(proofManagerConfig, setup, proofs, challenges, challengesFRISteps, options) {
+    log.info("[VERIFYCMD ]", "==> VERIFYING PROOF")
     const verifierFilename =  path.join(__dirname, "../..", proofManagerConfig.verifier.filename);
 
     if (!await fileExists(verifierFilename)) {
@@ -16,14 +17,18 @@ module.exports = async function verifyCmd(proofManagerConfig, setup, proofs, cha
     const verifier = await VerifierFactory.createVerifier(verifierFilename);
     verifier.initialize(proofManagerConfig.verifier.settings, options);        
 
+    let isValid = true;
     for(const proof of proofs) {    
         const constRoot = setup[proof.subproofId][proof.airId].constRoot;
         const starkInfo = setup[proof.subproofId][proof.airId].starkInfo;
 
-        const isValid = await verifier.checkProof(proof, constRoot, starkInfo, challenges, challengesFRISteps, options);
+        isValid = isValid && await verifier.checkProof(proof, constRoot, starkInfo, challenges, challengesFRISteps, options);
         
-        if(!isValid) return false;
+        if(!isValid) break;
     }
 
-    return true;
+    const logX = isValid ? log.info : log.error;
+    logX("[VERIFYCMD ]", "<== VERIFYING PROOF")
+
+    return isValid;
 }

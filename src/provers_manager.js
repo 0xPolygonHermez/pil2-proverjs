@@ -27,7 +27,7 @@ class ProversManager {
         );
     }
 
-    async initialize(proverConfig, proofCtx, options) {
+    async initialize(config, proofCtx, options) {
         if (this.initialized) {
             log.error(`[${this.name}]`, "Already initialized.");
             throw new Error(
@@ -43,16 +43,16 @@ class ProversManager {
         for (let i = 0; i < proofCtx.airout.airout.subproofs.length; i++) {
             for (let j = 0; j < proofCtx.airout.airout.subproofs[i].airs.length; j++) {
                 const prover = await ProverFactory.createProver(
-                    proverConfig.filename,
+                    config.filename,
                     this.proofCtx
                 );
 
                 const airName = proofCtx.airout.airout.subproofs[i].airs[j].name;
                 const N = proofCtx.airout.airout.subproofs[i].airs[j].numRows;
                 let settings =
-                    proverConfig.settings[airName] ||
+                    config.settings[airName] ||
                     // proverConfig.settings[airName]?.default ||
-                    proverConfig.settings.default;
+                    config.settings.default;
 
                 if (!settings) {
                     log.error(`[${this.name}]`, `No settings for air '${airName}'${N ? ` with N=${N}` : ""}`);
