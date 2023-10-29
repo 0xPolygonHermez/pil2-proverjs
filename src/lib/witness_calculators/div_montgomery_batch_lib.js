@@ -7,7 +7,7 @@ module.exports = class DivModule extends WitnessCalculatorComponent {
         super("divLib", wcManager, proofCtx, ModuleTypeEnum.DEFERRED);
     }
 
-    async witnessComputation(stageId, airCtx, instanceId) {
+    async witnessComputation(stageId) {
         const payloads = this.getBusPayloadsByRecipient(this.name);
 
         for(const payload of payloads) {

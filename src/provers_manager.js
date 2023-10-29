@@ -20,11 +20,7 @@ class ProversManager {
     }
 
     getProverIdFromInstance(instance) {
-        return this.getProverId(
-            instance.subproofId,
-            instance.airId,
-            this.proofCtx.subproofsCtx[instance.subproofId].airsCtx[instance.airId].layout.numRows
-        );
+        return this.getProverId(instance.subproofId, instance.airId, instance.layout.numRows);
     }
 
     async initialize(config, proofCtx, options) {
@@ -96,11 +92,13 @@ class ProversManager {
     async newProof(publics) {
         this.checkInitialized();
 
-        for (const subproofCtx of this.proofCtx.subproofsCtx) {
-            for (const airCtx of subproofCtx.airsCtx) {
-                const id = this.getProverId(subproofCtx.subproofId, airCtx.airId, airCtx.layout.numRows);
+        const airout = this.proofCtx.airout;
+        for (let i = 0; i < airout.subproofs.length; i++) {
+            for (let j = 0; j < airout.subproofs[i].airs.length; j++) {
+                const air = airout.subproofs[i].airs[j];
+                const proverId = this.getProverId(i, j, air.numRows);
 
-                await this.provers[id].newProof(airCtx, publics);
+                await this.provers[proverId].newProof(i, j, publics);
             }
         }
     }
@@ -153,18 +151,21 @@ class ProversManager {
         log.info(`[${this.name}]`, `··> Computing global challenge stage ${stageId + 1}`);
 
         if (stageId === 1) {
-            for (let i = 0; i < this.proofCtx.subproofsCtx.length; i++) {
+            for (let i = 0; i < this.proofCtx.airout.subproofs.length; i++) {
                 let challengeArr = [];
-                for (let j = 0; j < this.proofCtx.subproofsCtx[i].airsCtx.length; j++) {
+                const subproof = this.proofCtx.airout.subproofs[i];
+
+                for (let j = 0; j < subproof.airs.length; j++) {
                     const instances = this.proofCtx.getInstancesBySubproofIdAirId(i, j);
-                    const airCtx = this.proofCtx.subproofsCtx[i].airsCtx[j];
+                    const air = this.proofCtx.airout.getAirBySubproofIdAirId(i, j);
+
                     for (let k = 0; k < instances.length; k++) {
                         log.info(
                             `[${this.name}]`,
-                            `··· Computing global challenge. Adding constTree. Subproof '${this.proofCtx.subproofsCtx[i].name}' Air '${airCtx.name}' Instance ${instances[k].instanceId}`
+                            `··· Computing global challenge. Adding constTree. Subproof '${subproof.name}' Air '${air.name}' Instance ${instances[k].instanceId}`
                         );
     
-                        challengeArr.push(instances[k].ctx.MH.root(airCtx.setup.constTree)); //TODO: Calculate one time
+                        challengeArr.push(instances[k].ctx.MH.root(air.setup.constTree)); //TODO: Calculate one time
                     }
                 }
 
@@ -202,23 +203,20 @@ class ProversManager {
             this.proofCtx.addChallengeToTranscript(publicsCommits);
         }
 
-        for (let i = 0; i < this.proofCtx.subproofsCtx.length; i++) {
-            let challengeArr = [];
-            for (let j = 0; j < this.proofCtx.subproofsCtx[i].airsCtx.length; j++) {
-                const instancesCtx =
-                    this.proofCtx.getInstancesBySubproofIdAirId(i, j);
+        for (let i = 0; i < this.proofCtx.airout.subproofs.length; i++) {
+            const subproof = this.proofCtx.airout.subproofs[i];
 
-                const airCtx = this.proofCtx.subproofsCtx[i].airsCtx[j];
-                for (let k = 0; k < instancesCtx.length; k++) {
+            let challengeArr = [];
+            for (let j = 0; j < subproof.airs.length; j++) {
+                const air = subproof.airs[j];
+                const airInstances = this.proofCtx.getInstancesBySubproofIdAirId(i, j);
+
+                for(const airInstance of airInstances) {
                     log.info(
                         `[${this.name}]`,
-                        `··· Computing global challenge. Addings subproof '${this.proofCtx.subproofsCtx[i].name}' Air '${airCtx.name}' Instance ${instancesCtx[k].instanceId} value`
-                    );
+                        `··· Computing global challenge. Addings subproof '${subproof.name}' Air '${air.name}' Instance ${airInstance.instanceId} value`);
 
-                    const value =
-                        instancesCtx[k].ctx.challengeValue?.length > 0
-                            ? instancesCtx[k].ctx.challengeValue
-                            : [0];
+                    const value = airInstance.ctx.challengeValue?.length > 0 ? airInstance.ctx.challengeValue : [0];
                     challengeArr.push(...value);
                 }
             }

@@ -12,12 +12,13 @@ describe("Witnes Computation Manager tests", async function () {
             name: "wcManager-test-1-" + Date.now(),
             witnessCalculators: [
                 { filename: `./test1/executor1.js`, settings: {} },
-                { filename: `./test1/executor2.js`, settings: {} }],
+                { filename: `./test1/executor2.js`, settings: {} },
+            ],
         };
 
-        const subproofsCtx = createFakeSubproofsCtx([[0]]);
+        const airout = createFakeAirout([[0]]);
 
-        await runTest(settings, subproofsCtx);
+        await runTest(settings, airout);
     });
 
     it("thread are blocked until some payload is resolved", async () => {
@@ -25,12 +26,13 @@ describe("Witnes Computation Manager tests", async function () {
             name: "wcManager-test-2-" + Date.now(),
             witnessCalculators: [
                 { filename: `./test2/executor1.js`, settings: {} },
-                { filename: `./test2/executor2.js`, settings: {} }]
+                { filename: `./test2/executor2.js`, settings: {} },
+            ],
         };
 
-        const subproofsCtx = createFakeSubproofsCtx([[0]]);
+        const airout = createFakeAirout([[0]]);
 
-        await runTest(settings, subproofsCtx);
+        await runTest(settings, airout);
     });
 
     it("deferred payloads are solved", async () => {
@@ -39,12 +41,16 @@ describe("Witnes Computation Manager tests", async function () {
             witnessCalculators: [
                 { filename: `./test3/executor1.js`, settings: {} },
                 { filename: `./test3/executor2.js`, settings: {} },
-                { filename: `../../src/lib/witness_calculators/div_montgomery_batch_lib.js`, settings: {} } ]
+                {
+                    filename: `../../src/lib/witness_calculators/div_montgomery_batch_lib.js`,
+                    settings: {},
+                },
+            ],
         };
 
-        const subproofsCtx = createFakeSubproofsCtx([[0]]);
+        const airout = createFakeAirout([[0]]);
 
-        await runTest(settings, subproofsCtx);
+        await runTest(settings, airout);
     });
 
     it("throws an error when payloads cannot be solved", async () => {
@@ -52,24 +58,33 @@ describe("Witnes Computation Manager tests", async function () {
             name: "wcManager-test-4-" + Date.now(),
             witnessCalculators: [
                 { filename: `./test4/executor1.js`, settings: {} },
-                { filename: `./test4/executor2.js`, settings: {} }]
+                { filename: `./test4/executor2.js`, settings: {} },
+            ],
         };
 
-        const subproofsCtx = createFakeSubproofsCtx([[0]]);
+        const airout = createFakeAirout([[0]]);
 
-        await runTest(settings, subproofsCtx).catch(err => {
-            expect(err.message).to.equal("The executing processes do not respond, processes are stucked.");
+        await runTest(settings, airout).catch((err) => {
+            expect(err.message).to.equal(
+                "The executing processes do not respond, processes are stucked."
+            );
         });
     });
 
-    async function runTest(settings,subproofsCtx) {
+    async function runTest(settings, airout) {
         const wcManager = new WitnessCalculatorManager();
 
-        for(const witnessCalculator of settings.witnessCalculators) {
-            const witnessCalculatorLib =  path.join(__dirname, witnessCalculator.filename);
+        for (const witnessCalculator of settings.witnessCalculators) {
+            const witnessCalculatorLib = path.join(
+                __dirname,
+                witnessCalculator.filename
+            );
 
-            if (!await fileExists(witnessCalculatorLib)) {
-                log.error(`[${this.name}]`, `WitnessCalculator ${witnessCalculator.filename} does not exist.`);
+            if (!(await fileExists(witnessCalculatorLib))) {
+                log.error(
+                    `[${this.name}]`,
+                    `WitnessCalculator ${witnessCalculator.filename} does not exist.`
+                );
                 return false;
             }
             witnessCalculator.witnessCalculatorLib = witnessCalculatorLib;
@@ -77,39 +92,19 @@ describe("Witnes Computation Manager tests", async function () {
 
         await wcManager.initialize(settings.witnessCalculators, {});
 
-        wcManager.proofCtx = { subproofsCtx };
+        wcManager.proofCtx = airout;
 
         return await wcManager.witnessComputation(1);
     }
 
-    function createFakeSubproofsCtx(subproofs) {
+    function createFakeAirout(subproofs) {
+        const fakeSubproofs = [];
 
-        const subproofsCtx = [];
-
-        for(let i=0; i< subproofs.length; i++) {
-            subproofsCtx[i] = {};
-            subproofsCtx[i].subproofId = i;
-            subproofsCtx[i].airsCtx = createFakeAirCtx(subproofs[i], i);
+        for (let i = 0; i < subproofs.length; i++) {
+            fakeSubproofs[i] = {};
+            fakeSubproofs[i].subproofId = i;
         }
 
-        return subproofsCtx;
-    }
-
-    function createFakeAirCtx(airs, subproofId) {
-        const airCtx = [];
-
-        for(let i=0; i< airs.length; i++) {
-            airCtx[i] = [];
-            airCtx[i].airId = i;
-            airCtx[i].subproofCtx = { subproofId };
-            airCtx[i].instances = new Array(airs[i]);
-            for(let j=0; j< airs[i]; j++) {
-                airCtx[i].instances[j] = {
-                    instanceId: j,
-                };
-            }
-        }
-
-        return airCtx;
+        return { airout: { subproofs: fakeSubproofs } };
     }
 });

@@ -9,7 +9,7 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
         super("FibonccExe", wcManager, proofCtx);
     }
 
-    async witnessComputation(stageId, subproofCtx, airId, instanceId, publics) { 
+    async witnessComputation(stageId, subproofId, airId, instanceId, publics) { 
         if(stageId === 1) {
             if(instanceId !== -1) {
                 log.error(`[${this.name}]`, `Air instance id already existing in stageId 1.`);
@@ -18,35 +18,35 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
 
             /// NOTE: Here we decide for test purposes to create a fibonacci 2**4 and a module 2**4
             await this.wcManager.writeData(this, "Module.createInstances", {"airId": 0});
-            const airCtx = subproofCtx.airsCtx[1];
+            airId = 1;
 
-            log.info(`[${this.name}]`, `Creating air instance for air '${airCtx.name}' with N=${airCtx.layout.numRows} rows.`)
-            let { result, airInstance } = this.proofCtx.addAirInstance(airCtx.subproofId, airCtx.airId);
+            const air = this.proofCtx.airout.subproofs[subproofId].airs[airId];
+
+            log.info(`[${this.name}]`, `Creating air instance for air '${air.name}' with N=${air.numRows} rows.`)
+            let { result, airInstance } = this.proofCtx.addAirInstance(subproofId, airId, air.numRows);
 
             if (result === false) {
                 log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
                 throw new Error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
             }
         
-            this.createPolynomialTraces(subproofCtx, airCtx, airInstance,  publics);
+            this.createPolynomialTraces(airInstance, publics);
         } else if(stageId === 2) {
-            const instance = this.proofCtx.instances[instanceId];
+            const airInstance = this.proofCtx.instances[instanceId];
             const gsumName = "Fibonacci.gsum";
-            const polIdx = instance.ctx.pilInfo.cmPolsMap.findIndex(c => c.name === gsumName);
-
-            const airCtx = subproofCtx.airsCtx[airId];
+            const polIdx = airInstance.ctx.pilInfo.cmPolsMap.findIndex(c => c.name === gsumName);
 
             // Calculate the gsum polynomial
-            const gsum = this.createGsumTrace(airCtx, instance);
+            const gsum = this.createGsumTrace(airInstance);
 
-            setPol(instance.ctx, polIdx, gsum, "n");
+            setPol(airInstance.ctx, polIdx, gsum, "n");
         }
 
         return;
     }
 
-    createPolynomialTraces(subproofCtx, airCtx, airInstance, publics) {
-        const N = airCtx.layout.numRows;
+    createPolynomialTraces(airInstance, publics) {
+        const N = airInstance.layout.numRows;
 
         const mod = publics.mod;
 
@@ -66,8 +66,8 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
         publics.out = polA[N-1];
     }
 
-    createGsumTrace(airCtx, instance) {
-        const numRows = airCtx.layout.numRows;
+    createGsumTrace(airInstance) {
+        const numRows = airInstance.layout.numRows;
 
         const MODULE_ID = 1n;
         const stageId = 2;
@@ -84,7 +84,7 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
         const std_alpha = this.proofCtx.challenges[stageId - 1][std_alpha_airout.id];
         const std_beta = this.proofCtx.challenges[stageId - 1][std_beta_airout.id];
 
-        const den = new Array(airCtx.layout.numRows);
+        const den = new Array(airInstance.layout.numRows);
 
         // for (let i = 0; i < numRows; i++) {
         //     den[i] = F.div(F.negone, MODULE_ID);
@@ -92,8 +92,8 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
 
         // }
 
-        const polA = instance.wtnsPols.Fibonacci.a;
-        const polB = instance.wtnsPols.Fibonacci.b;
+        const polA = airInstance.wtnsPols.Fibonacci.a;
+        const polB = airInstance.wtnsPols.Fibonacci.b;
 
         for (let i = 0; i < numRows; i++) {
             const isLast = i === numRows - 1;
@@ -108,7 +108,7 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
             if(i!==0) den[i] = F.add(den[i], den[i-1]);
         }
 
-        instance.ctx.subproofValues.push(den[numRows - 1]);
+        airInstance.ctx.subproofValues.push(den[numRows - 1]);
         return den;
 
         function gsumitem(a, aprime, b, out, alpha, beta, MODULE_ID, isLast) {

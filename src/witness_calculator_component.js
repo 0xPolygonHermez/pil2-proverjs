@@ -10,7 +10,6 @@
 ///     - airId: the ID of the AIR
 ///     - instanceId: the ID of the instance
 ///     - proofCtx: the proof context object
-///     - subproofCtx: the subproof context object
 /// The `witnessComputation()` method should return one of the following values:
 
 const { AirBusPayload, PayloadTypeEnum } = require("./proof_bus.js");
@@ -56,12 +55,12 @@ class WitnessCalculatorComponent {
         throw new Error("Method 'witnessComputation' must be implemented in concrete classes.");
     }
 
-    async _witnessComputation(stageId, subproofCtx, airId, instanceId, publics) {
+    async _witnessComputation(stageId, subproofId, airId, instanceId, publics) {
         return new Promise(async (resolve, reject) => {
             try {
                 // log.info(`[${this.name}]`, `-> stageId: ${stageId} airId: ${airId} instanceId: ${instanceId}`);
 
-                await this.witnessComputation(stageId, subproofCtx, airId, instanceId, publics);
+                await this.witnessComputation(stageId, subproofId, airId, instanceId, publics);
 
                 this.wcManager.releaseDeferredLock();
                 

@@ -95,23 +95,25 @@ module.exports = class WitnessCalculatorManager {
         this.wcDeferredLock = new TargetLock(regulars.length, 0);
 
         // NOTE: The first witness calculator is always the witness calculator deferred
-        executors.push(this.witnessComputationDeferred(stageId, this.proofCtx.subproofsCtx, -1, -1));
+        executors.push(this.witnessComputationDeferred(stageId));
 
         if(stageId === 1) {
-            for (const subproofCtx of this.proofCtx.subproofsCtx) {
-                for (const wc of regulars) {
-                    if(!wc.sm || subproofCtx.name === wc.sm) {
-                        executors.push(wc._witnessComputation(stageId, subproofCtx, -1, -1, publics));
+            for( let i = 0; i < this.proofCtx.airout.subproofs.length; i++) {
+                const subproof = this.proofCtx.airout.subproofs[i];
+
+                for (const wc of regulars) { 
+                    if(!wc.sm || subproof.name === wc.sm) {
+                        executors.push(wc._witnessComputation(stageId, i, -1, -1, publics));
                     }
                 }
             }   
         } else {
             for (const wc of regulars) {
                 for(const instance of this.proofCtx.instances) {
-                    const subproofCtx = this.proofCtx.subproofsCtx[instance.subproofId];
+                    const subproof = this.proofCtx.airout.subproofs[instance.subproofId];
 
-                    if(!wc.sm || subproofCtx.name === wc.sm) {
-                        executors.push(wc._witnessComputation(stageId, subproofCtx, instance.airId, instance.instanceId, publics));
+                    if(!wc.sm || subproof.name === wc.sm) {
+                        executors.push(wc._witnessComputation(stageId, instance.subproofId, instance.airId, instance.instanceId, publics));
                     }
                 }
             }
@@ -225,15 +227,15 @@ module.exports = class WitnessCalculatorManager {
         if(this.wcDeferredLock) this.wcDeferredLock.release();
     }
 
-    async executeDeferredModules(stageId, airCtx, instanceId) {
+    async executeDeferredModules(stageId) {
         const deferredModules = this.wc.filter(wc => wc.type === ModuleTypeEnum.DEFERRED);
 
         for(const module of deferredModules) {
-            await module._witnessComputation(stageId, airCtx, instanceId);
+            await module._witnessComputation(stageId);
         }
     }
 
-    async witnessComputationDeferred(stageId, subproofCtx, airId, instanceId, publics) {
+    async witnessComputationDeferred(stageId) {
         return new Promise(async (resolve, reject) => {
             let _lastSolvedpayloadId;
             try {
@@ -244,7 +246,7 @@ module.exports = class WitnessCalculatorManager {
 
                     log.info(`[${this.name}]`, `Initiating the process to unblock witness calculators`);
 
-                    await this.executeDeferredModules(stageId, airId, instanceId);
+                    await this.executeDeferredModules(stageId);
     
                     const lastSolvedpayloadId = this.lastSolvedpayloadId;
                     if(_lastSolvedpayloadId === lastSolvedpayloadId) {

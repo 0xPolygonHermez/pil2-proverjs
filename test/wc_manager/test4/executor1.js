@@ -7,7 +7,7 @@ module.exports = class Executor1 extends WitnessCalculatorComponent {
         super("Executor1", wcManager, proofCtx);
     }
 
-    async witnessComputation(stageId, subproofCtx, airId, instanceId) {
+    async witnessComputation(stageId, subproofId, airId, instanceId) {
         await this.wcManager.readData(this, "A");
     }
 };

@@ -21,15 +21,15 @@ class ProofCtx {
         this.challenges = [];
         this.instances = [];
         this.numInstances = 0;
-        this.subproofsCtx = [];
     }
 
     async initialize(publics) {
-        //this.resetProofCtx(); 
         this.publics = publics;
 
         const poseidon = await buildPoseidonGL();
         this.transcript = new Transcript(poseidon);
+
+        this.instances = [];
     }
 
     addChallengeToTranscript(challenge) {
@@ -53,31 +53,22 @@ class ProofCtx {
         return this.challenges[stageId];
     }
 
-    // Private methods
-    addNewSubproof(subproofId, airout) {
-        this.subproofsCtx[subproofId] = new SubproofCtx(airout, subproofId, this);
-
-        return this.subproofsCtx[subproofId];
-    }
-
     getAirout() {
         return this.airout;
     }
 
     // Allocate a new buffer for the given subproofId and airId with the given numRows.
-    addAirInstance(subproofId, airId) {
-        const subproofCtx = this.subproofsCtx[subproofId];
-        const airCtx = subproofCtx.airsCtx[airId];
-
-        if (airCtx === undefined) return { result: false, data: undefined };
-
-        const instanceId = this.numInstances++;
-        const airInstance = new AirInstance(subproofId, airId, instanceId);
-        this.instances[instanceId] = airInstance;
-
+    addAirInstance(subproofId, airId, numRows) {
         const air = this.airout.getAirBySubproofIdAirId(subproofId, airId);
 
-        airInstance.wtnsPols = newCommitPolsArrayPil2(air.symbols, air.numRows, subproofCtx.F);
+        if (air === undefined) return { result: false, data: undefined };
+
+        const instanceId = this.numInstances++;
+        const layout = { numRows };
+        const airInstance = new AirInstance(subproofId, airId, instanceId, layout);
+        this.instances[instanceId] = airInstance;
+
+        airInstance.wtnsPols = newCommitPolsArrayPil2(air.symbols, air.numRows, this.F);
 
         return { result: true, airInstance};
     }   
@@ -94,10 +85,6 @@ class ProofCtx {
     static createProofCtxFromAirout(name, airout, finiteField) {
         const proofCtx = new ProofCtx(name, finiteField);
         proofCtx.airout = airout;
-
-        for(let i = 0; i < airout.subproofs.length; i++) {
-            proofCtx.addNewSubproof(i, airout);
-        }
 
         if (airout.numChallenges !== undefined) {
             for (let i = 0; i < airout.numChallenges.length; i++) {
@@ -125,64 +112,14 @@ class ProofCtx {
     }
 }
 
-class SubproofCtx {
-    /**
-     * Creates a new SubproofCtxStruct instance.
-     * @constructor
-     * @param {number} subproofId - The subproofId property.
-     * @param {string} name - The name property.
-     * @param {AirInstance[]} airCtx - An array of air contexts.
-     */
-    constructor(airout, subproofId, proofCtx) {
-        if(airout.subproofs[subproofId] === undefined) {
-            log.error(`Subproof ${subproofId} not found in airout`);
-            throw new Error(`Subproof ${subproofId} not found in airout`);
-        }
-
-        //this.F = proofCtx.F;
-
-        //TODO remove this
-        this.proofCtx = proofCtx;
-
-        const subproof = airout.subproofs[subproofId];
-
-        this.subproofId = subproofId;
-        this.name = subproof.name;
-
-        this.airsCtx = [];
-        for (let i = 0; i < subproof.airs.length; i++) {
-            const hasSubproofValue = subproof.subproofvalues !== undefined && subproof.subproofvalues[i] !== undefined;
-            const airCtx = new AirCtx(i, this, subproof.airs[i], hasSubproofValue);
-            this.airsCtx.push(airCtx);
-        }
-    }
-}
-
-class AirCtx {
-    /**
-     * @param {number} airId - The airId property.
-     * @param {number} numRows - The number of rows in the AIR.
-    */
-    constructor(airId, subproofCtx, air, hasSubproofValue) {
-        this.subproofId = subproofCtx.subproofId;
-        this.airId = airId;
-        this.name = air.name;
-        this.layout = { numRows: air.numRows };
-        
-        this.subproofCtx = subproofCtx;
-        this.hasSubproofValue = hasSubproofValue;
-
-        this.setup;
-    }
-}
-
 class AirInstance {
-    constructor(subproofId, airId, instanceId) {
+    constructor(subproofId, airId, instanceId, layout) {
         this.subproofId = subproofId;
         this.airId = airId;
         this.instanceId = instanceId;
 
         this.proof = {};
+        this.layout = layout;
     }
 }
 

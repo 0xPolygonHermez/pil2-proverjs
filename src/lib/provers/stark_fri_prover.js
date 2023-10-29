@@ -41,9 +41,7 @@ class StarkFriProver extends ProverComponent {
 
     async setup(instance) {
         const air = this.proofCtx.airout.getAirBySubproofIdAirId(instance.subproofId, instance.airId);
-        const airCtx = this.proofCtx.subproofsCtx[instance.subproofId].airsCtx[instance.airId];
-
-        const fixedPols = newConstantPolsArrayPil2(air.symbols, airCtx.layout.numRows, this.proofCtx.F);
+        const fixedPols = newConstantPolsArrayPil2(air.symbols, instance.layout.numRows, this.proofCtx.F);
         getFixedPolsPil2(air, fixedPols, this.proofCtx.F);
 
         const options = {
@@ -51,17 +49,19 @@ class StarkFriProver extends ProverComponent {
             pil1: false,
         };
 
-        airCtx.setup = await starkSetup(fixedPols, air, this.starkStruct, options);
-        airCtx.setup.fixedPols = fixedPols;
+        air.setup = await starkSetup(fixedPols, air, this.starkStruct, options);
+        air.setup.fixedPols = fixedPols;
     }
 
     // TODO instances has to be here or to be called from provers manager?
-    async newProof(airCtx, publics) {
-        const instances = this.proofCtx.getInstancesBySubproofIdAirId(airCtx.subproofId, airCtx.airId);
-        for (const airInstance of instances) {  
-            log.info(`[${this.name}]`, `Initializing new proof for air '${airCtx.name}'`);
+    async newProof(subproofId, airId, publics) {
+        const airInstances = this.proofCtx.getInstancesBySubproofIdAirId(subproofId, airId);
+        const air = this.proofCtx.airout.getAirBySubproofIdAirId(subproofId, airId);
+
+        for (const airInstance of airInstances) {  
+            log.info(`[${this.name}]`, `Initializing new proof for air '${air.name}'`);
  
-            airInstance.ctx = await initProverStark(airCtx.setup.starkInfo, airCtx.setup.fixedPols, airCtx.setup.constTree, this.options);                   
+            airInstance.ctx = await initProverStark(air.setup.starkInfo, air.setup.fixedPols, air.setup.constTree, this.options);
             airInstance.publics = publics;
         }
     }
@@ -162,10 +162,10 @@ class StarkFriProver extends ProverComponent {
     async computeOpenings(airInstance) {
         const ctx = airInstance.ctx;
 
-        const subproofCtx = this.proofCtx.subproofsCtx[airInstance.subproofId];
+        const subproof = this.proofCtx.airout.subproofs[airInstance.subproofId];
         log.info(
             `[${this.name}]`,
-            `··· Computing Openings for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
+            `··· Computing Openings for subproof ${subproof.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
         const evalCommits = await computeEvalsStark(ctx, this.options);
@@ -176,10 +176,10 @@ class StarkFriProver extends ProverComponent {
     async computeFRIStark(airInstance) {
         const ctx = airInstance.ctx;
 
-        const subproofCtx = this.proofCtx.subproofsCtx[airInstance.subproofId];
+        const subproof = this.proofCtx.airout.subproofs[airInstance.subproofId];
         log.info(
             `[${this.name}]`,
-            `··· Computing FRI Stark for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
+            `··· Computing FRI Stark for subproof ${subproof.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
         await computeFRIStark(ctx, this.options);
@@ -191,10 +191,10 @@ class StarkFriProver extends ProverComponent {
         const challenge = this.proofCtx.getChallenge(stageId - 1)[0];
         const ctx = airInstance.ctx;
 
-        const subproofCtx = this.proofCtx.subproofsCtx[airInstance.subproofId];
+        const subproof = this.proofCtx.airout.subproofs[airInstance.subproofId];
         log.info(
             `[${this.name}]`,
-            `··· Computing FRI Folding for subproof ${subproofCtx.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
+            `··· Computing FRI Folding for subproof ${subproof.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
         const friCommits = await computeFRIFolding(params.step, ctx, challenge, this.options);

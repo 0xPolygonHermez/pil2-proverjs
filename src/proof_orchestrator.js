@@ -149,12 +149,7 @@ module.exports = class ProofOrchestrator {
     }
 
     async newProof(publics) {
-        this.proofCtx.initialize(publics);
-        for (const subproofCtx of this.proofCtx.subproofsCtx) {
-            for (const airCtx of subproofCtx.airsCtx) {
-                airCtx.instances = [];
-            }
-        }
+        await this.proofCtx.initialize(publics);
     }
 
     async generateProof(publics) {
@@ -165,7 +160,6 @@ module.exports = class ProofOrchestrator {
             if(this.options.onlyCheck === undefined || this.options.onlyCheck === false) {
                 log.info(`[${this.name}]`, `==> STARTING GENERATION OF THE PROOF '${this.config.name}'.`);
             }
-
 
             await this.newProof(publics);
 
@@ -191,9 +185,8 @@ module.exports = class ProofOrchestrator {
         
                         result = result && await this.proversManager.provers[proverId].verifyPil(stageId, instance);
         
-                        const airCtx = this.proofCtx.subproofsCtx[instance.subproofId].airsCtx[instance.airId];
                         if (result === false) {
-                            log.error(`[${this.name}]`, `PIL verification failed for subproof ${instance.subproofId} and air ${instance.airId} with N=${airCtx.layout.numRows} rows.`);
+                            log.error(`[${this.name}]`, `PIL verification failed for subproof ${instance.subproofId} and air ${instance.airId} with N=${instance.layout.numRows} rows.`);
                             break;
                         }
                     }
@@ -229,19 +222,11 @@ module.exports = class ProofOrchestrator {
                 proofs,
                 challenges: this.proofCtx.challenges.slice(0, this.proofCtx.airout.numStages + 3),
                 challengesFRISteps: this.proofCtx.challenges.slice(this.proofCtx.airout.numStages + 3).map(c => c[0]),
-            };    
+            };
+
         } catch (error) {
             log.error(`[${this.name}]`, `Error while generating proof: ${error}`);
             throw error;
-        } finally {
-            this.finalizeProve();
         }
-    }
-
-    finalizeProve() {
-        // TODO Finalize airout
-        //if (this.wcManager) delete this.wcManager;
-        // TODO Finalize prover
-        // TODO Finalize setup
     }
 }
