@@ -34,9 +34,27 @@ class AirOut {
 
         Object.assign(this, AirOut.toObject(AirOut.decode(airoutEncoded)));
 
+        this.preprocessAirout();
+
         this.printInfo();
 
         log.info("[AirOutPrsr]", "AirOut loaded.");
+    }
+
+    preprocessAirout() {
+        for(let i=0; i<this.subproofs.length; i++) {
+            const subproof = this.subproofs[i];
+            subproof.subproofId = i;
+            for(let j=0; j<subproof.airs.length; j++) {
+                const air = subproof.airs[j];
+                air.subproofId = i;
+                air.airId = j;
+
+                air.symbols = this.getSymbolsBySubproofIdAirId(subproof.subproofId, air.airId);
+                air.hints = this.getHintsBySubproofIdAirId(subproof.subproofId, air.airId);
+                air.numChallenges = this.numChallenges;
+            }
+        }
     }
 
     printInfo() {

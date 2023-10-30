@@ -39,9 +39,9 @@ class StarkFriProver extends ProverComponent {
         this.starkStruct = require(starkStructFilename);
     }
 
-    async setup(instance) {
-        const air = this.proofCtx.airout.getAirBySubproofIdAirId(instance.subproofId, instance.airId);
-        const fixedPols = newConstantPolsArrayPil2(air.symbols, instance.layout.numRows, this.proofCtx.F);
+    async setup(airInstance) {
+        const air = this.proofCtx.airout.getAirBySubproofIdAirId(airInstance.subproofId, airInstance.airId);
+        const fixedPols = newConstantPolsArrayPil2(air.symbols, airInstance.layout.numRows, this.proofCtx.F);
         getFixedPolsPil2(air, fixedPols, this.proofCtx.F);
 
         const options = {
@@ -55,7 +55,7 @@ class StarkFriProver extends ProverComponent {
 
     // TODO instances has to be here or to be called from provers manager?
     async newProof(subproofId, airId, publics) {
-        const airInstances = this.proofCtx.getInstancesBySubproofIdAirId(subproofId, airId);
+        const airInstances = this.proofCtx.getAirInstancesBySubproofIdAirId(subproofId, airId);
         const air = this.proofCtx.airout.getAirBySubproofIdAirId(subproofId, airId);
 
         for (const airInstance of airInstances) {  
@@ -66,8 +66,8 @@ class StarkFriProver extends ProverComponent {
         }
     }
 
-    async verifyPil(stageId, instance) {
-        const ctx = instance.ctx;
+    async verifyPil(stageId, airInstance) {
+        const ctx = airInstance.ctx;
 
         ctx.errors = [];
 
@@ -213,7 +213,7 @@ class StarkFriProver extends ProverComponent {
 
         computeFRIQueries(ctx, friQueries);
 
-        this.proofCtx.instances[airInstance.instanceId].proof = await genProofStark(ctx, this.options);
+        this.proofCtx.airInstances[airInstance.instanceId].proof = await genProofStark(ctx, this.options);
     }    
 
 }

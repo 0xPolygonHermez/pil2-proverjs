@@ -19,7 +19,7 @@ class ProofCtx {
     resetProofCtx() {
         this.publics = [];
         this.challenges = [];
-        this.instances = [];
+        this.airInstances = [];
         this.numInstances = 0;
     }
 
@@ -29,7 +29,7 @@ class ProofCtx {
         const poseidon = await buildPoseidonGL();
         this.transcript = new Transcript(poseidon);
 
-        this.instances = [];
+        this.airInstances = [];
     }
 
     addChallengeToTranscript(challenge) {
@@ -66,7 +66,7 @@ class ProofCtx {
         const instanceId = this.numInstances++;
         const layout = { numRows };
         const airInstance = new AirInstance(subproofId, airId, instanceId, layout);
-        this.instances[instanceId] = airInstance;
+        this.airInstances[instanceId] = airInstance;
 
         airInstance.wtnsPols = newCommitPolsArrayPil2(air.symbols, air.numRows, this.F);
 
@@ -74,9 +74,10 @@ class ProofCtx {
     }   
 
     // Proof API
-    getInstancesBySubproofIdAirId(subproofId, airId) {
-        const instances = this.instances.filter(instance => instance.subproofId === subproofId && instance.airId === airId);
-        return instances.sort((a, b) => a.instanceId - b.instanceId);
+    getAirInstancesBySubproofIdAirId(subproofId, airId) {
+        const airInstances = this.airInstances.filter(airInstance => airInstance.subproofId === subproofId && airInstance.airId === airId);
+
+        return airInstances.sort((a, b) => a.instanceId - b.instanceId);
     }
 
     // getAirCols(subproofId, airId)

@@ -55,14 +55,6 @@ module.exports = class ProofOrchestrator {
 
         const airout = new AirOut(this.config.airout.airoutFilename, this.config.airout.airoutProto);
 
-        for( let i = 0; i < airout.subproofs.length; i++) {
-            for( let j = 0; j < airout.subproofs[i].airs.length; j++) {
-                airout.subproofs[i].airs[j].symbols = airout.getSymbolsBySubproofIdAirId(i, j);
-                airout.subproofs[i].airs[j].hints = airout.getHintsBySubproofIdAirId(i, j);
-                airout.subproofs[i].airs[j].numChallenges = airout.numChallenges;
-            }
-        }
-
         // Create the finite field object
         const finiteField = FiniteFieldFactory.createFiniteField(airout.baseField);
         this.proofCtx = ProofCtx.createProofCtxFromAirout(this.config.name, airout, finiteField);
@@ -180,13 +172,13 @@ module.exports = class ProofOrchestrator {
                 if(this.options.onlyCheck) {
                     log.info(`[${this.name}]`, `==> CHECKING CONSTRAINTS STAGE ${stageId}`);
                     result = true;
-                    for (const instance of this.proofCtx.instances) {
-                        const proverId = this.proversManager.getProverIdFromInstance(instance);
+                    for (const airInstance of this.proofCtx.airInstances) {
+                        const proverId = this.proversManager.getProverIdFromInstance(airInstance);
         
-                        result = result && await this.proversManager.provers[proverId].verifyPil(stageId, instance);
+                        result = result && await this.proversManager.provers[proverId].verifyPil(stageId, airInstance);
         
                         if (result === false) {
-                            log.error(`[${this.name}]`, `PIL verification failed for subproof ${instance.subproofId} and air ${instance.airId} with N=${instance.layout.numRows} rows.`);
+                            log.error(`[${this.name}]`, `PIL verification failed for subproof ${airInstance.subproofId} and air ${airInstance.airId} with N=${airInstance.layout.numRows} rows.`);
                             break;
                         }
                     }
@@ -212,10 +204,10 @@ module.exports = class ProofOrchestrator {
 
             let proofs = [];
     
-            for(const instance of this.proofCtx.instances) {
-                instance.proof.subproofId = instance.subproofId;
-                instance.proof.airId = instance.airId;
-                proofs.push(instance.proof);
+            for(const airInstance of this.proofCtx.airInstances) {
+                airInstance.proof.subproofId = airInstance.subproofId;
+                airInstance.proof.airId = airInstance.airId;
+                proofs.push(airInstance.proof);
             }
     
             return {

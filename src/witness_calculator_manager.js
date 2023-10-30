@@ -98,22 +98,20 @@ module.exports = class WitnessCalculatorManager {
         executors.push(this.witnessComputationDeferred(stageId));
 
         if(stageId === 1) {
-            for( let i = 0; i < this.proofCtx.airout.subproofs.length; i++) {
-                const subproof = this.proofCtx.airout.subproofs[i];
-
+            for(const subproof of this.proofCtx.airout.subproofs) {
                 for (const wc of regulars) { 
                     if(!wc.sm || subproof.name === wc.sm) {
-                        executors.push(wc._witnessComputation(stageId, i, -1, -1, publics));
+                        executors.push(wc._witnessComputation(stageId, subproof.subproofId, -1, -1, publics));
                     }
                 }
             }   
         } else {
             for (const wc of regulars) {
-                for(const instance of this.proofCtx.instances) {
-                    const subproof = this.proofCtx.airout.subproofs[instance.subproofId];
+                for(const airInstance of this.proofCtx.airInstances) {
+                    const subproof = this.proofCtx.airout.subproofs[airInstance.subproofId];
 
                     if(!wc.sm || subproof.name === wc.sm) {
-                        executors.push(wc._witnessComputation(stageId, instance.subproofId, instance.airId, instance.instanceId, publics));
+                        executors.push(wc._witnessComputation(stageId, airInstance.subproofId, airInstance.airId, airInstance.instanceId, publics));
                     }
                 }
             }

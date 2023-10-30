@@ -29,7 +29,7 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
         
             this.createPolynomialTraces(air, airInstance, publics);
         } else if(stageId === 2) {
-            const airInstance = this.proofCtx.instances[instanceId];
+            const airInstance = this.proofCtx.airInstances[instanceId];
             const gsumPolName = "Module.gsum";
             const polIdx = airInstance.ctx.pilInfo.cmPolsMap.findIndex(c => c.name === gsumPolName);
 

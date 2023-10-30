@@ -19,21 +19,12 @@ module.exports = async function setupCmd(proofManagerConfig) {
     };
 
     let setup = [];
-    for( let i = 0; i < airout.subproofs.length; i++) {
-        setup[i] = [];
-        for( let j = 0; j < airout.subproofs[i].airs.length; j++) {
-            log.info("[Setup  Cmd]", `Setup for air '${airout.subproofs[i].airs[j].name}'`);
-            const air = airout.subproofs[i].airs[j];
-            air.symbols = airout.getSymbolsBySubproofIdAirId(i, j);
-            air.hints = airout.hints;
-            air.numChallenges = airout.numChallenges;
-            air.subproofId = i;
-            air.airId = j;
+    for(const subproof of airout.subproofs) {
+        setup[subproof.subproofId] = [];
+        for(const air of subproof.airs) {
+            log.info("[Setup  Cmd]", `Setup for air '${air.name}'`);
 
-            let settings =
-                proofManagerConfig.prover.settings[air.name] ||
-                // proofManagerConfig.prover.settings[air.name]?.default ||
-                proofManagerConfig.prover.settings.default;
+            let settings = proofManagerConfig.prover.settings[air.name] || proofManagerConfig.prover.settings.default;
             
             if (!settings) {
                 log.error(`[${this.name}]`, `No settings for air '${air.name}'${air.numRows ? ` with N=${air.numRows}` : ''}`);
@@ -42,14 +33,12 @@ module.exports = async function setupCmd(proofManagerConfig) {
         
             const starkStructFilename =  path.join(__dirname, "../../", settings.starkStruct);
             const starkStruct = require(starkStructFilename);
-
-            const airSymbols = airout.getSymbolsBySubproofIdAirId(i, j);
             
-            const fixedPols = newConstantPolsArrayPil2(airSymbols, air.numRows, setupOptions.F)
+            const fixedPols = newConstantPolsArrayPil2(air.symbols, air.numRows, setupOptions.F)
             getFixedPolsPil2(air, fixedPols, setupOptions.F);
 
             
-            setup[i][j] = await starkSetup(fixedPols, air, starkStruct, setupOptions);
+            setup[subproof.subproofId][air.airId] = await starkSetup(fixedPols, air, starkStruct, setupOptions);
         }
     }
 
