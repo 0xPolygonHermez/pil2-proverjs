@@ -14,6 +14,8 @@ function getSettings() {
         witnessCalculators: [
             { filename: `./test/fibonacci-vadcop/executor_fibonacci.js`, settings: {}, sm: "Fibonacci" },
             { filename: `./test/fibonacci-vadcop/executor_module.js`, settings: {}, sm: "Module" },
+            { filename: `./src/lib/witness_calculators/logup.js`, settings: {} },
+            { filename: `./src/lib/witness_calculators/div_lib.js`, settings: {}, },
         ],
         prover: {
             filename: "./src/lib/provers/stark_fri_prover.js",

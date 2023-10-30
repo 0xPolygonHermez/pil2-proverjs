@@ -118,9 +118,10 @@ class AirInstance {
         this.subproofId = subproofId;
         this.airId = airId;
         this.instanceId = instanceId;
-
         this.proof = {};
         this.layout = layout;
+
+        this.tmpPol = [];
     }
 }
 

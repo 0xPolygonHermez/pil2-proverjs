@@ -1,7 +1,5 @@
 const { WitnessCalculatorComponent } = require("../../src/witness_calculator_component.js");
 
-const { setPol } = require("pil2-stark-js/src/prover/prover_helpers.js");
-
 const log = require("../../logger.js");
 
 class FibonacciVadcop extends WitnessCalculatorComponent {
@@ -31,15 +29,6 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
             }
         
             this.createPolynomialTraces(airInstance, publics);
-        } else if(stageId === 2) {
-            const airInstance = this.proofCtx.airInstances[instanceId];
-            const gsumName = "Fibonacci.gsum";
-            const polIdx = airInstance.ctx.pilInfo.cmPolsMap.findIndex(c => c.name === gsumName);
-
-            // Calculate the gsum polynomial
-            const gsum = this.createGsumTrace(airInstance);
-
-            setPol(airInstance.ctx, polIdx, gsum, "n");
         }
 
         return;
@@ -60,66 +49,10 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
         for (let i = 1; i < N; i++) {
             polA[i] = (polA[i - 1]*polA[i - 1] + polB[i - 1]*polB[i - 1]) % mod;
             polB[i] = polA[i-1];
-            // console.log(polA[i], polB[i]);
         }
 
         publics.out = polA[N-1];
     }
-
-    createGsumTrace(airInstance) {
-        const numRows = airInstance.layout.numRows;
-
-        const MODULE_ID = 1n;
-        const stageId = 2;
-        const F = this.proofCtx.F;
-
-        const std_alpha_airout = this.proofCtx.airout.getSymbolByName("std_alpha");
-        const std_beta_airout = this.proofCtx.airout.getSymbolByName("std_beta");
-
-        if(std_alpha_airout.stage !== stageId || std_beta_airout.stage !== stageId) {
-            log.error(`[${this.name}]`, `std_alpha or std_beta not in stage ${stageId}.`);
-            throw new Error(`[${this.name}]`, `std_alpha or std_beta not in stage ${stageId}.`);
-        }
-
-        const std_alpha = this.proofCtx.challenges[stageId - 1][std_alpha_airout.id];
-        const std_beta = this.proofCtx.challenges[stageId - 1][std_beta_airout.id];
-
-        const den = new Array(airInstance.layout.numRows);
-
-        // for (let i = 0; i < numRows; i++) {
-        //     den[i] = F.div(F.negone, MODULE_ID);
-        //     if(i!==0) den[i] = F.add(den[i], den[i-1]);
-
-        // }
-
-        const polA = airInstance.wtnsPols.Fibonacci.a;
-        const polB = airInstance.wtnsPols.Fibonacci.b;
-
-        for (let i = 0; i < numRows; i++) {
-            const isLast = i === numRows - 1;
-            const iPrime = isLast ? 0 : i + 1;
-
-            den[i] = gsumitem(polA[i], polA[iPrime], polB[i], this.proofCtx.publics.out, std_alpha, std_beta, MODULE_ID, isLast);
-        }
-
-        //TODO apply montgomery batch division
-        for (let i = 0; i < numRows; i++) {
-            den[i] = F.div(F.negone, den[i]);
-            if(i!==0) den[i] = F.add(den[i], den[i-1]);
-        }
-
-        airInstance.ctx.subproofValues.push(den[numRows - 1]);
-        return den;
-
-        function gsumitem(a, aprime, b, out, alpha, beta, MODULE_ID, isLast) {
-            const t1 = MODULE_ID;
-            const t2 = beta;
-            const t3 = F.mul(alpha, F.add(F.square(a), F.square(b)));
-            const t4 = F.mul(F.square(alpha), isLast ? out : aprime);
-
-            return F.add(F.add(F.add(t1, t2), t3), t4);
-        }
-    }   
 }
 
 module.exports = FibonacciVadcop;
