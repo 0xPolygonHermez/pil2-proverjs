@@ -4,8 +4,10 @@ const { fileExists } = require("../utils.js");
 const path = require("path");
 
 const log = require("../../logger.js");
+const { executeCode } = require("pil2-stark-js/src/stark/stark_verify.js");
+const F3g = require("pil2-stark-js/src/helpers/f3g.js");
 
-module.exports = async function verifyCmd(proofManagerConfig, setup, proofs, challenges, challengesFRISteps, options) {
+module.exports = async function verifyCmd(proofManagerConfig, setup, proofs, challenges, challengesFRISteps, subproofValues, options) {
     log.info("[VERIFYCMD ]", "==> VERIFYING PROOF")
     const verifierFilename =  path.join(__dirname, "../..", proofManagerConfig.verifier.filename);
 
@@ -18,6 +20,20 @@ module.exports = async function verifyCmd(proofManagerConfig, setup, proofs, cha
     verifier.initialize(proofManagerConfig.verifier.settings, options);        
 
     let isValid = true;
+
+    const globalConstraints = setup[proofs.length].globalConstraints;
+    
+    const F = new F3g();
+
+    log.info("[VERIFYCMD ]", "==> VERIFYING GLOBAL CONSTRAINTS")
+
+    for(let i = 0; i < globalConstraints.length; i++) {
+        const res = executeCode(F, {subproofValues}, globalConstraints[i].code, true);
+        if(!F.isZero(res)) isValid = false;
+
+        if(!isValid) break;
+    }
+
     for(const proof of proofs) {    
         const constRoot = setup[proof.subproofId][proof.airId].constRoot;
         const starkInfo = setup[proof.subproofId][proof.airId].starkInfo;

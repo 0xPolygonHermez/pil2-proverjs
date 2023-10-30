@@ -10,6 +10,7 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
     }
 
     async witnessComputation(stageId, subproofId, airId, instanceId, publics) {
+        return;
         if(stageId === 2) {
             const airInstance = this.proofCtx.airInstances[instanceId];
             const subproof = this.proofCtx.airout.subproofs[subproofId];

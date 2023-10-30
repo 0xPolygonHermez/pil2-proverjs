@@ -3,6 +3,7 @@ const { hashBTree } = require("./hash_binary_tree.js");
 
 const log = require('../logger.js');
 const { calculateHashStark } = require("pil2-stark-js");
+const { getGlobalConstraintsInfo } = require("pil2-stark-js/src/pil_info/getGlobalConstraintsInfo.js");
 
 const PROVER_OPENINGS_PENDING  = 1;
 const PROVER_OPENINGS_COMPLETED = 2;
@@ -80,6 +81,8 @@ class ProversManager {
 
             await this.provers[proverId].setup(airInstance);
         }
+
+        this.proofCtx.constraintsCode = getGlobalConstraintsInfo(this.proofCtx.airout, true);
     }
 
     async newProof(publics) {

@@ -45,12 +45,16 @@ class AirOut {
         for(let i=0; i<this.subproofs.length; i++) {
             const subproof = this.subproofs[i];
             subproof.subproofId = i;
+            const subproofValues = this.getSymbolsSubProofValuesBySubproofId(i);
             for(let j=0; j<subproof.airs.length; j++) {
                 const air = subproof.airs[j];
                 air.subproofId = i;
                 air.airId = j;
 
                 air.symbols = this.getSymbolsBySubproofIdAirId(subproof.subproofId, air.airId);
+                for(let k = 0; k < subproofValues.length; k++) {
+                    air.symbols.push({...subproofValues[k], airId: j});
+                }
                 air.hints = this.getHintsBySubproofIdAirId(subproof.subproofId, air.airId);
                 air.numChallenges = this.numChallenges;
             }
@@ -144,6 +148,12 @@ class AirOut {
         if(this.symbols === undefined) return [];
 
         return this.symbols.filter(symbol => symbol.subproofId === subproofId);
+    }
+
+    getSymbolsSubProofValuesBySubproofId(subproofId) {
+        if(this.symbols === undefined) return [];
+
+        return this.symbols.filter(symbol => symbol.subproofId === subproofId && symbol.type === 5 && symbol.airId === undefined);
     }
 
     getSymbolsByAirId(airId) {

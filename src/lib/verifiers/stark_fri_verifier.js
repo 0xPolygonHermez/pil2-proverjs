@@ -1,8 +1,8 @@
-const VerifierComponent = require("../../verififer.js");
+const VerifierComponent = require("../../verifier.js");
 const log = require("../../../logger.js");
 const starkVerify = require("pil2-stark-js/src/stark/stark_verify.js");
 
-class StarkFriVerififer extends VerifierComponent {
+class StarkFriVerifier extends VerifierComponent {
     constructor() {
         super("FRIVerfier");
     }
@@ -27,4 +27,4 @@ class StarkFriVerififer extends VerifierComponent {
     }
 }
 
-module.exports = StarkFriVerififer;
+module.exports = StarkFriVerifier;

@@ -96,7 +96,7 @@ class StarkFriProver extends ProverComponent {
 
         if (stageId === 1) {
             airInstance.wtnsPols.writeToBigBuffer(ctx.cm1_n, ctx.pilInfo.mapSectionsN.cm1);
-            this.calculatePublics(airInstance);
+            await this.calculatePublics(airInstance);
         }
 
         if(stageId <= airout.numStages + 1) {

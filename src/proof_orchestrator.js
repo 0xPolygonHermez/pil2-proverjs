@@ -14,6 +14,7 @@ const path = require("path");
 const FiniteFieldFactory = require("./finite_field_factory.js");
 
 const log = require("../logger.js");
+const { callCalculateExps } = require("pil2-stark-js/src/prover/prover_helpers.js");
 
 module.exports = class ProofOrchestrator {
     constructor(name) {
@@ -144,6 +145,26 @@ module.exports = class ProofOrchestrator {
         await this.proofCtx.initialize(publics);
     }
 
+    async verifyPilGlobalConstraints() {
+        this.proofCtx.errors = [];
+
+        for(let i =  0; i < this.proofCtx.constraintsCode.length; i++) {
+            const constraint = this.proofCtx.constraintsCode[i];
+            log.info(`··· Checking global constraint ${i + 1}/${this.proofCtx.constraintsCode.length}: ${constraint.line} `);
+            await callCalculateExps("global", constraint, "n", this.proofCtx, this.options.parallelExec, this.options.useThreads, true, true);
+        }
+
+
+        const isValid = this.proofCtx.errors.length === 0;
+        
+        if (!isValid) {
+            log.error(`[${this.name}]`, `PIL constraints have not been fulfilled!`);
+            for (let i = 0; i < this.proofCtx.errors.length; i++) log.error(`[${this.name}]`, this.proofCtx.errors[i]);
+        }
+
+        return isValid;
+    }
+
     async generateProof(publics) {
         this.checkInitialized();
 
@@ -167,6 +188,23 @@ module.exports = class ProofOrchestrator {
                 proverStatus = await this.proversManager.computeStage(stageId, publics, this.options);
 
                 log.info(`[${this.name}]`, `<== ${str} ${stageId}`);
+
+                if(stageId === this.proofCtx.airout.numStages) {
+                    for(let i = 0; i < this.proofCtx.airout.subproofs.length; i++) {
+                        const subproof = this.proofCtx.airout.subproofs[i];
+                        const subproofValues = subproof.subproofvalues;
+                        const instances = this.proofCtx.airInstances.filter(airInstance => airInstance.subproofId === i);
+                        for(let j = 0; j < subproofValues.length; j++) {
+                            const aggType = subproofValues[j].aggType;
+                            for(let k = 0; k < instances.length; k++) {
+                                const subproofValue = instances[k].ctx.subproofValues[j];
+                                this.proofCtx.subproofValues[i][j] = aggType === 0 
+                                    ? this.proofCtx.F.add(this.proofCtx.subproofValues[i][j], subproofValue) 
+                                    : this.proofCtx.F.mul(this.proofCtx.subproofValues[i][j], subproofValue);
+                            }
+                        }
+                    }
+                }
 
                 // If onlyCheck is true, we check the constraints stage by stage from stage1 to stageQ - 1 and do not generate the proof
                 if(this.options.onlyCheck) {
@@ -193,6 +231,11 @@ module.exports = class ProofOrchestrator {
                     }
 
                     if(stageId === this.proofCtx.airout.numStages) {
+                        const valid = await this.verifyPilGlobalConstraints();
+                        if(!valid) {
+                            log.error(`[${this.name}]`, `PIL verification failed for proof.`);
+                            break;
+                        }
                         log.info(`[${this.name}]`, `<== CONSTRAINTS SUCCESSFULLY FULLFILLED.`);
                         return result;
                     }
@@ -200,7 +243,6 @@ module.exports = class ProofOrchestrator {
             }
 
             log.info(`[${this.name}]`, `<== PROOF '${this.config.name}' SUCCESSFULLY GENERATED.`);
-            console.log();
 
             let proofs = [];
     
@@ -214,6 +256,7 @@ module.exports = class ProofOrchestrator {
                 proofs,
                 challenges: this.proofCtx.challenges.slice(0, this.proofCtx.airout.numStages + 3),
                 challengesFRISteps: this.proofCtx.challenges.slice(this.proofCtx.airout.numStages + 3).map(c => c[0]),
+                subproofValues: this.proofCtx.subproofValues,
             };
 
         } catch (error) {
