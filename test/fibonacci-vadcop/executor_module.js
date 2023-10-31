@@ -52,10 +52,6 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
             b = a;
             a = polX_mod[i];
         }
-
-        console.log(polX);
-        console.log(polQ);
-        console.log(polX_mod);
     }   
 }
 

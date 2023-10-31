@@ -113,6 +113,8 @@ class StarkFriProver extends ProverComponent {
         
             await applyHints(stageId, ctx);
 
+            await callCalculateExps(`stage${stageId}`, ctx.pilInfo.code[`stage${stageId}`], dom, ctx, this.settings.parallelExec, this.settings.useThreads, false);
+
             if(this.options.debug && stageId !== qStage) {
                 const nConstraintsStage = ctx.pilInfo.constraints[`stage${stageId}`].length;
 
