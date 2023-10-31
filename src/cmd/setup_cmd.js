@@ -42,7 +42,9 @@ module.exports = async function setupCmd(proofManagerConfig) {
             setup[subproof.subproofId][air.airId] = await starkSetup(fixedPols, air, starkStruct, setupOptions);
         }
 
-        setup[airout.subproofs.length] = { globalConstraints:  getGlobalConstraintsInfo(airout, true) }
+        if(airout.constraints !== undefined) {
+            setup[airout.subproofs.length] = { globalConstraints:  getGlobalConstraintsInfo(airout, true) }
+        }
     }
 
     return setup;

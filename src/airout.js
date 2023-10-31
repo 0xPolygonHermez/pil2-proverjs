@@ -45,15 +45,18 @@ class AirOut {
         for(let i=0; i<this.subproofs.length; i++) {
             const subproof = this.subproofs[i];
             subproof.subproofId = i;
-            const subproofValues = this.getSymbolsSubProofValuesBySubproofId(i);
+
+            const subproofValues = this.getSubProofValuesBySubproofId(i);
+
             for(let j=0; j<subproof.airs.length; j++) {
                 const air = subproof.airs[j];
                 air.subproofId = i;
                 air.airId = j;
 
                 air.symbols = this.getSymbolsBySubproofIdAirId(subproof.subproofId, air.airId);
-                for(let k = 0; k < subproofValues.length; k++) {
-                    air.symbols.push({...subproofValues[k], airId: j});
+
+                for(const subproofValue of subproofValues) {
+                    air.symbols.push( { ...subproofValue, airId: j });
                 }
                 air.hints = this.getHintsBySubproofIdAirId(subproof.subproofId, air.airId);
                 air.numChallenges = this.numChallenges;
@@ -150,10 +153,10 @@ class AirOut {
         return this.symbols.filter(symbol => symbol.subproofId === subproofId);
     }
 
-    getSymbolsSubProofValuesBySubproofId(subproofId) {
+    getSubProofValuesBySubproofId(subproofId) {
         if(this.symbols === undefined) return [];
 
-        return this.symbols.filter(symbol => symbol.subproofId === subproofId && symbol.type === 5 && symbol.airId === undefined);
+        return this.symbols.filter(symbol => symbol.subproofId === subproofId && symbol.type === SYMBOL_TYPES.SUBPROOF_VALUE && symbol.airId === undefined);
     }
 
     getSymbolsByAirId(airId) {

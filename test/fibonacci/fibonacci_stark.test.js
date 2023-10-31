@@ -18,7 +18,7 @@ function getSettings() {
                 default: { starkStruct: `./test/fibonacci/fibonacci_stark_struct.json` },
             },
         },
-        verifier: { filename: "./src/lib/verifiers/stark_fri_verifier.js", settings: {} },
+        verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
     };
 }
 

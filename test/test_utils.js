@@ -15,6 +15,7 @@ async function executeFullProveTest(proofManagerConfig, publics, options, execut
 
     assert(isValid == true, "PROOF NOT VALID");
 
+    // TODO uncomment when circom verifier is ready
     // if(executeCircom) await verifyCircomCmd(proofManagerConfig, setup, proofs, publics);
 
     log.info("[FULLPROVE ]", "<== FULL PROVE TEST")

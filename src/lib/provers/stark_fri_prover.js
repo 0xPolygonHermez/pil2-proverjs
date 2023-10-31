@@ -134,7 +134,7 @@ class StarkFriProver extends ProverComponent {
 
     async calculatePublics(airInstance) {
         const ctx = airInstance.ctx;
-        calculatePublics(ctx, airInstance.publics);
+        await calculatePublics(ctx, airInstance.publics);
     }
 
     async openingStage(openingId, airInstance) {

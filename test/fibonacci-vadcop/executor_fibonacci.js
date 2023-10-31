@@ -52,6 +52,9 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
         }
 
         publics.out = polA[N-1];
+        console.log(polA);
+        console.log(polB);
+        console.log(publics);
     }
 }
 

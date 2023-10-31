@@ -114,7 +114,7 @@ class ProofCtx {
         
         for(let i = 0; i < airout.subproofs.length; i++) {
             proofCtx.subproofValues[i] = [];
-            for(let j = 0; j < airout.subproofs[i].subproofvalues.length; j++) {
+            for(let j = 0; j < airout.subproofs[i].subproofvalues?.length; j++) {
                 const aggType = airout.subproofs[i].subproofvalues[j].aggType;
                 proofCtx.subproofValues[i][j] = aggType === 0 ? zero : one;
             }

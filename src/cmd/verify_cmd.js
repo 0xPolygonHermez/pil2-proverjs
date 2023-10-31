@@ -21,17 +21,19 @@ module.exports = async function verifyCmd(proofManagerConfig, setup, proofs, cha
 
     let isValid = true;
 
-    const globalConstraints = setup[proofs.length].globalConstraints;
-    
-    const F = new F3g();
+    if(setup[proofs.length] !== undefined) {
+        const globalConstraints = setup[proofs.length].globalConstraints;
+        
+        const F = new F3g();
 
-    log.info("[VERIFYCMD ]", "==> VERIFYING GLOBAL CONSTRAINTS")
+        log.info("[VERIFYCMD ]", "==> VERIFYING GLOBAL CONSTRAINTS")
 
-    for(let i = 0; i < globalConstraints.length; i++) {
-        const res = executeCode(F, {subproofValues}, globalConstraints[i].code, true);
-        if(!F.isZero(res)) isValid = false;
+        for(let i = 0; i < globalConstraints.length; i++) {
+            const res = executeCode(F, {subproofValues}, globalConstraints[i].code, true);
+            if(!F.isZero(res)) isValid = false;
 
-        if(!isValid) break;
+            if(!isValid) break;
+        }
     }
 
     for(const proof of proofs) {    

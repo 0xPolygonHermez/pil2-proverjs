@@ -17,7 +17,7 @@ function getSettings(prefix) {
             },
         },
         verifier: {
-            filename: "./src/lib/verifiers/stark_fri_verifier.js",
+            filename: "./src/lib/provers/stark_fri_verifier.js",
             settings: {},
         },
     };

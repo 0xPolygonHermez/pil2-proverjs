@@ -66,9 +66,10 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
     
             for (let i = 0; i < numRows; i++) {
                 const isLast = i === numRows - 1;
+                const nextIsLast = i + 1 === numRows - 1;
                 const iPrime = isLast ? 0 : i + 1;
     
-                airInstance.tmpPol[tmpPolIdx][i] = gsumitemFibo(polA[i], polA[iPrime], polB[i], this.proofCtx.publics.out, std_alpha, std_beta, MODULE_ID, isLast);
+                airInstance.tmpPol[tmpPolIdx][i] = gsumitemFibo(polA[i], polA[iPrime], polB[i], this.proofCtx.publics.out, std_alpha, std_beta, MODULE_ID, nextIsLast);
             }    
         }
 
@@ -82,6 +83,7 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
 
         // TODO: Replace this with hint
         airInstance.ctx.subproofValues.push(result[numRows - 1]);
+        
         return result;
 
         function gsumitemFibo(a, aprime, b, out, alpha, beta, MODULE_ID, isLast) {

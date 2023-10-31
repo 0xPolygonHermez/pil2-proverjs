@@ -82,7 +82,9 @@ class ProversManager {
             await this.provers[proverId].setup(airInstance);
         }
 
-        this.proofCtx.constraintsCode = getGlobalConstraintsInfo(this.proofCtx.airout, true);
+        if(this.proofCtx.airout.constraints !== undefined) {
+            this.proofCtx.constraintsCode = getGlobalConstraintsInfo(this.proofCtx.airout, true);
+        }
     }
 
     async newProof(publics) {

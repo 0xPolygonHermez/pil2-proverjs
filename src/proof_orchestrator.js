@@ -148,10 +148,12 @@ module.exports = class ProofOrchestrator {
     async verifyPilGlobalConstraints() {
         this.proofCtx.errors = [];
 
-        for(let i =  0; i < this.proofCtx.constraintsCode.length; i++) {
-            const constraint = this.proofCtx.constraintsCode[i];
-            log.info(`··· Checking global constraint ${i + 1}/${this.proofCtx.constraintsCode.length}: ${constraint.line} `);
-            await callCalculateExps("global", constraint, "n", this.proofCtx, this.options.parallelExec, this.options.useThreads, true, true);
+        if(this.proofCtx.constraintsCode !== undefined) {
+            for(let i =  0; i < this.proofCtx.constraintsCode.length; i++) {
+                const constraint = this.proofCtx.constraintsCode[i];
+                log.info(`··· Checking global constraint ${i + 1}/${this.proofCtx.constraintsCode.length}: ${constraint.line} `);
+                await callCalculateExps("global", constraint, "n", this.proofCtx, this.options.parallelExec, this.options.useThreads, true, true);
+            }
         }
 
 
@@ -193,6 +195,7 @@ module.exports = class ProofOrchestrator {
                     for(let i = 0; i < this.proofCtx.airout.subproofs.length; i++) {
                         const subproof = this.proofCtx.airout.subproofs[i];
                         const subproofValues = subproof.subproofvalues;
+                        if(subproofValues === undefined) continue;
                         const instances = this.proofCtx.airInstances.filter(airInstance => airInstance.subproofId === i);
                         for(let j = 0; j < subproofValues.length; j++) {
                             const aggType = subproofValues[j].aggType;

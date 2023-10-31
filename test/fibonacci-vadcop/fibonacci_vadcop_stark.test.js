@@ -24,7 +24,7 @@ function getSettings() {
                 Fibonacci_2: {starkStruct: `./test/fibonacci-vadcop/fibonacci_vadcop_stark_struct_2_2.json` },
             },
         },
-        verifier: { filename: "./src/lib/verifiers/stark_fri_verifier.js", settings: {} },
+        verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
     };
 
 }
