@@ -7,7 +7,7 @@ const path = require("path");
 
 const log = require("../../logger.js");
 
-module.exports = async function verifyCircomCmd(proofManagerConfig, setup, proofs, challenges, challengesFRISteps) {
+module.exports = async function verifyCircomCmd(setup, proofs, challenges, challengesFRISteps) {
     log.info("[CircomVrfr]", "==> CIRCOM PROOF VERIFICATION")
     
     const tmpPath =  path.join(__dirname, "../..", "tmp");
@@ -19,10 +19,10 @@ module.exports = async function verifyCircomCmd(proofManagerConfig, setup, proof
         log.info(`[CircomVrfr]`, `--> CIRCOM verification (subproofId ${proof.subproofId} airId ${proof.airId})`);
 
         try {
-            const constRoot = setup[proof.subproofId][proof.airId].constRoot;
-            const starkInfo = setup[proof.subproofId][proof.airId].starkInfo;
+            const constRoot = setup.setup[proof.subproofId][proof.airId].constRoot;
+            const starkInfo = setup.setup[proof.subproofId][proof.airId].starkInfo;
 
-            verifierFilename = path.join(tmpPath, "basic_stark_verifier_" + proofManagerConfig.name + "_subproof" + proof.subproofId + "_airId" + proof.airId + ".circom");
+            verifierFilename = path.join(tmpPath, "basic_stark_verifier_" + setup.config.name + "_subproof" + proof.subproofId + "_airId" + proof.airId + ".circom");
             const verifierCircomTemplate = await pil2circom(constRoot, starkInfo, { hashCommits: true, vadcop: true });
             await fs.promises.writeFile(verifierFilename, verifierCircomTemplate, "utf8");
 

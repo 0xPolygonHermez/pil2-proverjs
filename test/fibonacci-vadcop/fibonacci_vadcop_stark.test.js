@@ -1,6 +1,6 @@
 const { assert } = require("chai");
 
-const { executeFullProveTest, checkConstraintsTest } = require("../test_utils.js");
+const { executeFullProveTest, checkConstraintsTest, generateSetupTest } = require("../test_utils.js");
 
 const publicInputs = { in1: 1n, in2: 1n, mod: 5n };
 
@@ -38,11 +38,20 @@ describe("Fibonacci Vadcop", async function () {
         vadcop: true,
     };
 
-    it("Generate a Fibonacci Vadcop proof", async () => {
-        await executeFullProveTest(getSettings(), publicInputs, options, true);
+    const optionsVerifyConstraints = {...options, onlyCheck: true};
+
+    let setup;
+
+    before(async () => {
+        let config = getSettings();
+        setup = await generateSetupTest(config);
     });
 
-    it("Verify a Fibonacci Vadcop proof", async () => {
-        await checkConstraintsTest(getSettings(), publicInputs, options);
+    it("Verify a Fibonacci Vadcop constraints", async () => {
+        await checkConstraintsTest(setup, publicInputs, optionsVerifyConstraints);
+    });
+
+    it("Generate a Fibonacci Vadcop proof", async () => {
+        await executeFullProveTest(setup, publicInputs, options, true);
     });
 });

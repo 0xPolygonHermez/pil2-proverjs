@@ -21,6 +21,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
     };
 
     let setup = [];
+    let globalConstraints;
     for(const subproof of airout.subproofs) {
         setup[subproof.subproofId] = [];
         for(const air of subproof.airs) {
@@ -44,9 +45,9 @@ module.exports = async function setupCmd(proofManagerConfig) {
         }
 
         if(airout.constraints !== undefined) {
-            setup[airout.subproofs.length] = { globalConstraints:  getGlobalConstraintsInfo(airout, true) }
+            globalConstraints = getGlobalConstraintsInfo(airout, true);
         }
     }
 
-    return setup;
+    return { setup, globalConstraints, config: proofManagerConfig };
 }

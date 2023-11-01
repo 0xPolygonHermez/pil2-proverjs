@@ -39,20 +39,6 @@ class StarkFriProver extends ProverComponent {
         this.starkStruct = require(starkStructFilename);
     }
 
-    async setup(airInstance) {
-        const air = this.proofCtx.airout.getAirBySubproofIdAirId(airInstance.subproofId, airInstance.airId);
-        const fixedPols = newConstantPolsArrayPil2(air.symbols, airInstance.layout.numRows, this.proofCtx.F);
-        getFixedPolsPil2(air, fixedPols, this.proofCtx.F);
-
-        const options = {
-            F: this.proofCtx.F,
-            pil1: false,
-        };
-
-        air.setup = await starkSetup(fixedPols, air, this.starkStruct, options);
-        air.setup.fixedPols = fixedPols;
-    }
-
     // TODO instances has to be here or to be called from provers manager?
     async newProof(subproofId, airId, publics) {
         const airInstances = this.proofCtx.getAirInstancesBySubproofIdAirId(subproofId, airId);

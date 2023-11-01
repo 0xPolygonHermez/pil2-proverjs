@@ -39,7 +39,7 @@ class ProversManager {
 
         for(const subproof of proofCtx.airout.subproofs) {
             for(const air of subproof.airs) {
-                const prover = await ProverFactory.createProver(config.filename, this.proofCtx);
+                const prover = await ProverFactory.createProver(config.proverFilename, this.proofCtx);
 
                 const airName = air.name;
                 const N = air.numRows;
@@ -73,17 +73,16 @@ class ProversManager {
         return length - 1;
     }
 
-    async setup() {
+    async setup(setup) {
         this.checkInitialized();
 
         for (const airInstance of this.proofCtx.airInstances) {
-            const proverId = this.getProverIdFromInstance(airInstance);
-
-            await this.provers[proverId].setup(airInstance);
+            const air = this.proofCtx.airout.getAirBySubproofIdAirId(airInstance.subproofId, airInstance.airId);
+            air.setup = setup.setup[airInstance.subproofId][airInstance.airId];
         }
 
         if(this.proofCtx.airout.constraints !== undefined) {
-            this.proofCtx.constraintsCode = getGlobalConstraintsInfo(this.proofCtx.airout, true);
+            this.proofCtx.constraintsCode = setup.globalConstraints;
         }
     }
 
@@ -144,7 +143,7 @@ class ProversManager {
     }
 
     async computeProofChallenge(stageId, options) {
-        log.info(`[${this.name}]`, `··> Computing global challenge stage ${stageId + 1}`);
+        log.info(`[${this.name}]`, `··> Computing global challenge stage ${stageId}`);
 
         if (stageId === 1) {
             for (const subproof of this.proofCtx.airout.subproofs) {
@@ -159,7 +158,7 @@ class ProversManager {
                             `··· Computing global challenge. Adding constTree. Subproof '${subproof.name}' Air '${air.name}' Instance ${airInstance.instanceId}`
                         );
     
-                        challengeArr.push(airInstance.ctx.MH.root(air.setup.constTree)); //TODO: Calculate one time
+                        challengeArr.push(air.setup.constRoot);
                     }
                 }
 
@@ -225,7 +224,7 @@ class ProversManager {
 
         this.proofCtx.computeGlobalChallenge(stageId);
 
-        log.info(`[${this.name}]`, `<·· Computing global challenge stage ${stageId + 1}`);
+        log.info(`[${this.name}]`, `<·· Computing global challenge stage ${stageId}`);
     }
 
     setChallenges(stageId, challenges) {

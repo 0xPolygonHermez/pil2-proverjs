@@ -7,9 +7,9 @@ const log = require("../../logger.js");
 const { executeCode } = require("pil2-stark-js/src/stark/stark_verify.js");
 const F3g = require("pil2-stark-js/src/helpers/f3g.js");
 
-module.exports = async function verifyCmd(proofManagerConfig, setup, proofs, challenges, challengesFRISteps, subproofValues, options) {
+module.exports = async function verifyCmd(setup, proofs, challenges, challengesFRISteps, subproofValues, options) {
     log.info("[VERIFYCMD ]", "==> PROOF VERIFICATION")
-    const verifierFilename =  path.join(__dirname, "../..", proofManagerConfig.verifier.filename);
+    const verifierFilename =  path.join(__dirname, "../..", setup.config.verifier.filename);
 
     if (!await fileExists(verifierFilename)) {
         log.error(`[${this.name}]`, `Verifier ${verifierFilename} does not exist.`);
@@ -17,12 +17,12 @@ module.exports = async function verifyCmd(proofManagerConfig, setup, proofs, cha
     }
 
     const verifier = await VerifierFactory.createVerifier(verifierFilename);
-    verifier.initialize(proofManagerConfig.verifier.settings, options);        
+    verifier.initialize(setup.config.verifier.settings, options);        
 
     let isValid = true;
 
-    if(setup[proofs.length] !== undefined) {
-        const globalConstraints = setup[proofs.length].globalConstraints;
+    if(setup.globalConstraints !== undefined) {
+        const globalConstraints = setup.globalConstraints;
         
         const F = new F3g();
 
@@ -37,8 +37,8 @@ module.exports = async function verifyCmd(proofManagerConfig, setup, proofs, cha
     }
 
     for(const proof of proofs) {    
-        const constRoot = setup[proof.subproofId][proof.airId].constRoot;
-        const starkInfo = setup[proof.subproofId][proof.airId].starkInfo;
+        const constRoot = setup.setup[proof.subproofId][proof.airId].constRoot;
+        const starkInfo = setup.setup[proof.subproofId][proof.airId].starkInfo;
 
         isValid = isValid && await verifier.checkProof(proof, constRoot, starkInfo, challenges, challengesFRISteps, options);
         

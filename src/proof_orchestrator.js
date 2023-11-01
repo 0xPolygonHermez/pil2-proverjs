@@ -54,7 +54,7 @@ module.exports = class ProofOrchestrator {
         }
         this.config = config;
 
-        const airout = new AirOut(this.config.airout.airoutFilename);
+        const airout = new AirOut(this.config.airout.filename);
 
         // Create the finite field object
         const finiteField = FiniteFieldFactory.createFiniteField(airout.baseField);
@@ -106,7 +106,9 @@ module.exports = class ProofOrchestrator {
                 log.error(`[${this.name}]`, `Airout ${airoutFilename} does not exist.`);
                 return false;
             }
-            config.airout.airoutFilename = airoutFilename;
+            config.airout.filename = airoutFilename;
+            console.log(airoutFilename, config.airout.airoutFilename);
+
 
             for(const witnessCalculator of config.witnessCalculators) {
                 const witnessCalculatorLib =  path.join(__dirname, "..", witnessCalculator.filename);
@@ -124,7 +126,7 @@ module.exports = class ProofOrchestrator {
                 log.error(`[${this.name}]`, `Prover ${proverFilename} does not exist.`);
                 return false;
             }
-            config.prover.filename = proverFilename;
+            config.prover.proverFilename = proverFilename;
 
             if (config.setup !== undefined) {
                 // TODO
@@ -160,7 +162,7 @@ module.exports = class ProofOrchestrator {
         return isValid;
     }
 
-    async generateProof(publics) {
+    async generateProof(setup, publics) {
         this.checkInitialized();
 
         let result;
@@ -178,7 +180,7 @@ module.exports = class ProofOrchestrator {
 
                 await this.wcManager.witnessComputation(stageId, publics);
 
-                if (stageId === 1) await this.proversManager.setup();
+                if (stageId === 1) {} await this.proversManager.setup(setup);
 
                 proverStatus = await this.proversManager.computeStage(stageId, publics, this.options);
 

@@ -1,4 +1,4 @@
-const { executeFullProveTest, checkConstraintsTest } = require("../test_utils.js");
+const { executeFullProveTest, checkConstraintsTest, generateSetupTest } = require("../test_utils.js");
 
 const inputs = { in1: 1n, in2: 2n };
 
@@ -21,22 +21,31 @@ function getSettings() {
     };
 }
 
-const options = {
-    parallelExec: false,
-    useThreads: false,
-    hashCommits: false,
-    vadcop: false,
-};
-
-
 describe("PIL2 proof manager stark simple tests", async function () {
     this.timeout(10000000);
+   
+    const options = {
+        parallelExec: false,
+        useThreads: false,
+        hashCommits: false,
+        vadcop: false,
+    };
+
+    const optionsVerifyConstraints = {...options, onlyCheck: true};
+
+    let setup;
+
+    before(async () => {
+        let config = getSettings();
+        setup = await generateSetupTest(config);
+    });
+
+    it("verify Fibonacci constraints", async () => {
+        await checkConstraintsTest(setup, inputs, optionsVerifyConstraints);
+    });
 
     it("prove Fibonacci", async () => {
-        await executeFullProveTest(getSettings(), inputs, options, true);
+        await executeFullProveTest(setup, inputs, options, true);
     });
 
-    it("verify Fibonacci", async () => {
-        await checkConstraintsTest(getSettings(), inputs, options);
-    });
 });
