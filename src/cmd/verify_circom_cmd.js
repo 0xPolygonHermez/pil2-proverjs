@@ -8,7 +8,7 @@ const path = require("path");
 const log = require("../../logger.js");
 
 module.exports = async function verifyCircomCmd(proofManagerConfig, setup, proofs, challenges, challengesFRISteps) {
-    log.info("[VERIFYCIRCOMCMD]", "==> CIRCOM VERIFICATION")
+    log.info("[CircomVrfr]", "==> CIRCOM PROOF VERIFICATION")
     
     const tmpPath =  path.join(__dirname, "../..", "tmp");
     if(!fs.existsSync(tmpPath)) fs.mkdirSync(tmpPath);
@@ -16,7 +16,7 @@ module.exports = async function verifyCircomCmd(proofManagerConfig, setup, proof
     let verifierFilename;
     
     for(const proof of proofs) {
-        log.info(`[${this.name}]`, `--> STARK circom verification (subproofId ${proof.subproofId} airId ${proof.airId})`);
+        log.info(`[CircomVrfr]`, `--> CIRCOM verification (subproofId ${proof.subproofId} airId ${proof.airId})`);
 
         try {
             const constRoot = setup[proof.subproofId][proof.airId].constRoot;
@@ -33,15 +33,16 @@ module.exports = async function verifyCircomCmd(proofManagerConfig, setup, proof
 
             await circuit.calculateWitness(input, true);
 
-            log.info(`[${this.name}]`, `<-- STARK verification (subproofId ${proof.subproofId} airId ${proof.airId})`);
+            log.info(`[CircomVrfr]`, `<-- CIRCOM verification (subproofId ${proof.subproofId} airId ${proof.airId})`);
 
         } catch (error) {
-            log.error(`[${this.name}]`, `Error while verifying proof: ${error}`);
+            log.error(`[CircomVrfr]`, `Error while verifying proof (subproofId ${proof.subproofId} airId ${proof.airId}):`);
+            log.error(`[CircomVrfr]`, `${error}`);
             throw error;
         } finally {
             await fs.promises.unlink(verifierFilename);
         }
     }
 
-    log.info("[VERIFYCIRCOMCMD]", "<== VERIFYING PROOF")
+    log.info("[CircomVrfr]", "==> CIRCOM PROOF VERIFICATION")
 }

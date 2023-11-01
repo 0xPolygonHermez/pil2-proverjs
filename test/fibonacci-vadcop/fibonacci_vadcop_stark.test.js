@@ -9,7 +9,6 @@ function getSettings() {
         name: "Fibonacci-vadcop-" + Date.now(),
         airout: {
             airoutFilename: `./test/fibonacci-vadcop/fibonacci_vadcop.airout`,
-            airoutProto: "./node_modules/pilcom/src/pilout.proto",
         },
         witnessCalculators: [
             { filename: `./test/fibonacci-vadcop/executor_fibonacci.js`, settings: {}, sm: "Fibonacci" },

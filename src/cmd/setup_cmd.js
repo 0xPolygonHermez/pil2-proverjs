@@ -10,9 +10,10 @@ const path = require("path");
 const log = require("../../logger.js");
 const { getGlobalConstraintsInfo } = require("pil2-stark-js/src/pil_info/getGlobalConstraintsInfo.js");
 
+
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
 module.exports = async function setupCmd(proofManagerConfig) {
-    const airout = new AirOut(proofManagerConfig.airout.airoutFilename, proofManagerConfig.airout.airoutProto);
+    const airout = new AirOut(proofManagerConfig.airout.airoutFilename);
 
     const setupOptions = {
         F: new F3g("0xFFFFFFFF00000001"),
@@ -23,7 +24,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
     for(const subproof of airout.subproofs) {
         setup[subproof.subproofId] = [];
         for(const air of subproof.airs) {
-            log.info("[Setup  Cmd]", `Setup for air '${air.name}'`);
+            log.info("[Setup  Cmd]", `··· Computing setup for air '${air.name}'`);
 
             let settings = proofManagerConfig.prover.settings[air.name] || proofManagerConfig.prover.settings.default;
             

@@ -7,7 +7,6 @@ function getSettings() {
         name: "Fibonacci-" + Date.now(),
         airout: {
             airoutFilename: `./test/fibonacci/fibonacci.airout`,
-            airoutProto: "./node_modules/pilcom/src/pilout.proto",
         },
         witnessCalculators: [
             { filename: `./test/fibonacci/fibonacci_executor.js`, settings: {} },

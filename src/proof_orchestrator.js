@@ -54,7 +54,7 @@ module.exports = class ProofOrchestrator {
         }
         this.config = config;
 
-        const airout = new AirOut(this.config.airout.airoutFilename, this.config.airout.airoutProto);
+        const airout = new AirOut(this.config.airout.airoutFilename);
 
         // Create the finite field object
         const finiteField = FiniteFieldFactory.createFiniteField(airout.baseField);
@@ -107,13 +107,6 @@ module.exports = class ProofOrchestrator {
                 return false;
             }
             config.airout.airoutFilename = airoutFilename;
-
-            const airoutProto =  path.join(__dirname, "..", config.airout.airoutProto);
-            if (!await fileExists(airoutProto)) {
-                log.error(`[${this.name}]`, `Airout proto ${airoutProto} does not exist.`);
-                return false;
-            }
-            config.airout.airoutProto = airoutProto;
 
             for(const witnessCalculator of config.witnessCalculators) {
                 const witnessCalculatorLib =  path.join(__dirname, "..", witnessCalculator.filename);

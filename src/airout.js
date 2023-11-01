@@ -25,20 +25,21 @@ const HINT_FIELD_TYPES = {
     ARRAY: 2,
 };
 
+const path = require("path");
+const airoutProto = path.join(__dirname, "../node_modules/pilcom/src/pilout.proto");
+
 class AirOut {
-    constructor(airoutFilename, protoFilename) {
-        log.info("[AirOutPrsr]", "Loading airout...");
+    constructor(airoutFilename) {
+        log.info("[AirOut    ]", "··· Loading airout...");
 
         const airoutEncoded = fs.readFileSync(airoutFilename);
-        const AirOut = protobuf.loadSync(protoFilename).lookupType("PilOut");
+        const AirOut = protobuf.loadSync(airoutProto).lookupType("PilOut");
 
         Object.assign(this, AirOut.toObject(AirOut.decode(airoutEncoded)));
 
         this.preprocessAirout();
 
         this.printInfo();
-
-        log.info("[AirOutPrsr]", "AirOut loaded.");
     }
 
     preprocessAirout() {
@@ -65,34 +66,34 @@ class AirOut {
     }
 
     printInfo() {
-        log.info("[AirOutPrsr]", `AirOut name: ${this.name}`);
-        log.info("[AirOutPrsr]", `  #subproofs: ${this.subproofs.length}`);
+        log.info("[AirOut    ]", `··· AirOut Info`);
+        log.info("[AirOut    ]", `    Name: ${this.name}`);
+        log.info("[AirOut    ]", `    #Subproofs: ${this.subproofs.length}`);
+
+        log.info("[AirOut    ]", `    #ProofValues: ${this.numProofValues}`);
+        log.info("[AirOut    ]", `    #PublicValues: ${this.numPublicValues}`);
+
+        if(this.publicTables) log.info("[AirOut    ]", `    #PublicTables: ${this.publicTables.length}`);
+        if(this.expressions) log.info("[AirOut    ]", `    #Expressions: ${this.expressions.length}`);
+        if(this.constraints) log.info("[AirOut    ]", `    #Eonstraints: ${this.constraints.length}`);
+        if(this.hints) log.info("[AirOut    ]", `    #Hints: ${this.hints.length}`);
+        if(this.symbols) log.info("[AirOut    ]", `    #Symbols: ${this.symbols.length}`);
 
         for(const subproof of this.subproofs) this.printSubproofInfo(subproof);
-
-        log.info("[AirOutPrsr]", `  #proofValues: ${this.numProofValues}`);
-        log.info("[AirOutPrsr]", `  #publicValues: ${this.numPublicValues}`);
-
-
-        if(this.publicTables) log.info("[AirOutPrsr]", `  #publicTables: ${this.publicTables.length}`);
-        if(this.expressions) log.info("[AirOutPrsr]", `  #expressions: ${this.expressions.length}`);
-        if(this.constraints) log.info("[AirOutPrsr]", `  #constraints: ${this.constraints.length}`);
-        if(this.hints) log.info("[AirOutPrsr]", `  #hints: ${this.hints.length}`);
-        if(this.symbols) log.info("[AirOutPrsr]", `  #symbols: ${this.symbols.length}`);
     }
 
     printSubproofInfo(subproof) {
-        log.info("[AirOutPrsr]", `  -> Subproof '${subproof.name}'`);
+        log.info("[AirOut    ]", `    > Subproof '${subproof.name}':`);
 
         for(const air of subproof.airs) this.printAirInfo(air);
     }
 
     printAirInfo(air) {
-        log.info("[AirOutPrsr]", `    -> Air '${air.name}'`);
-        log.info("[AirOutPrsr]", `        #numRows:     ${air.numRows}`);
-        log.info("[AirOutPrsr]", `        #stages:      ${air.stageWidths.length}`);
-        log.info("[AirOutPrsr]", `        #expressions: ${air.expressions.length}`);
-        log.info("[AirOutPrsr]", `        #constraints: ${air.constraints.length}`);
+        log.info("[AirOut    ]", `       + Air '${air.name}'`);
+        log.info("[AirOut    ]", `         NumRows:     ${air.numRows}`);
+        log.info("[AirOut    ]", `         Stages:      ${air.stageWidths.length}`);
+        log.info("[AirOut    ]", `         Expressions: ${air.expressions.length}`);
+        log.info("[AirOut    ]", `         Constraints: ${air.constraints.length}`);
     }
 
     get numSubproofs() {

@@ -5,7 +5,6 @@ function getSettings(prefix) {
         name: prefix + "-" + Date.now(),
         airout: {
             airoutFilename: `./test/simple/${prefix}/${prefix}.airout`,
-            airoutProto: "./node_modules/pilcom/src/pilout.proto",
         },
         witnessCalculators: [
             { filename: `./test/simple/${prefix}/${prefix}_executor.js`, sm: `${prefix}`, settings: { } },

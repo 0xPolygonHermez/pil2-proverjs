@@ -8,7 +8,7 @@ const { executeCode } = require("pil2-stark-js/src/stark/stark_verify.js");
 const F3g = require("pil2-stark-js/src/helpers/f3g.js");
 
 module.exports = async function verifyCmd(proofManagerConfig, setup, proofs, challenges, challengesFRISteps, subproofValues, options) {
-    log.info("[VERIFYCMD ]", "==> VERIFYING PROOF")
+    log.info("[VERIFYCMD ]", "==> PROOF VERIFICATION")
     const verifierFilename =  path.join(__dirname, "../..", proofManagerConfig.verifier.filename);
 
     if (!await fileExists(verifierFilename)) {
@@ -46,7 +46,7 @@ module.exports = async function verifyCmd(proofManagerConfig, setup, proofs, cha
     }
 
     const logX = isValid ? log.info : log.error;
-    logX("[VERIFYCMD ]", "<== VERIFYING PROOF")
+    logX("[VERIFYCMD ]", "<== PROOF VERIFICATION")
 
     return isValid;
 }
