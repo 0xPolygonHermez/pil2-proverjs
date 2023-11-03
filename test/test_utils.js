@@ -16,7 +16,7 @@ async function generateSetupTest(proofManagerConfig) {
 }
 
 async function executeFullProveTest(setup, publics, options, executeCircom) {
-    log.info("[FULLPROVE ]", "==> FULL PROVE TEST")
+    log.info("[FullProve ]", "==> FULL PROVE TEST")
 
     const { proofs, challenges, challengesFRISteps, subproofValues } = await proveCmd(setup, publics, options);
     
@@ -26,7 +26,7 @@ async function executeFullProveTest(setup, publics, options, executeCircom) {
 
     if(executeCircom) await verifyCircomCmd(setup, proofs, challenges, challengesFRISteps);
 
-    log.info("[FULLPROVE ]", "<== FULL PROVE TEST")
+    log.info("[FullProve ]", "<== FULL PROVE TEST")
 }
 
 async function checkConstraintsTest(setup, publics, options) {

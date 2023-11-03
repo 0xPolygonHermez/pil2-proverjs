@@ -3,7 +3,6 @@ const { hashBTree } = require("./hash_binary_tree.js");
 
 const log = require('../logger.js');
 const { calculateHashStark } = require("pil2-stark-js");
-const { getGlobalConstraintsInfo } = require("pil2-stark-js/src/pil_info/getGlobalConstraintsInfo.js");
 
 const PROVER_OPENINGS_PENDING  = 1;
 const PROVER_OPENINGS_COMPLETED = 2;
@@ -98,6 +97,32 @@ class ProversManager {
         }
     }
 
+    async verifyConstraints(stageId) {
+        let result = true;
+
+        for (const airInstance of this.proofCtx.airInstances) {
+            const proverId = this.getProverIdFromInstance(airInstance);
+
+            result = result && await this.provers[proverId].verifyConstraints(stageId, airInstance);
+
+            if (result === false) {
+                log.error(`[${this.name}]`, `Constraints verification failed for subproof ${airInstance.subproofId} and air ${airInstance.airId} with N=${airInstance.layout.numRows} rows.`);
+                break;
+            }
+        }
+
+        return result;        
+    }
+
+    async verifyGlobalConstraints() {
+        const proverId = this.getProverIdFromInstance(this.proofCtx.airInstances[0]);
+        const validGlobalConstraints = await this.provers[proverId].verifyGlobalConstraints();
+
+        if(!validGlobalConstraints) log.error(`[${this.name}]`, `Global constraints verification failed.`);
+        
+        return validGlobalConstraints;
+    }
+
     async computeStage(stageId, publics, options) {
         this.checkInitialized();
 
@@ -147,7 +172,7 @@ class ProversManager {
 
         if (stageId === 1) {
             for (const subproof of this.proofCtx.airout.subproofs) {
-                let challengeArr = [];
+                let challenges = [];
 
                 for(const air of subproof.airs) {
                     const airInstances = this.proofCtx.getAirInstancesBySubproofIdAirId(subproof.subproofId, air.airId);
@@ -158,15 +183,15 @@ class ProversManager {
                             `··· Computing global challenge. Adding constTree. Subproof '${subproof.name}' Air '${air.name}' Instance ${airInstance.instanceId}`
                         );
     
-                        challengeArr.push(air.setup.constRoot);
+                        challenges.push(air.setup.constRoot);
                     }
                 }
 
                 if (options.vadcop) {
-                    const challenge = await hashBTree(challengeArr);
+                    const challenge = await hashBTree(challenges);
                     this.proofCtx.addChallengeToTranscript(challenge);
                 } else {
-                    this.proofCtx.addChallengeToTranscript(challengeArr[0]);
+                    this.proofCtx.addChallengeToTranscript(challenges[0]);
                 }
             }
 
@@ -175,30 +200,20 @@ class ProversManager {
             const publics = Object.values(this.proofCtx.publics);
 
             if (options.hashCommits === true) {
-                const publicsRoot = await calculateHashStark(
-                    {
-                        pilInfo: {
-                            starkStruct: { verificationHashType: "GL" },
-                        },
-                    },
-                    publics
-                );
+                const publicsRoot = await calculateHashStark({ pilInfo: { starkStruct: { verificationHashType: "GL" }, }, }, publics);
                 publicsCommits.push(publicsRoot);
             } else {
                 publicsCommits.push(...publics);
             }
 
-            log.info(
-                `[${this.name}]`,
-                `··· Computing global challenge. Adding publics.`
-            );
+            log.info(`[${this.name}]`, `··· Computing global challenge. Adding publics.`);
 
             this.proofCtx.addChallengeToTranscript(publicsCommits);
         }
 
         for(const subproof of this.proofCtx.airout.subproofs) {
 
-            let challengeArr = [];
+            let challenges = [];
             for(const air of subproof.airs) {
                 const airInstances = this.proofCtx.getAirInstancesBySubproofIdAirId(subproof.subproofId, air.airId);
 
@@ -208,16 +223,16 @@ class ProversManager {
                         `··· Computing global challenge. Addings subproof '${subproof.name}' Air '${air.name}' Instance ${airInstance.instanceId} value`);
 
                     const value = airInstance.ctx.challengeValue?.length > 0 ? airInstance.ctx.challengeValue : [0];
-                    challengeArr.push(...value);
+                    challenges.push(...value);
                 }
             }
 
             if (options.vadcop) {
-                const challenge = await hashBTree(challengeArr);
+                const challenge = await hashBTree(challenges);
                 this.proofCtx.addChallengeToTranscript(challenge);
             } else {
-                for (let k = 0; k < challengeArr.length; k++) {
-                    this.proofCtx.addChallengeToTranscript(challengeArr[k]);
+                for (let k = 0; k < challenges.length; k++) {
+                    this.proofCtx.addChallengeToTranscript(challenges[k]);
                 }
             }
         }

@@ -28,8 +28,6 @@ const Mutex = require("./concurrency/mutex.js");
 const AsyncAccLock = require("./concurrency/async_acc_lock.js");
 const TargetLock = require("./concurrency/target_lock.js");
 
-const path = require("path");
-
 // WitnessCalculator class acting as the composite
 module.exports = class WitnessCalculatorManager {
     constructor() {

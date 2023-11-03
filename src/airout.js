@@ -75,7 +75,7 @@ class AirOut {
 
         if(this.publicTables) log.info("[AirOut    ]", `    #PublicTables: ${this.publicTables.length}`);
         if(this.expressions) log.info("[AirOut    ]", `    #Expressions: ${this.expressions.length}`);
-        if(this.constraints) log.info("[AirOut    ]", `    #Eonstraints: ${this.constraints.length}`);
+        if(this.constraints) log.info("[AirOut    ]", `    #Constraints: ${this.constraints.length}`);
         if(this.hints) log.info("[AirOut    ]", `    #Hints: ${this.hints.length}`);
         if(this.symbols) log.info("[AirOut    ]", `    #Symbols: ${this.symbols.length}`);
 

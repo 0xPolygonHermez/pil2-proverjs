@@ -1,7 +1,5 @@
 const ProverComponent = require("../../prover.js");
 const { PROVER_OPENINGS_COMPLETED, PROVER_OPENINGS_PENDING } = require("../../provers_manager.js");
-const starkSetup = require("pil2-stark-js/src/stark/stark_setup.js");
-const starkGen = require("pil2-stark-js/src/stark/stark_gen.js");
 const { initProverStark,
     computeEvalsStark,
     computeFRIStark,
@@ -17,9 +15,6 @@ const {
     callCalculateExps,
     applyHints,
 } = require("pil2-stark-js/src/prover/prover_helpers.js");
-
-const { newConstantPolsArrayPil2 } = require("pilcom/src/polsarray.js");
-const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
 
 const path = require("path");
 
@@ -52,7 +47,7 @@ class StarkFriProver extends ProverComponent {
         }
     }
 
-    async verifyPil(stageId, airInstance) {
+    async verifyConstraints(stageId, airInstance) {
         const ctx = airInstance.ctx;
 
         ctx.errors = [];
@@ -60,7 +55,9 @@ class StarkFriProver extends ProverComponent {
         const nConstraintsStage = ctx.pilInfo.constraints[`stage${stageId}`].length;
         for(let i = 0; i < nConstraintsStage; i++) {
             const constraint = ctx.pilInfo.constraints[`stage${stageId}`][i];
+
             log.info(`[${this.name}]`, `··· Checking constraint ${i + 1}/${nConstraintsStage}: ${constraint.line} `);
+
             await callCalculateExps(`stage${stageId}`, constraint, "n", ctx, this.options.parallelExec, this.options.useThreads, true);
         }
 
@@ -69,6 +66,28 @@ class StarkFriProver extends ProverComponent {
         if (!isValid) {
             log.error(`[${this.name}]`, `PIL constraints have not been fulfilled!`);
             for (let i = 0; i < ctx.errors.length; i++) log.error(`[${this.name}]`, ctx.errors[i]);
+        }
+
+        return isValid;
+    }
+
+    async verifyGlobalConstraints() {
+        this.proofCtx.errors = [];
+
+        if(this.proofCtx.constraintsCode !== undefined) {
+            for(let i =  0; i < this.proofCtx.constraintsCode.length; i++) {
+                const constraint = this.proofCtx.constraintsCode[i];
+                log.info(`[${this.name}]`, `··· Checking global constraint ${i + 1}/${this.proofCtx.constraintsCode.length}: ${constraint.line} `);
+                await callCalculateExps("global", constraint, "n", this.proofCtx, this.options.parallelExec, this.options.useThreads, true, true);
+            }
+        }
+
+
+        const isValid = this.proofCtx.errors.length === 0;
+
+        if (!isValid) {
+            log.error(`[${this.name}]`, `Constraints have not been fulfilled!`);
+            for (let i = 0; i < this.proofCtx.errors.length; i++) log.error(`[${this.name}]`, this.proofCtx.errors[i]);
         }
 
         return isValid;
