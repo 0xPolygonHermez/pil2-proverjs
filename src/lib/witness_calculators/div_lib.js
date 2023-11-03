@@ -8,7 +8,7 @@ module.exports = class DivModule extends WitnessCalculatorComponent {
     }
 
     async witnessComputation(stageId) {
-        const payloads = this.getBusPayloadsByRecipient(this.name);
+        const payloads = this.wcManager.airBus.getPendingPayloadsByRecipient(this.name);
 
         // TODO remove this is, it's only a temporal hack to do the wc_manager tests work
         if(stageId === 2) {
@@ -33,7 +33,7 @@ module.exports = class DivModule extends WitnessCalculatorComponent {
         
         for(const payload of payloads) {
             log.info(`[${this.name}]`, ` Resolving payload: ${payload.payloadId}`);
-            this.resolveBusPayload(payload.payloadId);
+            this.wcManager.resolveBusPayload(payload.payloadId);
         }
     }
 }

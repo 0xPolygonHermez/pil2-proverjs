@@ -6,6 +6,6 @@ module.exports = class Executor1 extends WitnessCalculatorComponent {
     }
 
     async witnessComputation(stageId, subproofId, airId, instanceId) {
-        await this.addBusPayload("Executor2", "newInstance", { data: 2 }, false);
+        await this.wcManager.addNotification(this.name, "Executor2", "newInstance", { data: 2 }, false);
     }
 }

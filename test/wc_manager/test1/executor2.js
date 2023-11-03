@@ -8,11 +8,11 @@ module.exports = class Executor2 extends WitnessCalculatorComponent {
     }
 
     async witnessComputation(stageId, subproofId, airId, instanceId) {
-        const payloads = this.getBusPayloadsByRecipient(this.name);
+        const payloads = this.wcManager.airBus.getPendingPayloadsByRecipient(this.name);
 
         for(const payload of payloads) {
             log.info(`[${this.name}]`, `Resolving payload: ${payload.payloadId}`);                
-            this.resolveBusPayload(payload.payloadId);
+            this.wcManager.resolveBusPayload(payload.payloadId);
         }
     }
 }

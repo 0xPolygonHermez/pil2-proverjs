@@ -73,7 +73,7 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
             }    
         }
 
-        await this.addBusPayload("divLib", "div_batch", { instanceId: airInstance.instanceId, tmpPolIdx }, true);
+        await this.wcManager.addNotification(this.name, "divLib", "div_batch", { instanceId: airInstance.instanceId, tmpPolIdx }, true);
         
         const result = airInstance.tmpPol[tmpPolIdx];
         for (let i = 0; i < numRows; i++) {

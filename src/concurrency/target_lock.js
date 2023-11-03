@@ -6,9 +6,11 @@ module.exports = class TargetLock {
     }
 
     async lock() {
-        return new Promise((resolve) => {
-            this.resolve = resolve;
-        });
+        if(this.locked === this.targetValue) {
+            return new Promise((resolve) => {
+                this.resolve = resolve;
+            });
+        }
     }
 
     acquire() {

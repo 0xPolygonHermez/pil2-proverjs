@@ -48,6 +48,10 @@ class AirBus {
         return this.payloads.filter((payload) => payload.isPending);
     }
 
+    getPayloadById(payloadId) {
+        return this.payloads.find((payload) => payload.payloadId === payloadId);
+    }
+    
     hasPendingPayloads() {
         return this.payloads.some((payload) => payload.isPending);
     }

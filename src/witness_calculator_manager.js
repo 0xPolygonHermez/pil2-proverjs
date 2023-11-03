@@ -126,27 +126,22 @@ module.exports = class WitnessCalculatorManager {
         log.info(`[${this.name}]`, `<-- Computing witness stage ${stageId}.`);
     }
 
-    async addBusPayload(payload, lock = false) {
-        const payloadTypesAllowed = [PayloadTypeEnum.NOTIFICATION];
-
-        const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === payload.sender);
+    async addNotification(sender, recipient, tag, data, lock = false) {
+        const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === sender);
         if(senderIdx === -1) {
-            log.error(`[${this.name}]`, `Bus Payload sender '${payload.sender}' not found`);
-            throw new Error(`Bus Payload sender '${payload.sender}' not found`);
+            log.error(`[${this.name}]`, `Bus Payload sender '${sender}' not found`);
+            throw new Error(`Bus Payload sender '${sender}' not found`);
         }
 
-        if(payload.recipient !== this.name) {
-            const recipient = this.wc.find(witnesscalculator => witnesscalculator.name === payload.recipient);
-            if(!recipient) {
-                log.error(`[${this.name}]`, `Bus Payload recipient '${payload.recipient}' not found`);
-                throw new Error(`Bus Payload recipient '${payload.recipient}' not found`);
+        if(recipient !== this.name) {
+            const recipientIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === recipient);
+            if(recipientIdx === -1) {
+                log.error(`[${this.name}]`, `Bus Payload recipient '${recipient}' not found`);
+                throw new Error(`Bus Payload recipient '${recipient}' not found`);
             }
         }
 
-        if(!payloadTypesAllowed.includes(payload.type)) {
-            log.error(`[${this.name}]`, `Bus Payload type '${payload.type}' not allowed`);
-            throw new Error(`Bus Payload type '${payload.type}' not allowed`);
-        }
+        const payload = new AirBusPayload(sender, recipient, PayloadTypeEnum.NOTIFICATION, tag, data);
 
         this.airBus.addBusPayload(payload);
 
@@ -155,13 +150,19 @@ module.exports = class WitnessCalculatorManager {
             log.info(`[${this.name}]`, `Locking witness calculator ${this.wc[senderIdx].name}`);
 
             this.airBusMutex.unlock();
-            if(this.wcDeferredLock) this.wcDeferredLock.release();
+            this.wcDeferredLock.release();
             await this.wcLocks[senderIdx].lock();
         }
     }
 
     resolveBusPayload(payloadId) {
-        const payload = this.airBus.payloads.find(payload => payload.payloadId === payloadId);
+        const payload = this.airBus.getPayloadById(payloadId);
+
+        if(!payload) {
+            log.error(`[${this.name}]`, `Bus Payload ${payloadId} not found`);
+            throw new Error(`Bus Payload ${payloadId} not found`);
+        }
+
         const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === payload.sender);
 
         if(senderIdx === -1) {
@@ -181,17 +182,12 @@ module.exports = class WitnessCalculatorManager {
         }
     }
 
-    getBusPayloadsByRecipient(recipient) {
-        return this.airBus.getPendingPayloadsByRecipient(recipient);
-    }
-
     async readData(module, dataId) {
         this.airBusMutex.lock();
 
         //TODO read data from proofCtx
         if(!this.data[dataId]) {
-            const payload = new AirBusPayload(module.name, this.name, PayloadTypeEnum.NOTIFICATION, "resolve", { dataId });
-            await this.addBusPayload(payload, true);
+            await this.addNotification(module.name, this.name, "resolve", { dataId }, true);
         } else {
             this.airBusMutex.unlock();
         }

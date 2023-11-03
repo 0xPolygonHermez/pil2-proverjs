@@ -73,19 +73,6 @@ class WitnessCalculatorComponent {
             }
         });
     }
-
-    async addBusPayload(lib, tag, data, lock) {
-        const payload = new AirBusPayload(this.name, lib, PayloadTypeEnum.NOTIFICATION, tag, data);
-        return await this.wcManager.addBusPayload(payload, lock);
-    }
-
-    resolveBusPayload(payloadId) {
-        return this.wcManager.resolveBusPayload(payloadId);
-    }
-
-    getBusPayloadsByRecipient(recipient) {
-        return this.wcManager.getBusPayloadsByRecipient(recipient);
-    }
 }
 
 module.exports = {
