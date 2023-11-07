@@ -42,5 +42,14 @@
             "args": ["${workspaceFolder}/test/wc_manager/wc_manager.test.js"],
             "runtimeArgs": ["--max-old-space-size=32000"]
         },
+        {
+            "name": "TEST newArch",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "request": "launch",
+            "skipFiles": ["<node_internals>/**"],
+            "type": "node",
+            "args": ["${workspaceFolder}/test/newArch/test4.test.js"],
+            "runtimeArgs": ["--max-old-space-size=32000"]
+        },
     ]
 }
