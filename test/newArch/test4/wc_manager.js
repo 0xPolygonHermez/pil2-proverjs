@@ -47,7 +47,9 @@ module.exports = class WCManager {
             try {
                 while(true) {
                     log.info(`[${this.name}]`, "Locking")
+
                     await this.wcDeferredLock.lock();
+
                     log.info(`[${this.name}]`, "Unlocking")
     
                     break;
@@ -116,7 +118,7 @@ module.exports = class WCManager {
         const dest = msg.params.dest;
 
         await this.mutex.lock();
-        log.info(`[${this.name}]`, "Releasing because of closing session")
+        log.info(`[${this.name}]`, "--- Releasing because of closing session")
         this.wcDeferredLock.release();
         this.mutex.unlock();        
     }
@@ -131,10 +133,14 @@ module.exports = class WCManager {
             module.state = newState;
         }
 
-        if(["listening", "finished"].includes(module.state))
+        if(["listening", "finished"].includes(module.state)) {
+            log.info(`[${this.name}]`, `--- Releasing because of ${msg.params.src}(${newState})`);
             this.wcDeferredLock.release();
-        else if(["session"].includes(module.state))
+        }
+        else if(["session"].includes(module.state)) {
+            log.info(`[${this.name}]`, `+++ Acquiring because of ${msg.params.src}(${newState})`);
             this.wcDeferredLock.acquire();
+        }
 
         this.mutex.unlock();
     }

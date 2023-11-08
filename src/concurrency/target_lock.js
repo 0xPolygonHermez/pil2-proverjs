@@ -6,7 +6,7 @@ module.exports = class TargetLock {
     }
 
     async lock() {
-        if(this.locked === this.targetValue) {
+        if(this.locked !== this.targetValue) {
             return new Promise((resolve) => {
                 this.resolve = resolve;
             });
@@ -19,7 +19,7 @@ module.exports = class TargetLock {
 
     release() {
         const numLock = --this.locked;
-        if (!this.targetValue || numLock === this.targetValue) {
+        if (numLock === this.targetValue) {
             if(this.resolve) {
                 this.resolve();
                 this.resolve = undefined;
