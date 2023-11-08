@@ -34,9 +34,11 @@
   },
   "homepage": "https://github.com/0xPolygonHermez/pil2-proofman-js#readme",
   "dependencies": {
+    "json-bigint": "^1.0.0",
     "npmlog": "^7.0.1",
     "pil2-stark-js": "https://github.com/0xPolygonHermez/pil2-stark-js.git",
-    "pilcom": "https://github.com/0xPolygonHermez/pilcom.git#feature/pil2",
+    "pilcom2": "https://github.com/0xPolygonHermez/pilcom.git#feature/pil2",
+    "pilcom": "https://github.com/0xPolygonHermez/pilcom.git#polsArrayGeneric",
     "protobufjs": "^7.2.4"
   },
   "devDependencies": {

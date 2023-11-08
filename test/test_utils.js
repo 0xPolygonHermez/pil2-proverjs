@@ -2,8 +2,12 @@ const setupCmd = require("../src/cmd/setup_cmd.js");
 const proveCmd = require("../src/cmd/prove_cmd.js");
 const verifyCmd = require("../src/cmd/verify_cmd.js");
 const verifyCircomCmd = require("../src/cmd/verify_circom_cmd.js");
+const JSONbig = require('json-bigint')({ useNativeBigInt: true, alwaysParseAsBig: true, storeAsString: true });
 const { assert } = require("chai");
+const fs = require("fs");
 const log = require("../logger.js");
+const { proof2zkin } = require("pil2-stark-js");
+const path = require("path");
 
 async function generateSetupTest(proofManagerConfig) {
     log.info("[GENERATESETUP ]", "==> GENERATE SETUP TEST")
@@ -19,6 +23,53 @@ async function executeFullProveTest(setup, publics, options, executeCircom) {
     log.info("[FullProve ]", "==> FULL PROVE TEST")
 
     const { proofs, challenges, challengesFRISteps, subproofValues } = await proveCmd(setup, publics, options);
+    /*
+    const tmpPath =  path.join(__dirname, "..", "tmp");
+    if(!fs.existsSync(tmpPath)) fs.mkdirSync(tmpPath);
+
+    //THIS IS ADHOC FOR THIS EXAMPLE!!
+    const globalInfo = {
+        nPublics: setup.setup[proofs[0].subproofId][proofs[0].airId].starkInfo.nPublics,
+        numChallenges: setup.setup[proofs[0].subproofId][proofs[0].airId].starkInfo.numChallenges,
+        stepsFRI: setup.setup[proofs[0].subproofId][proofs[0].airId].starkInfo.starkStruct.steps,
+        aggTypes: setup.aggTypes,
+    }
+
+    let globalInfoFilename = path.join(tmpPath, "globalInfo.json");
+    await fs.promises.writeFile(globalInfoFilename, JSON.stringify(globalInfo, null, 1), "utf8");
+
+    
+    for(const proof of proofs) {
+        const name = proof.subproofId === 1 ? "fibonacci" : "module"
+        let proofZkinFilename = path.join(tmpPath, name + ".proof.zkin.json");
+
+        let starkInfoFilename = path.join(tmpPath, name + ".starkinfo.json");
+
+        let verKeyFilename = path.join(tmpPath, name + ".verkey.json");
+
+        const starkInfo = setup.setup[proof.subproofId][proof.airId].starkInfo;
+
+        const constRoot = {constRoot: setup.setup[proof.subproofId][proof.airId].constRoot};
+
+        const zkin = proof2zkin(proof.proof, setup.setup[proof.subproofId][proof.airId].starkInfo);
+        zkin.publics = proof.publics;
+        zkin.challenges = challenges.flat();
+        zkin.challengesFRISteps = challengesFRISteps;
+
+        await fs.promises.writeFile(proofZkinFilename, JSONbig.stringify(zkin, (k, v) => {
+            if (typeof(v) === "bigint") {
+                return v.toString();
+            } else {
+                return v;
+            }
+        }, 1), "utf8");
+
+        await fs.promises.writeFile(starkInfoFilename, JSON.stringify(starkInfo, null, 1), "utf8");
+
+        await fs.promises.writeFile(verKeyFilename, JSONbig.stringify(constRoot, null, 1), "utf8");
+
+
+    } */
     
     const isValid = await verifyCmd(setup, proofs, challenges, challengesFRISteps, subproofValues, options);
 

@@ -1,7 +1,7 @@
 
 const F3g = require("pil2-stark-js/src/helpers/f3g");
 const { AirOut } = require("../airout.js");
-const { newConstantPolsArrayPil2 } = require("pilcom/src/polsarray.js");
+const { newConstantPolsArrayPil2 } = require("pilcom2/src/polsarray.js");
 const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
 const starkSetup = require("pil2-stark-js/src/stark/stark_setup");
 
@@ -22,6 +22,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
 
     let setup = [];
     let globalConstraints;
+    let aggTypes = [];
     for(const subproof of airout.subproofs) {
         setup[subproof.subproofId] = [];
         for(const air of subproof.airs) {
@@ -43,11 +44,12 @@ module.exports = async function setupCmd(proofManagerConfig) {
             
             setup[subproof.subproofId][air.airId] = await starkSetup(fixedPols, air, starkStruct, setupOptions);
         }
+        aggTypes[subproof.subproofId] = subproof.subproofvalues;
     }
 
     if(airout.constraints !== undefined) {
         globalConstraints = getGlobalConstraintsInfo(airout, true);
     }
 
-    return { setup, globalConstraints, config: proofManagerConfig };
+    return { setup, globalConstraints, aggTypes, config: proofManagerConfig };
 }

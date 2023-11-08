@@ -1,6 +1,6 @@
 const log = require("../logger.js");
 
-const { newCommitPolsArrayPil2 } = require("pilcom/src/polsarray.js");
+const { newCommitPolsArrayPil2 } = require("pilcom2/src/polsarray.js");
 const { addTranscriptStark, getChallengeStark } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 const { buildPoseidonGL, Transcript } = require("pil2-stark-js");
 

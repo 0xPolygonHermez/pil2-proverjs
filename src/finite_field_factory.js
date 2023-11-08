@@ -1,6 +1,6 @@
 const F3g = require("pil2-stark-js/src/helpers/f3g");
 
-const { getRoots } = require("pilcom/src/utils.js");
+const { getRoots } = require("pilcom2/src/utils.js");
 
 class FiniteFieldFactory {
     static createFiniteField(baseField) {
