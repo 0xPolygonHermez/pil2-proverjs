@@ -12,39 +12,52 @@ const ModuleTypeEnum = {
 class BaseModule {
     constructor(name, type = ModuleTypeEnum.REGULAR) {
         this.name = name;
-        this.tasks = [];
-        this.mutex = new Mutex();
-        this.sessions = [];
         this.type = type;
 
-        this.channels = [];
-
+        // Variables related to the parent module
         this.parentPort = parentPort;
+        this.mutex = new Mutex();
+        this.tasks = [];
 
-        parentPort.on("message", async (event) => {
-            this.tasks.push(event);
-            await this.mutex.lock();
-            await this.dispatchParentEvent();
-            this.mutex.unlock();
-        }); 
+        // Incoming sessions
+        this.inSessions = [];
+
+        // Outgoing sessions
+        this.outSessions = [];
+
+        parentPort.on("message", async (event) => await this.onParentMessage(event));
     }
 
+    // CHILD COMMANDS: Commands to be called by the child module
     openSession(destination) {
-        this.channels[destination] = new MessageChannel();
+        this.outSessions[destination] = new MessageChannel();
 
-        this.sendParentCommand("open_session", { dest: destination, port: this.channels[destination].port2 }, [this.channels[destination].port2]);
+        this.sendParentCommand("open_session", { dest: destination, port: this.outSessions[destination].port2 }, [this.outSessions[destination].port2]);
     }
 
     closeSession(destination) {
-        this.channels[destination].port1.postMessage('close_session');  
+        this.outSessions[destination].port1.postMessage({ command: 'close_session' });
+    }
+
+    sendCommand(destination, command) {
+        this.outSessions[destination].port1.postMessage(command);
     }
 
     sendParentCommand(command, params, transferList = []) {
         this.parentPort.postMessage({ command: command, params: { src: this.name, ...params }}, transferList);
     }
 
-    sendCommand(destination, command) {
-        this.channels[destination].port1.postMessage(command);
+    async sendPendingJob(job, lock) {
+        this.sendParentCommand('pending_job', { src: this.name, job: job, lock:lock });
+        
+        if(lock) {
+            const session = this.inSessions.find((session) => session.source === job.src);
+            if(session === undefined) {
+                log.error(`[${this.name}]`, `sendPendingJob Session not open with ${job.src}`);
+                return;
+            }
+            await session.lockMutex.lock();
+        }
     }
 
     async witnessComputation() {}
@@ -58,7 +71,7 @@ class BaseModule {
 
     async dispatchParentEvent() {
         const event = this.tasks.shift();
-        //log.info(`[${this.name}]`, "Received command from", event.params?.src, ":", event.command);
+        // log.info(`[${this.name}]`, "Received command from", event.params?.src, ":", event.command);
         switch(event.command) {
             case "run":
                 await this._witnessComputation();
@@ -66,54 +79,78 @@ class BaseModule {
             case "open_session":
                 this.openSessionCmd(event);
                 break;
-            case "close_session":
-                this.closeSessionCmd(event);
-                break;
             default:
-                this.witnessComputation(event);
         };
     }
 
     openSessionCmd(event) {
         const source = event.params.src;
 
-        if(this.sessions.length > 0) {
-            // console.log(this.sessions);
-            const session = this.sessions.find((session) => session.source === source);
+        if(this.inSessions.length > 0) {
+            const session = this.inSessions.find((session) => session.source === source);
             if(session) {
-                //log.error(`[${this.name}]`, `Session already open with ${source}`);
+                log.error(`[${this.name}]`, `openSessionCmd Session already open with ${source}`);
                 return;
             }
         }
 
-        this.sessions.push({ source: source, port: event.params.port });
+        this.inSessions.push({ source: source, port: event.params.port, mutex: new Mutex(), lockMutex : new Mutex(), tasks: [] });
+
         event.params.port.on("message", async (msg) => {
-            this.tasks.push(msg);
-            await this.mutex.lock();
-            const task = this.tasks.shift();
-            if(task === "close_session") {
-                this.closeSessionCmd({ params: { src: source }});
-            } else await this.dispatchEvent(source, task);
-            this.mutex.unlock();
+            await this.onSessionMessage(msg, source);
         });
+    }
+
+    async onSessionMessage(msg, source) {
+        const session = this.inSessions.find((session) => session.source === source);
+
+        if(!session) {
+            log.error(`[${this.name}]`, `onSessionMessage Session not open with ${source}`);
+            return;
+        }
+
+        session.tasks.push(msg);
+        await session.mutex.lock();
+        const task = session.tasks.shift();
+
+        if(task.command === "close_session")
+            this.closeSessionCmd({ params: { src: source }});
+        else
+            await this.dispatchSessionMsg(source, task);
+
+        session.mutex.unlock();
+    }
+
+    async onParentMessage(event) {
+        if(event.command === "unlock") {
+            const session = this.inSessions.find((session) => session.source === event.src);
+
+            if(session !== undefined) session.lockMutex.unlock();
+            return;
+        }
+
+        this.tasks.push(event);
+        await this.mutex.lock();
+        await this.dispatchParentEvent();
+        this.mutex.unlock();
     }
 
     closeSessionCmd(event) {
         const source = event.params.src;
 
-        const sessionIdx = this.sessions.findIndex((session) => session.source === source);
+        const sessionIdx = this.inSessions.findIndex((session) => session.source === source);
 
-        this.sessions.splice(sessionIdx, 1);
+        this.inSessions.splice(sessionIdx, 1);
 
-        if(this.sessions.length === 0) {
+        if(this.inSessions.length === 0) {
             this.sendParentCommand("change_state", { state: "listening" });
         } else {
-            this.sendParentCommand("closing_session", { dest: source });
+            this.sendParentCommand("close_session", { dest: source });
         }
     }
 }
 
 module.exports = {
     BaseModule,
-    ModuleTypeEnum,
+    ModuleTypeEnum
 }

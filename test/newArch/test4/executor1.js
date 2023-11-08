@@ -12,7 +12,9 @@ class Executor1 extends BaseModule {
 
         this.openSession(destination);
 
-        this.sendCommand(destination, { cmd: 'create_instance'});
+        this.sendCommand(destination, { command: 'create_instance'});
+
+        this.sendCommand(destination, { command: 'create_instance'});
 
         this.closeSession(destination);
     }

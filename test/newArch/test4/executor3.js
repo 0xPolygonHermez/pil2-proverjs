@@ -11,7 +11,7 @@ class Executor3 extends BaseModule {
         const destination = "Executor2";
 
         this.openSession(destination);
-
+        // await new Promise(resolve => setTimeout(resolve, 1000));
         this.closeSession(destination);
     }
 }

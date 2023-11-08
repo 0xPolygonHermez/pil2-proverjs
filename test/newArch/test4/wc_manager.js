@@ -7,10 +7,13 @@ const log = require("../../../logger.js");
 
 module.exports = class WCManager {
     constructor() {
-        this.modules = [];
         this.name = "wcManager"
+
+        this.modules = [];
         this.wcDeferredLock;
         this.mutex = new Mutex();
+
+        this.pendingJobs = [];
     }
 
     async run(modules) {
@@ -46,26 +49,32 @@ module.exports = class WCManager {
         return new Promise(async (resolve, reject) => {
             try {
                 while(true) {
-                    log.info(`[${this.name}]`, "Locking")
+                    log.info(`[${this.name}]`, "Locking...")
 
                     await this.wcDeferredLock.lock();
 
-                    log.info(`[${this.name}]`, "Unlocking")
-    
-                    break;
+                    log.info(`[${this.name}]`, "Unlocking...")
+                    
+                    if(this.pendingJobs.length > 0) {
+                        log.info(`[${this.name}]`, "Trying to unblock witness calculators.")
 
-                    // log.info(`[${this.name}]`, `Initiating the process to unblock witness calculators`);
+                        let job;
+                        for( ; job=this.pendingJobs.shift(); job!==undefined ) {
+                            if(job !== undefined) {
+                                const dest = job.src;
 
-                    // await this.executeDeferredModules(stageId);
-    
-                    // const lastSolvedpayloadId = this.lastSolvedpayloadId;
-                    // if(_lastSolvedpayloadId === lastSolvedpayloadId) {
-                    //     log.error(`[${this.name}]`, "The executing processes do not respond, processes are stucked.")
-                    //     throw new Error("The executing processes do not respond, processes are stucked.");
-                    // }   
-                    // _lastSolvedpayloadId = lastSolvedpayloadId;
+                                const module =this.checkModuleExist(dest);
+
+                                module.worker.postMessage({ command: "unlock", src: job.job.src });
+                                this.acquireLock(`Worker ${module.name} unlocked`);
+                            }
+                        }
+                    } else {
+                        break;
+                    }
                 }
-                setTimeout(() => {resolve();}, 100);
+                
+                resolve();
             } catch (err) {
                 log.error(`[${this.name}]`, `Witness computation failed.`, err);
                 reject(err);
@@ -73,7 +82,7 @@ module.exports = class WCManager {
         });
     }
 
-    // MESSAGE DISPATCHER
+    // COMMANDS DISPATCHER
     async dispatchMessage(msg) {
         const command = msg.command;
 
@@ -84,11 +93,11 @@ module.exports = class WCManager {
             case "close_session":
                 await this.closeSessionCmd(msg);
                 break;
-            case "closing_session":
-                await this.closingSessionCmd(msg);
-                break;
-                case "change_state":
+            case "change_state":
                 await this.changeStateCmd(msg);
+                break;
+            case "pending_job":
+                await this.pendingJobCmd(msg);
                 break;
             default:
                 log.error(`[${this.name}]`, "Unknown command: " + command);
@@ -106,42 +115,46 @@ module.exports = class WCManager {
     }
 
     async closeSessionCmd(msg) {
-        log.info(`[${this.name}]`, `${msg.command} : ${msg.params.src} x-> ${msg.params.dest} `);
-        const dest = msg.params.dest;
-        const module =this.checkModuleExist(dest);
-
-        module.worker.postMessage({ command: "close_session", params: msg.params });
-    }
-
-    async closingSessionCmd(msg) {
         log.info(`[${this.name}]`, `${msg.command} : ${msg.params.src} <-x ${msg.params.dest} `);
-        const dest = msg.params.dest;
 
         await this.mutex.lock();
-        log.info(`[${this.name}]`, "--- Releasing because of closing session")
-        this.wcDeferredLock.release();
+        this.releaseLock("Releasing because of closing session");
         this.mutex.unlock();        
     }
 
     async changeStateCmd(msg) {
         await this.mutex.lock();
+
         const module =this.checkModuleExist(msg.params.src);
         const newState = msg.params.state;
 
-        if(newState !== module.state) {
-            log.info(`[${this.name}]`, `${msg.command} : ${msg.params.src}(${msg.params.state})`);
-            module.state = newState;
-        }
+        module.state = newState;
 
-        if(["listening", "finished"].includes(module.state)) {
-            log.info(`[${this.name}]`, `--- Releasing because of ${msg.params.src}(${newState})`);
-            this.wcDeferredLock.release();
-        }
-        else if(["session"].includes(module.state)) {
-            log.info(`[${this.name}]`, `+++ Acquiring because of ${msg.params.src}(${newState})`);
-            this.wcDeferredLock.acquire();
-        }
+        if(["listening", "finished"].includes(newState))
+            this.releaseLock(`Releasing because of ${msg.params.src}(${newState})`);
+        else if(["session"].includes(newState))
+            this.acquireLock(`Acquiring because of ${msg.params.src}(${newState})`);
 
         this.mutex.unlock();
+    }
+
+    async pendingJobCmd(msg) {
+        await this.mutex.lock();
+        log.info(`[${this.name}]`, `${msg.command} : ${JSON.stringify(msg.params)}`);
+        this.pendingJobs.push(msg.params);
+
+        if(msg.params.lock === true) this.releaseLock("Releasing because of pending_job");
+
+        this.mutex.unlock();
+    }
+
+    releaseLock(message) {
+        this.wcDeferredLock.release();
+        // log.info(`[${this.name}]`, "---", message, `(${this.wcDeferredLock.locked})`);
+    }
+
+    acquireLock(message) {
+        this.wcDeferredLock.acquire();
+        // log.info(`[${this.name}]`, "+++", message, `(${this.wcDeferredLock.locked})`);
     }
 };

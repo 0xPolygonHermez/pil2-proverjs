@@ -11,8 +11,8 @@ class Executor4 extends BaseModule {
         const destination = "Executor2";
 
         this.openSession(destination);
-        
-        this.sendCommand(destination, { cmd: 'create_instance'});
+
+        this.sendCommand(destination, { command: 'create_instance'});
 
         this.closeSession(destination);
     }
