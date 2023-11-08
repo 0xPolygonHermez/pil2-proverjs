@@ -59,14 +59,14 @@ module.exports = class WCManager {
                         log.info(`[${this.name}]`, "Trying to unblock witness calculators.")
 
                         let job;
-                        for( ; job=this.pendingJobs.shift(); job!==undefined ) {
+                        for(; job=this.pendingJobs.shift(); job!==undefined) {
                             if(job !== undefined) {
                                 const dest = job.src;
 
                                 const module =this.checkModuleExist(dest);
 
                                 module.worker.postMessage({ command: "unlock", src: job.job.src });
-                                this.acquireLock(`Worker ${module.name} unlocked`);
+                                this.acquireLock(`Worker ${module.name}(with ${job.job.src}) unlocked`);
                             }
                         }
                     } else {
@@ -140,7 +140,7 @@ module.exports = class WCManager {
 
     async pendingJobCmd(msg) {
         await this.mutex.lock();
-        log.info(`[${this.name}]`, `${msg.command} : ${JSON.stringify(msg.params)}`);
+        log.info(`[${this.name}]`, `${msg.command} : ${msg.params.src} command '${msg.params.job.command}'`);
         this.pendingJobs.push(msg.params);
 
         if(msg.params.lock === true) this.releaseLock("Releasing because of pending_job");

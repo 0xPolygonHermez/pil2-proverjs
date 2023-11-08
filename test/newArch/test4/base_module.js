@@ -3,6 +3,7 @@ const { parentPort } = require("worker_threads");
 const Mutex = require("../../../src/concurrency/mutex");
 
 const log = require("../../../logger.js");
+const AsyncAccLock = require("../../../src/concurrency/async_acc_lock");
 
 const ModuleTypeEnum = {
     REGULAR: 1,
@@ -47,13 +48,15 @@ class BaseModule {
         this.parentPort.postMessage({ command: command, params: { src: this.name, ...params }}, transferList);
     }
 
-    async sendPendingJob(job, lock) {
+    async sendPendingJob(job, source, lock) {
+        job.src = source;
+
         this.sendParentCommand('pending_job', { src: this.name, job: job, lock:lock });
         
         if(lock) {
-            const session = this.inSessions.find((session) => session.source === job.src);
+            const session = this.inSessions.find((session) => session.source === source);
             if(session === undefined) {
-                log.error(`[${this.name}]`, `sendPendingJob Session not open with ${job.src}`);
+                log.error(`[${this.name}]`, `sendPendingJob Session not open with ${source}`);
                 return;
             }
             await session.lockMutex.lock();
@@ -94,7 +97,7 @@ class BaseModule {
             }
         }
 
-        this.inSessions.push({ source: source, port: event.params.port, mutex: new Mutex(), lockMutex : new Mutex(), tasks: [] });
+        this.inSessions.push({ source: source, port: event.params.port, mutex: new Mutex(), lockMutex : new AsyncAccLock(), tasks: [] });
 
         event.params.port.on("message", async (msg) => {
             await this.onSessionMessage(msg, source);

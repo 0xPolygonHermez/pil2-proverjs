@@ -21,7 +21,8 @@ class Executor2 extends BaseModule {
         //log.info(`[${this.name}]`, `Creating new instance`);
 
         const lock = true;
-        await this.sendPendingJob({ command: "xxx", foo: 1, bar: 2, src: source }, lock);
+        await this.sendPendingJob({ command: "resolve", params: { var: "A"}}, source, lock);
+        await this.sendPendingJob({ command: "resolve", params: { var: "A"}}, source, lock);
     }
 }
 
