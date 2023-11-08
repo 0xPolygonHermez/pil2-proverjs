@@ -23,22 +23,10 @@ async function executeFullProveTest(setup, publics, options, executeCircom) {
     log.info("[FullProve ]", "==> FULL PROVE TEST")
 
     const { proofs, challenges, challengesFRISteps, subproofValues } = await proveCmd(setup, publics, options);
-    /*
+        
     const tmpPath =  path.join(__dirname, "..", "tmp");
     if(!fs.existsSync(tmpPath)) fs.mkdirSync(tmpPath);
 
-    //THIS IS ADHOC FOR THIS EXAMPLE!!
-    const globalInfo = {
-        nPublics: setup.setup[proofs[0].subproofId][proofs[0].airId].starkInfo.nPublics,
-        numChallenges: setup.setup[proofs[0].subproofId][proofs[0].airId].starkInfo.numChallenges,
-        stepsFRI: setup.setup[proofs[0].subproofId][proofs[0].airId].starkInfo.starkStruct.steps,
-        aggTypes: setup.aggTypes,
-    }
-
-    let globalInfoFilename = path.join(tmpPath, "globalInfo.json");
-    await fs.promises.writeFile(globalInfoFilename, JSON.stringify(globalInfo, null, 1), "utf8");
-
-    
     for(const proof of proofs) {
         const name = proof.subproofId === 1 ? "fibonacci" : "module"
         let proofZkinFilename = path.join(tmpPath, name + ".proof.zkin.json");
@@ -67,9 +55,7 @@ async function executeFullProveTest(setup, publics, options, executeCircom) {
         await fs.promises.writeFile(starkInfoFilename, JSON.stringify(starkInfo, null, 1), "utf8");
 
         await fs.promises.writeFile(verKeyFilename, JSONbig.stringify(constRoot, null, 1), "utf8");
-
-
-    } */
+    }
     
     const isValid = await verifyCmd(setup, proofs, challenges, challengesFRISteps, subproofValues, options);
 
