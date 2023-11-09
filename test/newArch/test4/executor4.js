@@ -13,6 +13,7 @@ class Executor4 extends BaseModule {
         this.openSession(destination);
 
         this.sendCommand(destination, { command: 'create_instance'});
+        this.sendCommand(destination, { command: 'create_instance'});
 
         this.closeSession(destination);
     }

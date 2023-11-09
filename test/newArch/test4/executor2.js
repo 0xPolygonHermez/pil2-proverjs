@@ -22,6 +22,7 @@ class Executor2 extends BaseModule {
 
         const lock = true;
         await this.sendPendingJob({ command: "resolve", params: { var: "A"}}, source, lock);
+        await this.sendPendingJob({ command: "div_batch", params: { var: "A"}}, source, lock);
         await this.sendPendingJob({ command: "resolve", params: { var: "A"}}, source, lock);
     }
 }

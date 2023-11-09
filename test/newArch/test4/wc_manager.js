@@ -55,23 +55,11 @@ module.exports = class WCManager {
 
                     log.info(`[${this.name}]`, "Unlocking...")
                     
-                    if(this.pendingJobs.length > 0) {
-                        log.info(`[${this.name}]`, "Trying to unblock witness calculators.")
+                    if(this.pendingJobs.length === 0) break;
 
-                        let job;
-                        for(; job=this.pendingJobs.shift(); job!==undefined) {
-                            if(job !== undefined) {
-                                const dest = job.src;
-
-                                const module =this.checkModuleExist(dest);
-
-                                module.worker.postMessage({ command: "unlock", src: job.job.src });
-                                this.acquireLock(`Worker ${module.name}(with ${job.job.src}) unlocked`);
-                            }
-                        }
-                    } else {
-                        break;
-                    }
+                    await this.mutex.lock();
+                    this.unlockModules();
+                    this.mutex.unlock();
                 }
                 
                 resolve();
@@ -80,6 +68,58 @@ module.exports = class WCManager {
                 reject(err);
             }
         });
+    }
+
+    unlockModules() {        
+        // Deferred commands are the commands that are not executed immediately
+        // but are executed when the witness computation is finished.
+        // For example, the command "div_batch" is executed when the witness computation
+        // is finished.
+        // So, we must call the module once each time with all the deferred jobs
+        const deferredModules = [
+            { name: "div_batch", type: "deferred", jobs: [] },
+            { name: "resolve", jobs: [] }
+        ];
+
+        log.info(`[${this.name}]`, "Trying to unblock witness calculators.")
+
+        // Execute deferred commands that must be executed once all together...
+        const deferredOnceModules = deferredModules.filter(module => module.type === "deferred");
+        const deferredOnceCommands = deferredOnceModules.map(module => module.name);
+
+        for(let i=0;i<this.pendingJobs.length;i++) {
+            const job = this.pendingJobs[i];
+            if(!deferredOnceCommands.includes(job.job.command)) continue;
+
+            const module = deferredOnceModules.find(module => module.name === job.job.command);
+            module.jobs.push(job);
+            job.solved = true;
+        }
+
+        deferredOnceModules.forEach(module => {
+            if (module.jobs.length > 0) {
+                // log.info(`[${this.name}]`, `!!! Executing deferred '${module.jobs[0].job.command}' jobs once`);
+    
+                module.jobs.forEach(job => {
+                    const moduleDest = job.src;
+                    const module = this.checkModuleExist(moduleDest);
+                    module.worker.postMessage({ command: "unlock", src: job.job.src });
+                    this.acquireLock(`Worker ${module.name}(with ${job.job.src}) unlocked`);
+                });
+            }
+        });
+
+        this.pendingJobs = this.pendingJobs.filter(job => !job.solved);
+
+        for(let job; job=this.pendingJobs.shift(); job!==undefined) {                            
+
+            // log.info(`[${this.name}]`, `!!! Executing deferred '${job.job.command}' job`);
+
+            const moduleDest = job.src;
+            const module = this.checkModuleExist(moduleDest);
+            module.worker.postMessage({ command: "unlock", src: job.job.src });
+            this.acquireLock(`Worker ${module.name}(with ${job.job.src}) unlocked`);
+        }
     }
 
     // COMMANDS DISPATCHER
@@ -141,7 +181,7 @@ module.exports = class WCManager {
     async pendingJobCmd(msg) {
         await this.mutex.lock();
         log.info(`[${this.name}]`, `${msg.command} : ${msg.params.src} command '${msg.params.job.command}'`);
-        this.pendingJobs.push(msg.params);
+        this.pendingJobs.push( msg.params );
 
         if(msg.params.lock === true) this.releaseLock("Releasing because of pending_job");
 
