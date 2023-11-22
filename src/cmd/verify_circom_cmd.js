@@ -1,6 +1,6 @@
 const fs = require("fs");
 const pil2circom = require("pil2-stark-js/src/pil2circom");
-const { proof2zkin } = require("pil2-stark-js/src/proof2zkin.js");
+const { proof2zkin, challenges2zkin } = require("pil2-stark-js/src/proof2zkin.js");
 const wasm_tester = require("circom_tester/wasm/tester");
 
 const path = require("path");
@@ -28,7 +28,8 @@ module.exports = async function verifyCircomCmd(setup, proofs, challenges, chall
 
             const circuit = await wasm_tester(verifierFilename, { O:1, prime: "goldilocks", include: "node_modules/pil2-stark-js/circuits.gl", verbose: true });
 
-            const input = proof2zkin(proof.proof, starkInfo, {challenges, challengesFRISteps});
+            let input = proof2zkin(proof.proof, starkInfo);
+            input = challenges2zkin({challenges, challengesFRISteps}, starkInfo, input);
             input.publics = proof.publics;
 
             await circuit.calculateWitness(input, true);
