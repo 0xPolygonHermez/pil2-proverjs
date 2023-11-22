@@ -54,8 +54,7 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
 
     // Compile circom
     const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --verbose -l node_modules/pil2-stark-js/circuits.gl tmp/${recursiveName}.circom -o tmp`;
-    const execCompile = await exec(compileRecursiveCommand);
-    console.log(execCompile.stdout);
+    await exec(compileRecursiveCommand);
 
     // Generate setup
     const recursiveR1csFile = `tmp/${recursiveName}.r1cs`;
@@ -82,7 +81,7 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
 
     await MH.writeToFile(constTree, `tmp/${recursiveName}.consttree`);
 
-    return { constRoot: verKey, starkInfo: starkInfoRecursive}
+    return { constRoot: verKey, starkInfo: starkInfoRecursive, pil: pilRecursive }
 
 }
 

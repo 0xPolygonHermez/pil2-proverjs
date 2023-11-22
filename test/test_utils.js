@@ -28,12 +28,11 @@ async function executeFullProveTest(setup, publics, options, executeCircom) {
     if(!fs.existsSync(tmpPath)) fs.mkdirSync(tmpPath);
 
     for(const proof of proofs) {
-        const name = proof.subproofId === 1 ? "fibonacci" : "module"
-        let proofZkinFilename = path.join(tmpPath, name + ".proof.zkin.json");
+        let proofZkinFilename = path.join(tmpPath, "basic_stark_subproof" + proof.subproofId + "_air" + proof.airId + ".proof.zkin.json");
 
-        let starkInfoFilename = path.join(tmpPath, name + ".starkinfo.json");
+        let starkInfoFilename = path.join(tmpPath, "basic_stark_subproof" + proof.subproofId + "_air" + proof.airId + ".starkinfo.json");
 
-        let verKeyFilename = path.join(tmpPath, name + ".verkey.json");
+        let verKeyFilename = path.join(tmpPath, "basic_stark_subproof" + proof.subproofId + "_air" + proof.airId +  ".verkey.json");
 
         const starkInfo = setup.setup[proof.subproofId][proof.airId].starkInfo;
 
