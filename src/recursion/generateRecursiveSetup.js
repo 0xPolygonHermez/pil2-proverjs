@@ -47,7 +47,7 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
 
     // Generate recursive circom
     const globalInfo = JSON.parse(await fs.promises.readFile("tmp/globalInfo.json", "utf8"));
-    const recursiveVerifier = await genRecursive(template, subproofId, airId, verificationKeys, starkInfo, globalInfo);
+    const recursiveVerifier = await genRecursive(template, subproofId, airId, verificationKeys, starkInfo, globalInfo, hasCompressor);
     const recursiveFilename = `tmp/${recursiveName}.circom`;
     await fs.promises.writeFile(recursiveFilename, recursiveVerifier, "utf8");
 
@@ -81,7 +81,7 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
 
     await MH.writeToFile(constTree, `tmp/${recursiveName}.consttree`);
 
-    return { constRoot: verKey, starkInfo: starkInfoRecursive, pil: pilRecursive }
+    return { constRoot: verKey, starkInfo: starkInfoRecursive, pil: pilStr }
 
 }
 
