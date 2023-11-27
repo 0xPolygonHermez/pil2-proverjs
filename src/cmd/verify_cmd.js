@@ -7,7 +7,7 @@ const log = require("../../logger.js");
 const { executeCode } = require("pil2-stark-js/src/stark/stark_verify.js");
 const F3g = require("pil2-stark-js/src/helpers/f3g.js");
 
-module.exports = async function verifyCmd(setup, proofs, challenges, challengesFRISteps, subproofValues, options) {
+module.exports = async function verifyCmd(setup, proofs, challenges, challengesFRISteps, subAirValues, options) {
     log.info("[VerifyCmd ]", "==> PROOF VERIFICATION")
     const verifierFilename =  path.join(__dirname, "../..", setup.config.verifier.filename);
 
@@ -30,7 +30,7 @@ module.exports = async function verifyCmd(setup, proofs, challenges, challengesF
 
         for(let i = 0; i < globalConstraints.length; i++) {
             log.info("[VerifyCmd ]", "··· Verifying Global Constraint", i + 1, "/", globalConstraints.length);
-            const res = executeCode(F, {subproofValues}, globalConstraints[i].code, true);
+            const res = executeCode(F, {subAirValues}, globalConstraints[i].code, true);
             isValid = isValid && F.isZero(res);
 
             if(!isValid) {

@@ -82,7 +82,7 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
         }
 
         // TODO: Replace this with hint
-        airInstance.ctx.subproofValues.push(result[numRows - 1]);
+        airInstance.ctx.subAirValues.push(result[numRows - 1]);
         
         return result;
 

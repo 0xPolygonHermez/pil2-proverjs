@@ -15,7 +15,7 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
 
     const F = new F3g();
 
-    const recursiveName = ["recursive2", "recursivef"].includes(template) ? `${template}_subproof${subproofId}` : `${template}_subproof${subproofId}_air${airId}`;
+    const recursiveName = ["recursive2"].includes(template) ? `${template}_subproof${subproofId}` : `${template}_subproof${subproofId}_air${airId}`;
 
     let hashCommits = false;
     let vadcop = false;
@@ -33,11 +33,8 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
         verifierFilename = `tmp/recursive1_subproof${subproofId}.verifier.circom`;
         enableInput = true;
         verkeyInput = true;
-    } else if (template === "recursivef") {
-        enableInput = true;
-        verkeyInput = true;
-        verifierFilename = `tmp/recursive2_subproof${subproofId}.verifier.circom`;
     }
+
 
     const options = { hashCommits, vadcop, skipMain: true, verkeyInput, enableInput }
 
@@ -51,7 +48,6 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
     const recursiveFilename = `tmp/${recursiveName}.circom`;
     await fs.promises.writeFile(recursiveFilename, recursiveVerifier, "utf8");
 
-
     // Compile circom
     const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --verbose -l node_modules/pil2-stark-js/circuits.gl tmp/${recursiveName}.circom -o tmp`;
     await exec(compileRecursiveCommand);
@@ -59,6 +55,8 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
     // Generate setup
     const recursiveR1csFile = `tmp/${recursiveName}.r1cs`;
     const {exec: execBuff, pilStr, constPols} = await compressorSetup(F, recursiveR1csFile, compressorCols);
+
+    await constPols.saveToFile(`tmp/${recursiveName}.const`);
 
     const fd =await fs.promises.open(`tmp/${recursiveName}.exec`, "w+");
     await fd.write(execBuff);
@@ -80,6 +78,14 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
     await fs.promises.writeFile(`tmp/${recursiveName}.starkinfo.json`, JSON.stringify(starkInfoRecursive, null, 1), "utf8");
 
     await MH.writeToFile(constTree, `tmp/${recursiveName}.consttree`);
+
+    if(template === "recursive2") {
+        const vks = {
+            rootCRecursives1: verificationKeys,
+            rootCRecursive2: verKey.constRoot,
+        }
+        await fs.promises.writeFile(`tmp/${recursiveName}_vks.json`, JSONbig.stringify(vks, 0, 1), "utf8");
+    }
 
     return { constRoot: verKey, starkInfo: starkInfoRecursive, pil: pilStr }
 

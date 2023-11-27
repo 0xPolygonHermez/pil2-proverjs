@@ -18,7 +18,7 @@ class ProofCtx {
 
     resetProofCtx() {
         this.publics = [];
-        this.subproofValues = [];
+        this.subAirValues = [];
         this.challenges = [];
         this.airInstances = [];
         this.numInstances = 0;
@@ -113,10 +113,10 @@ class ProofCtx {
         proofCtx.challenges.push(new Array(1).fill(null));
         
         for(let i = 0; i < airout.subproofs.length; i++) {
-            proofCtx.subproofValues[i] = [];
+            proofCtx.subAirValues[i] = [];
             for(let j = 0; j < airout.subproofs[i].subproofvalues?.length; j++) {
                 const aggType = airout.subproofs[i].subproofvalues[j].aggType;
-                proofCtx.subproofValues[i][j] = aggType === 0 ? zero : one;
+                proofCtx.subAirValues[i][j] = aggType === 0 ? zero : one;
             }
         }
         return proofCtx;

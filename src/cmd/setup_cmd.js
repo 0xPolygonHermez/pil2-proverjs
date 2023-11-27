@@ -19,11 +19,11 @@ const { getGlobalConstraintsInfo } = require("pil2-stark-js/src/pil_info/getGlob
 const { getCompressorConstraints } = require("pil2-stark-js/src/compressor/compressor_constraints.js");
 const { readR1cs } = require("r1csfile");
 const pil2circom = require("pil2-stark-js/src/pil2circom.js");
-
+const { log2 } = require("pilcom/src/utils.js");
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
 module.exports = async function setupCmd(proofManagerConfig) {
-    const setupCircom = false;
+    const genCircomVadcopProof = proofManagerConfig.genCircomVadcopProof || true;
 
     const airout = new AirOut(proofManagerConfig.airout.airoutFilename);
 
@@ -95,37 +95,22 @@ module.exports = async function setupCmd(proofManagerConfig) {
         ]
     }
 
-    const starkStructs = {
-        "recursive": {
-            "nBits": 17,
-            "nBitsExt": 20,
-            "nQueries": 43,
-            "verificationHashType": "GL",
-            "steps": [
-                {"nBits": 20},
-                {"nBits": 16},
-                {"nBits": 12},
-                {"nBits": 9},
-                {"nBits": 6}
-            ]
-        },
-        "recursivef": {
-            "nBits": 16,
-            "nBitsExt": 20,
-            "nQueries": 32,
-            "verificationHashType": "GL",
-            "steps": [
-                {"nBits": 20},
-                {"nBits": 16},
-                {"nBits": 12},
-                {"nBits": 9},
-                {"nBits": 6}
-            ]
-        }
+    const starkStructsRecursive = {
+        "nBits": 17,
+        "nBitsExt": 20,
+        "nQueries": 43,
+        "verificationHashType": "GL",
+        "steps": [
+            {"nBits": 20},
+            {"nBits": 16},
+            {"nBits": 12},
+            {"nBits": 9},
+            {"nBits": 6}
+        ]
     }
 
 
-    if(true) {
+    if(genCircomVadcopProof) {
         for(const subproof of airout.subproofs) {
             const constRootsRecursives1 = [];
             const starkInfoRecursives1 = [];
@@ -155,7 +140,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
 
                 let constRoot;
                 let starkInfo;
-                let hasCompressor = false;
+                setup[subproof.subproofId][air.airId].hasCompressor = false;
                 if(nBits !== 17) {
                     // TODO: Iterate over different possibilities here
                     const starkStructCompressor = {
@@ -174,12 +159,12 @@ module.exports = async function setupCmd(proofManagerConfig) {
                     
                     constRoot = constRootRecursiveCompressor.constRoot;
                     starkInfo = starkInfoRecursiveCompressor;
-                    hasCompressor = true;
+                    setup[subproof.subproofId][air.airId].hasCompressor = true;
                 } else {
                     constRoot = setup[subproof.subproofId][air.airId].constRoot;
                     starkInfo = setup[subproof.subproofId][air.airId].starkInfo;
                 }
-                const {starkInfo: starkInfoRecursive1, constRoot: constRootRecursive1, pil: pilRecursive1 } = await genRecursiveSetup("recursive1", subproof.subproofId, air.airId, constRoot, [], starkInfo, starkStructs["recursive"], 18, hasCompressor);
+                const {starkInfo: starkInfoRecursive1, constRoot: constRootRecursive1, pil: pilRecursive1 } = await genRecursiveSetup("recursive1", subproof.subproofId, air.airId, constRoot, [], starkInfo, starkStructsRecursive, 18, setup[subproof.subproofId][air.airId].hasCompressor);
             
                 constRootsRecursives1[air.airId] = constRootRecursive1;
                 starkInfoRecursives1[air.airId] = starkInfoRecursive1;
@@ -192,7 +177,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
                 if(hashPilRecursive1 !== hash) throw new Error("All recursive1 pil must be the same");
             }
 
-            const {starkInfo: starkInfoRecursive2, constRoot: constRootRecursive2, pil: pilRecursive2 } = await genRecursiveSetup("recursive2", subproof.subproofId, undefined, undefined, constRootsRecursives1.map(c => c.constRoot), starkInfoRecursives1[0], starkStructs["recursive"], 18)
+            const {starkInfo: starkInfoRecursive2, constRoot: constRootRecursive2, pil: pilRecursive2 } = await genRecursiveSetup("recursive2", subproof.subproofId, undefined, undefined, constRootsRecursives1.map(c => c.constRoot), starkInfoRecursives1[0], starkStructsRecursive, 18)
 
 
             const hashPilRecursive2 = crypto.createHash("sha256").update(JSON.stringify(pilRecursive2)).digest("hex");
@@ -200,12 +185,18 @@ module.exports = async function setupCmd(proofManagerConfig) {
             if(hashPilRecursive1 !== hashPilRecursive2) throw new Error("Recursive1 and recursive2 pil must be the same");
 
             const nullProof = genNullProof(starkInfoRecursive2);            
-            await fs.promises.writeFile(`tmp/subproof${subproof.subproofId}_null.proof.zkin.json`, nullProof, "utf8");
-
-            const {starkInfo: starkInfoRecursiveF, constRoot: constRootRecursiveF} = await genRecursiveSetup("recursivef", subproof.subproofId, undefined, undefined, [constRootRecursive2,...constRootsRecursives1].map(c => c.constRoot), starkInfoRecursive2, starkStructs["recursivef"], 18);
+            await fs.promises.writeFile(`tmp/subproof${subproof.subproofId}_null.proof.zkin.json`, JSON.stringify(nullProof, 0, 1), "utf8");
         }
 
         await genFinalSetup(starkStructFinal, airout.subproofs.length, 18);
+    } else {
+        for(const subproof of airout.subproofs) {
+            for(const air of subproof.airs) {
+                if(fs.existsSync(`tmp/compressor_subproof${subproof.subproofId}_air${air.airId}.verifier.circom`)) {
+                    setup[subproof.subproofId][air.airId].hasCompressor = true;
+                }
+            }
+        }
     }
 
     if(airout.constraints !== undefined) {

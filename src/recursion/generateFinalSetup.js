@@ -14,30 +14,33 @@ const {genFinal} = require('pil2-stark-js/recursive/genfinal.js');
 module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, nSubproofs, compressorCols) {
     const F = new F3g();
 
-    const starkInfosRecursivesF = [];
-    const constRootsRecursiveF = [];
-    for(let i = 0; i < nSubproofs; i++) {
-        const name = `recursivef_subproof${i}`;
-        const constRoot = JSON.parse(await fs.promises.readFile(`tmp/${name}.verkey.json`, "utf8"));
-        const starkInfo = JSON.parse(await fs.promises.readFile(`tmp/${name}.starkinfo.json`, "utf8"));
+    const starkInfosRecursives2 = [];
 
-        starkInfosRecursivesF.push(starkInfo);
-        constRootsRecursiveF.push(constRoot);
+    for(let i = 0; i < nSubproofs; i++) {
+        const name = `recursive2_subproof${i}`;
+        const starkInfo = JSON.parse(await fs.promises.readFile(`tmp/${name}.starkinfo.json`, "utf8"));
+        const verificationKeys = JSONbig.parse(await fs.promises.readFile(`tmp/${name}_vks.json`, "utf8"));
+
+        const res = { 
+            starkInfo,
+            rootCRecursives1: verificationKeys.rootCRecursives1,
+            rootCRecursive2: verificationKeys.rootCRecursive2
+         };
+
+        starkInfosRecursives2.push(res);
     }
     
     const finalName = "final";
-    
-    if(starkInfosRecursivesF.length !== constRootsRecursiveF.length) throw new Error("Length mismatch");
-    
-    //Generate RecursiveF verifiers circom
-    for(let i = 0; i < starkInfosRecursivesF.length; ++i) {
-        const verifierCircomTemplate = await pil2circom(constRootsRecursiveF[i].constRoot, starkInfosRecursivesF[i], { skipMain: true, subproofId: i });
-        await fs.promises.writeFile(`tmp/recursivef_subproof${i}.verifier.circom`, verifierCircomTemplate, "utf8");
+        
+    //Generate Recursive2 verifiers circom
+    for(let i = 0; i < starkInfosRecursives2.length; ++i) {
+        const verifierCircomTemplate = await pil2circom(null, starkInfosRecursives2[i].starkInfo, { skipMain: true, subproofId: i, verkeyInput: true, enableInput: true });
+        await fs.promises.writeFile(`tmp/recursive2_subproof${i}.verifier.circom`, verifierCircomTemplate, "utf8");
     }    
 
     // Generate final circom
     const globalInfo = JSON.parse(await fs.promises.readFile("tmp/globalInfo.json", "utf8"));
-    const finalVerifier = await genFinal(globalInfo, starkInfosRecursivesF);
+    const finalVerifier = await genFinal(globalInfo, starkInfosRecursives2);
     const finalFilename = `tmp/final.circom`;
     await fs.promises.writeFile(finalFilename, finalVerifier, "utf8");
 
