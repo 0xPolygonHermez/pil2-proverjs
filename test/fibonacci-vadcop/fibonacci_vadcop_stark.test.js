@@ -21,7 +21,14 @@ function getSettings() {
             settings: {
                 default: { starkStruct: `./test/fibonacci-vadcop/fibonacci_vadcop_stark_struct_2_4.json` },
                 Fibonacci_2: {starkStruct: `./test/fibonacci-vadcop/fibonacci_vadcop_stark_struct_2_2.json` },
+            },   
+        },
+        aggregation: {
+            settings: {
+                recursive: { starkStruct: "./src/recursion/configs/recursive.starkstruct.json" },
+                final: { starkStruct: "./src/recursion/configs/final.starkstruct.json" }
             },
+            genProof: true,  
         },
         verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
     };
@@ -32,8 +39,8 @@ describe("Fibonacci Vadcop", async function () {
     this.timeout(10000000);
 
     const options = {
-        parallelExec: false,
-        useThreads: false,
+        parallelExec: true,
+        useThreads: true,
         hashCommits: true,
         vadcop: true,
     };
@@ -42,8 +49,10 @@ describe("Fibonacci Vadcop", async function () {
 
     let setup;
 
+    let config;
+
     before(async () => {
-        let config = getSettings();
+        config = getSettings();
         setup = await generateSetupTest(config);
     });
 
@@ -52,6 +61,6 @@ describe("Fibonacci Vadcop", async function () {
     });
 
     it("Generate a Fibonacci Vadcop proof", async () => {
-        await executeFullProveTest(setup, publicInputs, options, true);
+        await executeFullProveTest(setup, publicInputs, options, config.aggregation?.genProof);
     });
 });

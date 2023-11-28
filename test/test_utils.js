@@ -19,7 +19,7 @@ async function generateSetupTest(proofManagerConfig) {
     return setup;
 }
 
-async function executeFullProveTest(setup, publics, options, executeCircom) {
+async function executeFullProveTest(setup, publics, options, genCircomProof) {
     log.info("[FullProve ]", "==> FULL PROVE TEST")
 
     const { proofs, challenges, challengesFRISteps, subAirValues } = await proveCmd(setup, publics, options);
@@ -60,7 +60,7 @@ async function executeFullProveTest(setup, publics, options, executeCircom) {
 
     assert(isValid == true, "PROOF NOT VALID");
 
-    if(executeCircom) await verifyCircomCmd(setup, proofs, challenges, challengesFRISteps);
+    if(genCircomProof) await verifyCircomCmd(setup, proofs, challenges, challengesFRISteps);
 
     log.info("[FullProve ]", "<== FULL PROVE TEST")
 }

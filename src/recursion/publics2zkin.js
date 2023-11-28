@@ -47,7 +47,7 @@ module.exports.nullpublics2zkin = function nullpublics2zkin(subproofId, zkin, gl
     zkin.sv_circuitType = "0";
     zkin.sv_aggregationTypes = [];
     for(let i = 0; i < globalInfo.aggTypes[subproofId].length; ++i) {
-        zkin.sv_aggregationTypes.push(globalInfo.aggTypes[subproofId].aggType);
+        zkin.sv_aggregationTypes.push(globalInfo.aggTypes[subproofId][i].aggType);
     }
     zkin.sv_subAirValues = new Array(globalInfo.aggTypes[subproofId].length).fill(["0", "0", "0"]);
     zkin.sv_rootC = ["0", "0", "0", "0"];

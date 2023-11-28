@@ -1,16 +1,15 @@
 const { publics2zkin } = require("./publics2zkin");
 
-module.exports.joinzkinFinal = async function joinzkinFinal(proofsBySubproofId, globalInfo, publics, challenges, challengesFRISteps) {
-    const zkinFinal = [];
+module.exports.joinzkinFinal = function joinzkinFinal(proofsBySubproofId, globalInfo, publics, challenges, challengesFRISteps) {
+    const zkinFinal = {};
 
     zkinFinal.publics = publics;
     zkinFinal.challenges = challenges.flat();
     zkinFinal.challengesFRISteps = challengesFRISteps;
 
-    for(let i = 0; i < proofsBySubproofId; ++i) {
-        const proof = proofsBySubproofId[i];
-        const zkin = publics2zkin(i, proof.zkinFinal, globalInfo, proof.publics, undefined, true);
-        const starkInfo = proof.starkInfosRecursive2[i];
+    for(let i = 0; i < proofsBySubproofId.length; ++i) {
+        const zkin = proofsBySubproofId[i].zkinFinal;
+        const starkInfo = proofsBySubproofId[i].starkInfoRecursive2;
         for (let j = 0; j < starkInfo.numChallenges.length; ++j) {
             zkinFinal[`s${i}_root${j + 1}`] = zkin[`root${j + 1}`]; 
         }
@@ -56,7 +55,7 @@ module.exports.joinzkinFinal = async function joinzkinFinal(proofsBySubproofId, 
             zkinFinal[`s${i}_sv_s${j+1}_root`] = zkin[`sv_s${j+1}_root`];
         }
 
-        zkinFinal[`s${i}_sv_finalPolsHash`] = zkin.sv_finalPolHash;
+        zkinFinal[`s${i}_sv_finalPolHash`] = zkin.sv_finalPolHash;
     }
 
     return zkinFinal;
