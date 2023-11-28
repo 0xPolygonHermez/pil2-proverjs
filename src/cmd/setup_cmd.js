@@ -23,7 +23,7 @@ const { log2 } = require("pilcom/src/utils.js");
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
 module.exports = async function setupCmd(proofManagerConfig) {
-    const genCircomVadcopProof = proofManagerConfig.genCircomVadcopProof || true;
+    const genCircomVadcopProof = proofManagerConfig.genCircomVadcopProof || false;
 
     const airout = new AirOut(proofManagerConfig.airout.airoutFilename);
 
@@ -37,8 +37,15 @@ module.exports = async function setupCmd(proofManagerConfig) {
         aggTypes[subproof.subproofId] = subproof.subproofvalues;
     }
 
-    //THIS IS ADHOC FOR FIBONACCI VADCOP EXAMPLE !!
-    const stepsFRI =  [{"nBits": 5},{"nBits": 4},{"nBits": 2}];
+    let stepsFRI = new Set([]);
+    for(let i = 0; i < Object.keys(proofManagerConfig.prover.settings).length; i++) {
+        const key = Object.keys(proofManagerConfig.prover.settings)[i];
+        const starkStructFilename =  path.join(__dirname, "../../", proofManagerConfig.prover.settings[key].starkStruct);
+        const starkStruct = require(starkStructFilename);
+        starkStruct.steps.map(step => step.nBits).forEach(e => stepsFRI.add(e));
+    }
+
+    stepsFRI = Array.from(stepsFRI).sort((a, b) => b - a);
 
     const globalInfo = {
         nPublics: airout.numPublicValues,
@@ -79,6 +86,11 @@ module.exports = async function setupCmd(proofManagerConfig) {
             setup[subproof.subproofId][air.airId] = await starkSetup(fixedPols, air, starkStruct, setupOptions);
         }
     }
+
+    if(airout.constraints !== undefined) {
+        globalConstraints = getGlobalConstraintsInfo(airout, true);
+    }
+
 
     // TODO: This should be part of the config
     const starkStructFinal = {
@@ -188,7 +200,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
             await fs.promises.writeFile(`tmp/subproof${subproof.subproofId}_null.proof.zkin.json`, JSON.stringify(nullProof, 0, 1), "utf8");
         }
 
-        await genFinalSetup(starkStructFinal, airout.subproofs.length, 18);
+        await genFinalSetup(starkStructFinal, globalConstraints, airout.subproofs.length, 18);
     } else {
         for(const subproof of airout.subproofs) {
             for(const air of subproof.airs) {
@@ -203,5 +215,5 @@ module.exports = async function setupCmd(proofManagerConfig) {
         globalConstraints = getGlobalConstraintsInfo(airout, true);
     }
 
-    return { setup, globalConstraints, config: proofManagerConfig };
+    return { setup, stepsFRI, globalConstraints, config: proofManagerConfig };
 }

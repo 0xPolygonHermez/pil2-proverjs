@@ -147,16 +147,22 @@ class StarkFriProver extends ProverComponent {
     async openingStage(openingId, airInstance) {
         this.checkInitialized();
 
-        const isLastRound = openingId === 2 + airInstance.ctx.pilInfo.starkStruct.steps.length + 1;
+        const isLastRound = openingId === 2 + this.proofCtx.stepsFRI.length + 1;
         const numStages = this.proofCtx.getAirout().numStages + 1;
 
         if(openingId === 1) {
             await this.computeOpenings(airInstance);
         } else if(openingId === 2) {
             await this.computeFRIStark(airInstance);
-        } else if(openingId <= 2 + airInstance.ctx.pilInfo.starkStruct.steps.length) {
-            await this.computeFRIFolding(numStages + openingId, airInstance, { step: openingId - 3});
-        } else if(openingId === 2 + airInstance.ctx.pilInfo.starkStruct.steps.length + 1) {
+        } else if(openingId <= 2 + this.proofCtx.stepsFRI.length) {
+            const globalStepFRI = this.proofCtx.stepsFRI[openingId - 3];
+            const step = airInstance.ctx.pilInfo.starkStruct.steps.findIndex(s => s.nBits === globalStepFRI);
+            if(step === -1) {
+                airInstance.ctx.challengeValue = [ [0n, 0n, 0n, 0n ]];
+            } else {
+                await this.computeFRIFolding(numStages + openingId, airInstance, { step });
+            }
+        } else if(openingId === 2 + this.proofCtx.stepsFRI.length + 1) {
             await this.computeFRIQueries(numStages + openingId, airInstance);
         } else {
             log.error(`[${this.name}]`, `Invalid openingId ${openingId}.`);
@@ -199,9 +205,12 @@ class StarkFriProver extends ProverComponent {
         const ctx = airInstance.ctx;
 
         const subproof = this.proofCtx.airout.subproofs[airInstance.subproofId];
+        const info = params.step === airInstance.ctx.pilInfo.starkStruct.steps.length - 1 
+            ? `for last step ${airInstance.ctx.pilInfo.starkStruct.steps[params.step].nBits}`
+            : `from ${airInstance.ctx.pilInfo.starkStruct.steps[params.step].nBits} to ${airInstance.ctx.pilInfo.starkStruct.steps[params.step + 1].nBits}`
         log.info(
             `[${this.name}]`,
-            `··· Computing FRI Folding for subproof ${subproof.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
+            `··· Computing FRI Folding ${info} for subproof ${subproof.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
         const friCommits = await computeFRIFolding(params.step, ctx, challenge, this.options);
@@ -213,7 +222,7 @@ class StarkFriProver extends ProverComponent {
         const ctx = airInstance.ctx;
 
         const challenge = this.proofCtx.getChallenge(stageId - 1)[0];
-        
+
         const friQueries = await getPermutationsStark(ctx, challenge);
 
         log.info(`[${this.name}]`, `··· FRI queries: [${friQueries.join(",")}]`);

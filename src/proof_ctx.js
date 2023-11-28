@@ -20,6 +20,7 @@ class ProofCtx {
         this.publics = [];
         this.subAirValues = [];
         this.challenges = [];
+        this.stepsFRI = [];
         this.airInstances = [];
         this.numInstances = 0;
     }
@@ -84,7 +85,7 @@ class ProofCtx {
     // getAirCols(subproofId, airId)
     //
 
-    static createProofCtxFromAirout(name, airout, finiteField) {
+    static createProofCtxFromAirout(name, airout, stepsFRI, finiteField) {
         const proofCtx = new ProofCtx(name, finiteField);
         proofCtx.airout = airout;
 
@@ -106,11 +107,11 @@ class ProofCtx {
         proofCtx.challenges.push(new Array(1).fill(null));
         proofCtx.challenges.push(new Array(2).fill(null));
         
-        // TODO: Calculate friStages
-        proofCtx.challenges.push(new Array(1).fill(null));
-        proofCtx.challenges.push(new Array(1).fill(null));
-        proofCtx.challenges.push(new Array(1).fill(null));
-        proofCtx.challenges.push(new Array(1).fill(null));
+        for(let i = 0; i < stepsFRI.length + 1; ++i) {
+            proofCtx.challenges.push(new Array(1).fill(null));
+        }
+
+        proofCtx.stepsFRI = stepsFRI;
         
         for(let i = 0; i < airout.subproofs.length; i++) {
             proofCtx.subAirValues[i] = [];

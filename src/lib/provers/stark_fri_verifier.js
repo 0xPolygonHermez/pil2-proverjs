@@ -7,12 +7,19 @@ class StarkFriVerifier extends VerifierComponent {
         super("FRIVerfier");
     }
 
-    async checkProof(proof, constRoot, starkInfo, challenges, challengesFRISteps, options) {
+    async checkProof(proof, constRoot, starkInfo, stepsFRI, challenges, challengesFRISteps, options) {
         this.checkInitialized();
 
         log.info(`[${this.name}]`, `--> STARK verification (subproofId ${proof.subproofId} airId ${proof.airId})`);
 
-        const isValid = await starkVerify(proof.proof, proof.publics, constRoot, { challenges, challengesFRISteps }, starkInfo, options);
+        const challengesFRIStepsProof = [];
+        for(let i = 0; i < starkInfo.starkStruct.steps.length; i++) {
+            let stepIndex = stepsFRI.findIndex(step => step === starkInfo.starkStruct.steps[i].nBits);
+            challengesFRIStepsProof.push(challengesFRISteps[stepIndex]);
+        }
+        challengesFRIStepsProof.push(challengesFRISteps[stepsFRI.length]);
+        
+        const isValid = await starkVerify(proof.proof, proof.publics, constRoot, { challenges, challengesFRISteps: challengesFRIStepsProof }, starkInfo, options);
 
         if (isValid === false) {
             log.error(`[${this.name}]`, `INVALID STARK proof`);

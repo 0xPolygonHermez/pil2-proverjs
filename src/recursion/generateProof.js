@@ -1,7 +1,7 @@
 
 const JSONbig = require('json-bigint')({ useNativeBigInt: true, alwaysParseAsBig: true });
 const fs = require('fs');
-const { verifyPil, compile, newConstantPolsArray } = require('pilcom');
+const { compile, newConstantPolsArray } = require('pilcom');
 const { starkGen, starkVerify } = require('pil2-stark-js');
 const F3g = require("pil2-stark-js/src/helpers/f3g");
 const { proof2zkin } = require('pil2-stark-js/src/proof2zkin');
@@ -10,10 +10,17 @@ const { compressorExec } = require('pil2-stark-js/src/compressor/compressor_exec
 const { readExecFile } = require('pil2-stark-js/src/compressor/exec_helpers');
 const { publics2zkin } = require('./publics2zkin');
 
-module.exports.generateProof = async function generateProof(template, subproofId, airId, inputs) {
+module.exports.generateProof = async function generateProof(template, inputs, subproofId, airId) {
     const F = new F3g();
 
-    const recursiveName = ["recursive2"].includes(template) ? `${template}_subproof${subproofId}` : `${template}_subproof${subproofId}_air${airId}`;
+    let recursiveName;
+    if(template === "final") {
+        recursiveName = "final";
+    } else if(template === "recursive2") {
+        recursiveName = `${template}_subproof${subproofId}`;
+    } else {
+        recursiveName = `${template}_subproof${subproofId}_air${airId}`;
+    }
 
     const starkInfo = JSON.parse(await fs.promises.readFile(`tmp/${recursiveName}.starkinfo.json`, "utf8"));
 
@@ -49,15 +56,10 @@ module.exports.generateProof = async function generateProof(template, subproofId
 
     let zkin = proof2zkin(resP.proof, starkInfo);
       
-    let constRootCRecursive2;
     if(template === "compressor") {
-        const verkeyRecursive2 = JSONbig.parse(await fs.promises.readFile(`tmp/recursive2_subproof${subproofId}.verkey.json`, "utf8"));
-        constRootCRecursive2 = verkeyRecursive2.constRoot;
-    }
-
-    const globalInfo =  JSON.parse(await fs.promises.readFile(`tmp/globalInfo.json`, "utf8"));
-
-    zkin = publics2zkin(subproofId, zkin, globalInfo, resP.publics, constRootCRecursive2);
+        const globalInfo =  JSON.parse(await fs.promises.readFile(`tmp/globalInfo.json`, "utf8"));
+        zkin = publics2zkin(subproofId, zkin, globalInfo, resP.publics);
+    }    
 
     return {proof: resP.proof, publics: resP.publics, zkin };
 }

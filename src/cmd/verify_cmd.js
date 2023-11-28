@@ -46,7 +46,7 @@ module.exports = async function verifyCmd(setup, proofs, challenges, challengesF
         const constRoot = setup.setup[proof.subproofId][proof.airId].constRoot;
         const starkInfo = setup.setup[proof.subproofId][proof.airId].starkInfo;
 
-        isValid = isValid && await verifier.checkProof(proof, constRoot, starkInfo, challenges, challengesFRISteps, options);
+        isValid = isValid && await verifier.checkProof(proof, constRoot, starkInfo, setup.stepsFRI, challenges, challengesFRISteps, options);
         
         if(!isValid) break;
     }

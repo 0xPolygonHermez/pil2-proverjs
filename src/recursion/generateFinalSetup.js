@@ -11,7 +11,7 @@ const {buildConstTree} = require('pil2-stark-js/src/stark/stark_buildConstTree.j
 const pil2circom = require('pil2-stark-js/src/pil2circom');
 const {genFinal} = require('pil2-stark-js/recursive/genfinal.js');
 
-module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, nSubproofs, compressorCols) {
+module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, globalConstraints = [], nSubproofs, compressorCols) {
     const F = new F3g();
 
     const starkInfosRecursives2 = [];
@@ -40,7 +40,7 @@ module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, nS
 
     // Generate final circom
     const globalInfo = JSON.parse(await fs.promises.readFile("tmp/globalInfo.json", "utf8"));
-    const finalVerifier = await genFinal(globalInfo, starkInfosRecursives2);
+    const finalVerifier = await genFinal(globalInfo, globalConstraints, starkInfosRecursives2);
     const finalFilename = `tmp/final.circom`;
     await fs.promises.writeFile(finalFilename, finalVerifier, "utf8");
 
