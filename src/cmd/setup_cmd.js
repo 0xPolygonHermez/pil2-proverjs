@@ -45,7 +45,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
         starkStruct.steps.map(step => step.nBits).forEach(e => stepsFRI.add(e));
     }
 
-    stepsFRI = Array.from(stepsFRI).sort((a, b) => b - a);
+    stepsFRI = Array.from(stepsFRI).sort((a, b) => b - a).map(s => { return { nBits: s }});
 
     const globalInfo = {
         nPublics: airout.numPublicValues,

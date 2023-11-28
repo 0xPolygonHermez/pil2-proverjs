@@ -14,7 +14,7 @@ class StarkFriVerifier extends VerifierComponent {
 
         const challengesFRIStepsProof = [];
         for(let i = 0; i < starkInfo.starkStruct.steps.length; i++) {
-            let stepIndex = stepsFRI.findIndex(step => step === starkInfo.starkStruct.steps[i].nBits);
+            let stepIndex = stepsFRI.findIndex(step => step.nBits === starkInfo.starkStruct.steps[i].nBits);
             challengesFRIStepsProof.push(challengesFRISteps[stepIndex]);
         }
         challengesFRIStepsProof.push(challengesFRISteps[stepsFRI.length]);
