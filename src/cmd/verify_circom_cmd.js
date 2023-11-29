@@ -36,8 +36,14 @@ module.exports = async function verifyCircomCmd(setup, proofs, challenges, chall
             if(hasCompressor) {
                 const {zkin: zkinCompressor, publics: publicsCompressor } = await generateProof("compressor", inputs, proof.subproofId, proof.airId);
 
-                await fs.promises.writeFile(`tmp/proof${p}_subproof${proof.subproofId}_air${proof.airId}_compressor.proof.zkin.json`, JSONbig.stringify(zkinCompressor, 0, 1), "utf8");
-                await fs.promises.writeFile(`tmp/proof${p}_subproof${proof.subproofId}_air${proof.airId}_compressor.publics.json`, JSONbig.stringify(publicsCompressor, 0, 1), "utf8");
+                await fs.promises.writeFile(`tmp/proof${p}_subproof${proof.subproofId}_air${proof.airId}_compressor.proof.zkin.json`, JSONbig.stringify(zkinCompressor, (k, v) => {
+                    if (typeof(v) === "bigint") {
+                        return v.toString();
+                    } else {
+                        return v;
+                    }
+                }, 1), "utf8");
+                await fs.promises.writeFile(`tmp/proof${p}_subproof${proof.subproofId}_air${proof.airId}_compressor.publics.json`, JSONbig.stringify(publicsCompressor, null, 1), "utf8");
 
                 inputs = zkinCompressor;
             } 
@@ -47,8 +53,14 @@ module.exports = async function verifyCircomCmd(setup, proofs, challenges, chall
   
             const {zkin: zkinRecursive1, publics: publicsRecursive1} = await generateProof("recursive1", inputs, proof.subproofId, proof.airId);
 
-            await fs.promises.writeFile(`tmp/proof${p}_subproof${proof.subproofId}_air${proof.airId}_recursive1.proof.zkin.json`, JSONbig.stringify(zkinRecursive1, 0, 1), "utf8");
-            await fs.promises.writeFile(`tmp/proof${p}_subproof${proof.subproofId}_air${proof.airId}_recursive1.publics.json`, JSONbig.stringify(publicsRecursive1, 0, 1), "utf8");
+            await fs.promises.writeFile(`tmp/proof${p}_subproof${proof.subproofId}_air${proof.airId}_recursive1.proof.zkin.json`, JSONbig.stringify(zkinRecursive1, (k, v) => {
+                if (typeof(v) === "bigint") {
+                    return v.toString();
+                } else {
+                    return v;
+                }
+            }, 1), "utf8");
+            await fs.promises.writeFile(`tmp/proof${p}_subproof${proof.subproofId}_air${proof.airId}_recursive1.publics.json`, JSONbig.stringify(publicsRecursive1, null, 1), "utf8");
 
             if(!proofsBySubproofId[proof.subproofId]) proofsBySubproofId[proof.subproofId] = {
                 starkInfoRecursive2: JSONbig.parse(await fs.promises.readFile(`tmp/recursive2_subproof${proof.subproofId}.starkinfo.json`, "utf8")),  
@@ -109,7 +121,13 @@ module.exports = async function verifyCircomCmd(setup, proofs, challenges, chall
     
     const zkinFinal = joinzkinFinal(proofsBySubproofId, globalInfo, publics, challenges, challengesFRISteps);
 
-    await fs.promises.writeFile(`tmp/final.proof.zkin.json`, JSONbig.stringify(zkinFinal, 0, 1), "utf8");
+    await fs.promises.writeFile(`tmp/final.proof.zkin.json`, JSONbig.stringify(zkinFinal, (k, v) => {
+        if (typeof(v) === "bigint") {
+            return v.toString();
+        } else {
+            return v;
+        }
+    }, 1), "utf8");
 
     const {proof: finalProof, publics: finalPublics } = await generateProof("final", zkinFinal);
 

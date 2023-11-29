@@ -216,14 +216,16 @@ class ProversManager {
                         `[${this.name}]`,
                         `··· Computing global challenge. Addings subproof '${subproof.name}' Air '${air.name}' Instance ${airInstance.instanceId} value`);
 
-                    const value = airInstance.ctx.challengeValue?.length > 0 ? airInstance.ctx.challengeValue : [[0n, 0n, 0n, 0n]];
+                    const value = airInstance.ctx.challengeValue?.length > 0 ? airInstance.ctx.challengeValue : [];
                     challenges.push(...value);
                 }
             }
 
             if (options.vadcop) {
-                const challenge = await hashBTree(challenges);
-                this.proofCtx.addChallengeToTranscript(challenge);
+                if(challenges.length > 0) {
+                    const challenge = await hashBTree(challenges);
+                    this.proofCtx.addChallengeToTranscript(challenge);
+                }
             } else {
                 for (let k = 0; k < challenges.length; k++) {
                     this.proofCtx.addChallengeToTranscript(challenges[k]);

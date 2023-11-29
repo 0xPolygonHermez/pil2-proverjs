@@ -158,7 +158,7 @@ class StarkFriProver extends ProverComponent {
             const globalStepFRI = this.proofCtx.stepsFRI[openingId - 3].nBits;
             const step = airInstance.ctx.pilInfo.starkStruct.steps.findIndex(s => s.nBits === globalStepFRI);
             if(step === -1) {
-                airInstance.ctx.challengeValue = [ [0n, 0n, 0n, 0n ]];
+                airInstance.ctx.challengeValue = [];
             } else {
                 await this.computeFRIFolding(numStages + openingId, airInstance, { step });
             }
