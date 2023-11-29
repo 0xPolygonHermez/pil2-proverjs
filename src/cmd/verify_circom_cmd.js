@@ -14,8 +14,6 @@ module.exports = async function verifyCircomCmd(setup, proofs, challenges, chall
     
     const tmpPath =  path.join(__dirname, "../..", "tmp");
     if(!fs.existsSync(tmpPath)) fs.mkdirSync(tmpPath);
-
-    let verifierFilename;
     
     const proofsBySubproofId = [];
 
@@ -23,7 +21,7 @@ module.exports = async function verifyCircomCmd(setup, proofs, challenges, chall
 
     for(let p = 0; p < proofs.length; ++p) {
         const proof = proofs[p];
-
+        
         log.info(`[CircomVrfr]`, `--> CIRCOM verification (subproofId ${proof.subproofId} airId ${proof.airId})`);
 
         try {
@@ -36,40 +34,57 @@ module.exports = async function verifyCircomCmd(setup, proofs, challenges, chall
             inputs.publics = proof.publics;
 
             if(hasCompressor) {
-                const {zkin: zkinCompressor} = await generateProof("compressor", inputs, proof.subproofId, proof.airId);
+                const {zkin: zkinCompressor, publics: publicsCompressor } = await generateProof("compressor", inputs, proof.subproofId, proof.airId);
+
+                await fs.promises.writeFile(`tmp/proof${p}_subproof${proof.subproofId}_air${proof.airId}_compressor.proof.zkin.json`, JSONbig.stringify(zkinCompressor, 0, 1), "utf8");
+                await fs.promises.writeFile(`tmp/proof${p}_subproof${proof.subproofId}_air${proof.airId}_compressor.publics.json`, JSONbig.stringify(publicsCompressor, 0, 1), "utf8");
+
                 inputs = zkinCompressor;
             } 
             
             const verkeyRecursive2 = JSONbig.parse(await fs.promises.readFile(`tmp/recursive2_subproof${proof.subproofId}.verkey.json`, "utf8"));
             inputs.rootCRecursive2 = verkeyRecursive2.constRoot;
   
-            const verkeyRecursive1 = JSONbig.parse(await fs.promises.readFile(`tmp/recursive1_subproof${proof.subproofId}_air${proof.airId}.verkey.json`, "utf8"));
-
             const {zkin: zkinRecursive1, publics: publicsRecursive1} = await generateProof("recursive1", inputs, proof.subproofId, proof.airId);
+
+            await fs.promises.writeFile(`tmp/proof${p}_subproof${proof.subproofId}_air${proof.airId}_recursive1.proof.zkin.json`, JSONbig.stringify(zkinRecursive1, 0, 1), "utf8");
+            await fs.promises.writeFile(`tmp/proof${p}_subproof${proof.subproofId}_air${proof.airId}_recursive1.publics.json`, JSONbig.stringify(publicsRecursive1, 0, 1), "utf8");
 
             if(!proofsBySubproofId[proof.subproofId]) proofsBySubproofId[proof.subproofId] = {
                 starkInfoRecursive2: JSONbig.parse(await fs.promises.readFile(`tmp/recursive2_subproof${proof.subproofId}.starkinfo.json`, "utf8")),  
                 rootCRecursive2: verkeyRecursive2.constRoot,
-                rootCRecursives1: [],
                 zkin: [],
                 publics: [],
             };
+
             proofsBySubproofId[proof.subproofId].zkin[proof.airId] = zkinRecursive1;
             proofsBySubproofId[proof.subproofId].publics[proof.airId] = publicsRecursive1;
-            proofsBySubproofId[proof.subproofId].rootCRecursives1[proof.airId] = verkeyRecursive1.constRoot;
-
-            await fs.promises.writeFile(`tmp/proof${p}_recursive1.proof.zkin.json`, JSONbig.stringify(zkinRecursive1, 0, 1), "utf8");
-            await fs.promises.writeFile(`tmp/proof${p}_recursive1.publics.json`, JSONbig.stringify(publicsRecursive1, 0, 1), "utf8");
         } catch (error) {
             log.error(`[CircomVrfr]`, `Error while verifying proof (subproofId ${proof.subproofId} airId ${proof.airId}):`);
             log.error(`[CircomVrfr]`, `${error}`);
             throw error;
-        } finally {
-            await fs.promises.unlink(verifierFilename);
         }
     }
 
-    const globalInfo =  JSON.parse(await fs.promises.readFile(`tmp/globalInfo.json`, "utf8"));
+    const verkeyRecursive2_subproof0 = JSONbig.parse(await fs.promises.readFile(`tmp/recursive2_subproof0.verkey.json`, "utf8"));
+
+    proofsBySubproofId[0] = {
+        starkInfoRecursive2: JSONbig.parse(await fs.promises.readFile(`tmp/recursive2_subproof0.starkinfo.json`, "utf8")),  
+        rootCRecursive2: verkeyRecursive2_subproof0.constRoot,
+        zkin: [JSONbig.parse(await fs.promises.readFile(`tmp/proof1_subproof0_air0_recursive1.proof.zkin.json`, "utf8"))],
+        publics: [JSONbig.parse(await fs.promises.readFile(`tmp/proof1_subproof0_air0_recursive1.publics.json`, "utf8"))],
+    };
+
+    const verkeyRecursive2_subproof1 = JSONbig.parse(await fs.promises.readFile(`tmp/recursive2_subproof1.verkey.json`, "utf8"));
+
+    proofsBySubproofId[1] = {
+        starkInfoRecursive2: JSONbig.parse(await fs.promises.readFile(`tmp/recursive2_subproof1.starkinfo.json`, "utf8")),  
+        rootCRecursive2: verkeyRecursive2_subproof1.constRoot,
+        zkin: [JSONbig.parse(await fs.promises.readFile(`tmp/proof0_subproof1_air1_recursive1.proof.zkin.json`, "utf8"))],
+        publics: [JSONbig.parse(await fs.promises.readFile(`tmp/proof0_subproof1_air1_recursive1.publics.json`, "utf8"))],
+    };
+
+    const globalInfo = JSON.parse(await fs.promises.readFile(`tmp/globalInfo.json`, "utf8"));
 
     for(let i = 0; i < setup.setup.length; ++i) {
         let nullProof = JSONbig.parse(await fs.promises.readFile(`tmp/subproof${i}_null.proof.zkin.json`, "utf8"));
@@ -84,7 +99,7 @@ module.exports = async function verifyCircomCmd(setup, proofs, challenges, chall
                 starkInfoRecursive2: JSONbig.parse(await fs.promises.readFile(`tmp/recursive2_subproof${i}.starkinfo.json`, "utf8")),  
             }
         } else if(proofsBySubproofId[i].zkin.length === 1) {
-            proofsBySubproofId[i].zkinFinal = publics2zkin(i, proofsBySubproofId[i].zkin[0], globalInfo, proofsBySubproofId[i].publics, true);
+            proofsBySubproofId[i].zkinFinal = publics2zkin(i, proofsBySubproofId[i].zkin[0], globalInfo, proofsBySubproofId[i].publics[0], true);
         } else {
             proofsBySubproofId[i].nullProof = nullProof;
 

@@ -1,5 +1,3 @@
-const { publics2zkin } = require("./publics2zkin");
-
 module.exports.joinzkinFinal = function joinzkinFinal(proofsBySubproofId, globalInfo, publics, challenges, challengesFRISteps) {
     const zkinFinal = {};
 

@@ -9,7 +9,7 @@ const { compile } = require('pilcom');
 const { pilInfo } = require('pil2-stark-js');
 const {buildConstTree} = require('pil2-stark-js/src/stark/stark_buildConstTree.js');
 const pil2circom = require('pil2-stark-js/src/pil2circom');
-const {genRecursive} = require('pil2-stark-js/recursive/genrecursive.js');
+const {genRecursive} = require('./genrecursive.js');
 
 async function genRecursiveSetup(template, subproofId, airId, constRoot, verificationKeys, starkInfo, starkStruct, compressorCols, hasCompressor) {
 

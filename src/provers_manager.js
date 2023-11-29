@@ -171,6 +171,7 @@ class ProversManager {
         log.info(`[${this.name}]`, `··> Computing global challenge stage ${stageId}`);
 
         if (stageId === 1) {
+            let publicValues;
             for (const subproof of this.proofCtx.airout.subproofs) {
                 let challenges = [];
 
@@ -184,6 +185,10 @@ class ProversManager {
                         );
     
                         challenges.push(air.setup.constRoot);
+
+                        if(!publicValues) {
+                            publicValues = airInstance.ctx.publics;
+                        }
                     }
                 }
 
@@ -195,20 +200,9 @@ class ProversManager {
                 }
             }
 
-            let publicsCommits = [];
-
-            const publics = Object.values(this.proofCtx.publics);
-
-            if (options.hashCommits === true) {
-                const publicsRoot = await calculateHashStark({ pilInfo: { starkStruct: { verificationHashType: "GL" }, }, }, publics);
-                publicsCommits.push(publicsRoot);
-            } else {
-                publicsCommits.push(...publics);
-            }
-
             log.info(`[${this.name}]`, `··· Computing global challenge. Adding publics.`);
 
-            this.proofCtx.addChallengeToTranscript(publicsCommits);
+            this.proofCtx.addChallengeToTranscript(publicValues);
         }
 
         for(const subproof of this.proofCtx.airout.subproofs) {
