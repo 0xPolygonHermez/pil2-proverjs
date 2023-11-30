@@ -58,7 +58,7 @@ module.exports.genRecursive = async function genRecursive(template, subproofId, 
     };
 
     if((template === "recursive1" && !hasCompressor) || template === "compressor") {
-        obj.circuitType = Number(subproofId);
+        obj.circuitType = Number(subproofId) + 2; // Zero circuit type is NULL and 1 is recursive2
 
         obj.transcriptPublics = new Transcript("publics");
         obj.transcriptEvals = new Transcript("evals");
