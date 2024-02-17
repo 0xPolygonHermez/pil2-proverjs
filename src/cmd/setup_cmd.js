@@ -102,46 +102,83 @@ module.exports = async function setupCmd(proofManagerConfig) {
             const pilRecursives1 = [];
 
             for(const air of subproof.airs) {
-                log.info("[Setup  Cmd]", `··· Computing setup for air '${air.name}'`);
+                log.info(
+                    "[Setup  Cmd]",
+                    `··· Computing setup for air '${air.name}'`
+                );
 
-                log.info("[Setup  Cmd]", `······ Checking if air '${air.name}' needs a compressor`);
-                let verifierCircomTemplate = await pil2circom(setup[subproof.subproofId][air.airId].constRoot, setup[subproof.subproofId][air.airId].starkInfo, {skipMain: true});
-                verifierCircomTemplate += "\n\ncomponent main = StarkVerifier();\n\n";
+                log.info(
+                    "[Setup  Cmd]",
+                    `······ Checking if air '${air.name}' needs a compressor`
+                );
+                let verifierCircomTemplate = await pil2circom(
+                    setup[subproof.subproofId][air.airId].constRoot,
+                    setup[subproof.subproofId][air.airId].starkInfo,
+                    { skipMain: true }
+                );
+                verifierCircomTemplate +=
+                    "\n\ncomponent main = StarkVerifier();\n\n";
                 const nameTmp = await tmpName();
-                const tmpVerifierName = nameTmp + ".circom";
-                await fs.promises.writeFile(tmpVerifierName, verifierCircomTemplate, "utf8");
+                const folder = path.dirname(nameTmp);
+                const tmpCircomFilename = nameTmp + ".circom";
+                const tmpR1csFilename = nameTmp + ".r1cs";
 
-                const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks -l node_modules/pil2-stark-js/circuits.gl ${tmpVerifierName} -o tmp`;
+                await fs.promises.writeFile(
+                    tmpCircomFilename,
+                    verifierCircomTemplate,
+                    "utf8"
+                );
+
+                const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks -l node_modules/pil2-stark-js/circuits.gl ${tmpCircomFilename} -o ${folder}`;
+                console.log(compileRecursiveCommand);
                 await exec(compileRecursiveCommand);
-                const tmpR1csFile = `./${nameTmp}.r1cs`;
-                const tmpR1cs = await readR1cs(tmpR1csFile, {F: setupOptions.F});
 
-                const { NUsed } = getCompressorConstraints(setupOptions.F, tmpR1cs, 18);
+                const tmpR1cs = await readR1cs(tmpR1csFilename, {F: setupOptions.F});
+
+                const { NUsed } = getCompressorConstraints(
+                    setupOptions.F,
+                    tmpR1cs,
+                    18
+                );
 
                 let nBits = log2(NUsed - 1) + 1;
 
-                await fs.promises.unlink(tmpR1csFile);
-                await fs.promises.unlink(tmpVerifierName);
+                await fs.promises.unlink(tmpR1csFilename);
+                await fs.promises.unlink(tmpCircomFilename);
 
                 let constRoot;
                 let starkInfo;
                 setup[subproof.subproofId][air.airId].hasCompressor = false;
-                if(nBits !== 17) {
+                if (nBits !== 17) {
                     // TODO: Iterate over different possibilities here
                     const starkStructCompressor = {
                         nBits,
                         nBitsExt: nBits + 4,
                         nQueries: nBits < 15 ? 64 : 32,
                         verificationHashType: "GL",
-                        steps: [{nBits: nBits + 4}]
-                    }
+                        steps: [{ nBits: nBits + 4 }],
+                    };
                     let friStepBits = nBits + 4;
-                    while(friStepBits > 5) {
+                    while (friStepBits > 5) {
                         friStepBits = Math.max(friStepBits - 4, 5);
-                        starkStructCompressor.steps.push({nBits: friStepBits});
+                        starkStructCompressor.steps.push({
+                            nBits: friStepBits,
+                        });
                     }
-                    const {starkInfo: starkInfoRecursiveCompressor, constRoot: constRootRecursiveCompressor} = await genRecursiveSetup("compressor", subproof.subproofId, air.airId, setup[subproof.subproofId][air.airId].constRoot, [], setup[subproof.subproofId][air.airId].starkInfo, starkStructCompressor, 18)
-                    
+                    const {
+                        starkInfo: starkInfoRecursiveCompressor,
+                        constRoot: constRootRecursiveCompressor,
+                    } = await genRecursiveSetup(
+                        "compressor",
+                        subproof.subproofId,
+                        air.airId,
+                        setup[subproof.subproofId][air.airId].constRoot,
+                        [],
+                        setup[subproof.subproofId][air.airId].starkInfo,
+                        starkStructCompressor,
+                        18
+                    );
+
                     constRoot = constRootRecursiveCompressor.constRoot;
                     starkInfo = starkInfoRecursiveCompressor;
                     setup[subproof.subproofId][air.airId].hasCompressor = true;
@@ -149,8 +186,22 @@ module.exports = async function setupCmd(proofManagerConfig) {
                     constRoot = setup[subproof.subproofId][air.airId].constRoot;
                     starkInfo = setup[subproof.subproofId][air.airId].starkInfo;
                 }
-                const {starkInfo: starkInfoRecursive1, constRoot: constRootRecursive1, pil: pilRecursive1 } = await genRecursiveSetup("recursive1", subproof.subproofId, air.airId, constRoot, [], starkInfo, starkStructRecursive, 18, setup[subproof.subproofId][air.airId].hasCompressor);
-            
+                const {
+                    starkInfo: starkInfoRecursive1,
+                    constRoot: constRootRecursive1,
+                    pil: pilRecursive1,
+                } = await genRecursiveSetup(
+                    "recursive1",
+                    subproof.subproofId,
+                    air.airId,
+                    constRoot,
+                    [],
+                    starkInfo,
+                    starkStructRecursive,
+                    18,
+                    setup[subproof.subproofId][air.airId].hasCompressor
+                );
+
                 constRootsRecursives1[air.airId] = constRootRecursive1;
                 starkInfoRecursives1[air.airId] = starkInfoRecursive1;
                 pilRecursives1[air.airId] = pilRecursive1;
