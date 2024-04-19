@@ -37,21 +37,21 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
     createPolynomialTraces(airInstance, publics) {
         const N = airInstance.layout.numRows;
 
-        const mod = publics.mod;
-
         const polA = airInstance.wtnsPols.Fibonacci.a;
         const polB = airInstance.wtnsPols.Fibonacci.b;
 
-        polB[0] = publics.in1;
-        polA[0] = publics.in2;
+        const mod = publics[0];
 
-        // console.log(polA[0], polB[0]);
+        polB[0] = publics[1];
+        polA[0] = publics[2];
+        
+      
         for (let i = 1; i < N; i++) {
             polA[i] = (polA[i - 1]*polA[i - 1] + polB[i - 1]*polB[i - 1]) % mod;
             polB[i] = polA[i-1];
         }
 
-        publics.out = polA[N-1];
+        publics[3] = polA[N - 1];
     }
 }
 

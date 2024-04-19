@@ -32,21 +32,22 @@ template Main() {
 
     signal input s<%- c %>_subAirValues[<%- nSubAirValues %>][3];
 
-<% for (let i = 0; i < starkInfo.numChallenges.length; ++i) { -%>
+<% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
     signal input s<%- c %>_root<%- i + 1 %>[4];
 <% } -%>
-    signal input s<%- c %>_rootQ[4];
 
-<% for (let i = 0; i < starkInfo.numChallenges.length; ++i) { -%>
+<% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
+<%  if(starkInfo.mapSectionsN[`cm${i+1}`]) { -%>
     signal input s<%- c %>_s0_vals<%- i+1 %>[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.mapSectionsN[`cm${i+1}`] %>];
+<%  } -%>
 <% } -%>
-    signal input s<%- c %>_s0_valsQ[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.mapSectionsN[`cmQ`] %>];
     signal input s<%- c %>_s0_valsC[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.nConstants %>];
 
-<% for (let i = 0; i < starkInfo.numChallenges.length; ++i) { -%>
+<% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
+<%  if(starkInfo.mapSectionsN[`cm${i+1}`]) { -%>
     signal input s<%- c %>_s0_siblings<%- i+1 %>[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.starkStruct.steps[0].nBits %>][4];
+<%  } -%>
 <% } -%>
-    signal input s<%- c %>_s0_siblingsQ[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.starkStruct.steps[0].nBits %>][4];
     signal input s<%- c %>_s0_siblingsC[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.starkStruct.steps[0].nBits %>][4];
 
     signal input s<%- c %>_evals[<%- starkInfo.evMap.length %>][3];
@@ -95,27 +96,28 @@ template Main() {
 <%      let c = circuits[i] -%>
     signal {binary} isNull<%- c %> <== IsZero()(s<%- c %>_circuitType);
 
-    component sv<%- c %> = StarkVerifier();
+    component sv<%- c %> = StarkVerifier<%- starkInfo.subproofId %>();
     
     sv<%- c %>.enable <== 1 - isNull<%- c %>;
 
     sv<%- c %>.rootC <== SelectVerificationKey(<%- vks.length %>)(s<%- c %>_circuitType, rootCRecursive2, rootCRecursives1);
 
-<% for (let i = 0; i < starkInfo.numChallenges.length; ++i) { -%>
+<% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
     sv<%- c %>.root<%- i+1 %> <== s<%- c %>_root<%- i + 1 %>;
 <% } -%>
-    sv<%- c %>.rootQ <== s<%- c %>_rootQ;
 
-<% for (let i = 0; i < starkInfo.numChallenges.length; ++i) { -%>
+<% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
+<%  if(starkInfo.mapSectionsN[`cm${i+1}`]) { -%>
     sv<%- c %>.s0_siblings<%- i+1 %> <== s<%- c %>_s0_siblings<%- i+1 %>;
 <% } -%>
-    sv<%- c %>.s0_siblingsQ <== s<%- c %>_s0_siblingsQ;
+<% } -%>
     sv<%- c %>.s0_siblingsC <== s<%- c %>_s0_siblingsC;
 
-<% for (let i = 0; i < starkInfo.numChallenges.length; ++i) { -%>
+<% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
+<%  if(starkInfo.mapSectionsN[`cm${i+1}`]) { -%>
     sv<%- c %>.s0_vals<%- i+1 %> <== s<%- c %>_s0_vals<%- i+1 %>;
+<%  } -%>
 <% } -%>
-    sv<%- c %>.s0_valsQ <== s<%- c %>_s0_valsQ;
     sv<%- c %>.s0_valsC <== s<%- c %>_s0_valsC;
 
     sv<%- c %>.evals <== s<%- c %>_evals;

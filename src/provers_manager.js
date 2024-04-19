@@ -3,6 +3,7 @@ const { hashBTree } = require("./hash_binary_tree.js");
 
 const log = require('../logger.js');
 const { calculateHashStark } = require("pil2-stark-js");
+const { setSymbolCalculated } = require("pil2-stark-js/src/prover/symbols_helpers.js");
 
 const PROVER_OPENINGS_PENDING  = 1;
 const PROVER_OPENINGS_COMPLETED = 2;
@@ -117,7 +118,7 @@ class ProversManager {
     async verifyGlobalConstraints() {
         const proverId = this.getProverIdFromInstance(this.proofCtx.airInstances[0]);
         const validGlobalConstraints = await this.provers[proverId].verifyGlobalConstraints();
-
+        
         if(!validGlobalConstraints) log.error(`[${this.name}]`, `Global constraints verification failed.`);
         
         return validGlobalConstraints;
@@ -192,7 +193,7 @@ class ProversManager {
                     }
                 }
 
-                if (options.vadcop) {
+                if (options.inputChallenges) {
                     const challenge = await hashBTree(challenges);
                     this.proofCtx.addChallengeToTranscript(challenge);
                 } else {
@@ -221,7 +222,7 @@ class ProversManager {
                 }
             }
 
-            if (options.vadcop) {
+            if (options.inputChallenges) {
                 if(challenges.length > 0) {
                     const challenge = await hashBTree(challenges);
                     this.proofCtx.addChallengeToTranscript(challenge);
@@ -241,6 +242,11 @@ class ProversManager {
     setChallenges(stageId, challenges) {
         for (const airInstance of this.proofCtx.airInstances) {
             airInstance.ctx.challenges[stageId] = challenges;
+            for(let i = 0; i < airInstance.ctx.pilInfo.challengesMap.length; i++) {
+                if(airInstance.ctx.pilInfo.challengesMap[i].stageNum === stageId + 1) {
+                    setSymbolCalculated(airInstance.ctx, { op: "challenge", stageId: stageId + 1, id: i}, this.options);
+                }
+            }
         }
     }
 }

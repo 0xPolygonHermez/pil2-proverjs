@@ -19,12 +19,14 @@ module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, gl
     for(let i = 0; i < nSubproofs; i++) {
         const name = `recursive2_subproof${i}`;
         const starkInfo = JSON.parse(await fs.promises.readFile(`tmp/${name}.starkinfo.json`, "utf8"));
+        const verifierInfo = JSON.parse(await fs.promises.readFile(`tmp/${name}.verifierinfo.json`, "utf8"));
         const verificationKeys = JSONbig.parse(await fs.promises.readFile(`tmp/${name}_vks.json`, "utf8"));
 
         const res = { 
             starkInfo,
             rootCRecursives1: verificationKeys.rootCRecursives1,
-            rootCRecursive2: verificationKeys.rootCRecursive2
+            rootCRecursive2: verificationKeys.rootCRecursive2,
+            verifierInfo,
          };
 
         starkInfosRecursives2.push(res);
@@ -34,7 +36,7 @@ module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, gl
         
     //Generate Recursive2 verifiers circom
     for(let i = 0; i < starkInfosRecursives2.length; ++i) {
-        const verifierCircomTemplate = await pil2circom(null, starkInfosRecursives2[i].starkInfo, { skipMain: true, subproofId: i, verkeyInput: true, enableInput: true });
+        const verifierCircomTemplate = await pil2circom(null, starkInfosRecursives2[i].starkInfo, starkInfosRecursives2[i].verifierInfo, { skipMain: true, subproofId: i, verkeyInput: true, enableInput: true });
         await fs.promises.writeFile(`tmp/recursive2_subproof${i}.verifier.circom`, verifierCircomTemplate, "utf8");
     }    
 
@@ -64,10 +66,10 @@ module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, gl
     // Build stark info
     const pilFinal = await compile(F, `tmp/${finalName}.pil`);
 
-    const starkInfoFinal = pilInfo(F, pilFinal, true, true, false, starkStructFinal);
+    const {pilInfo: starkInfoFinal, verifierInfo: verifierInfoFinal} = pilInfo(F, pilFinal, true, false, starkStructFinal);
 
     // Build const tree
-    const {constTree, MH, verKey} = await buildConstTree(starkStructFinal, pilFinal, constPols);
+    const {constTree, MH, verKey} = await buildConstTree(starkInfoFinal.pilInfo, constPols);
 
     await fs.promises.writeFile(`tmp/${finalName}.verkey.json`, JSONbig.stringify(verKey, null, 1), "utf8");
 
@@ -75,5 +77,5 @@ module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, gl
 
     await MH.writeToFile(constTree, `tmp/${finalName}.consttree`);
     
-    return {starkInfoFinal, constRootFinal: verKey};
+    return {starkInfoFinal, verifierInfoFinal, constRootFinal: verKey};
 }

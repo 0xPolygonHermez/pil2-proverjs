@@ -38,10 +38,9 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
         const polQ = airInstance.wtnsPols.Module.q;
         const polX_mod = airInstance.wtnsPols.Module.x_mod;
 
-        const mod = publics.mod;
-
-        let a = publics.in2;
-        let b = publics.in1;
+        const mod = publics[0];
+        let a = publics[1];
+        let b = publics[2];
 
         for (let i = 0; i < N; i++) {
             polX[i] = a * a + b * b;

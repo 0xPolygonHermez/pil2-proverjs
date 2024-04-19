@@ -28,8 +28,6 @@ describe("PIL2 proof manager stark simple tests", async function () {
     const options = {
         parallelExec: false,
         useThreads: false,
-        hashCommits: false,
-        vadcop: false,
     };
 
     const optionsVerifyConstraints = {...options, onlyCheck: true};

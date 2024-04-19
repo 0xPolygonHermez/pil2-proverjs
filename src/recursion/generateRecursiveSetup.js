@@ -11,21 +11,19 @@ const {buildConstTree} = require('pil2-stark-js/src/stark/stark_buildConstTree.j
 const pil2circom = require('pil2-stark-js/src/pil2circom');
 const {genRecursive} = require('./genrecursive.js');
 
-async function genRecursiveSetup(template, subproofId, airId, constRoot, verificationKeys, starkInfo, starkStruct, compressorCols, hasCompressor) {
+async function genRecursiveSetup(template, subproofId, airId, constRoot, verificationKeys, starkInfo, verifierInfo, starkStruct, compressorCols, hasCompressor) {
 
     const F = new F3g();
 
     const recursiveName = ["recursive2"].includes(template) ? `${template}_subproof${subproofId}` : `${template}_subproof${subproofId}_air${airId}`;
 
-    let hashCommits = false;
-    let vadcop = false;
+    let inputChallenges = false;
     let verkeyInput = false;
     let enableInput = false;
     let verifierFilename;
     let constRootCircuit = constRoot || [];
     if((template === "recursive1" && !hasCompressor) || template === "compressor") {
-        hashCommits = true;
-        vadcop = true; 
+        inputChallenges = true; 
         verifierFilename = `tmp/basic_stark_subproof${subproofId}_air${airId}.verifier.circom`;
     } else if(template === "recursive1") {
         verifierFilename = `tmp/compressor_subproof${subproofId}_air${airId}.verifier.circom`;
@@ -36,10 +34,10 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
     }
 
 
-    const options = { hashCommits, vadcop, skipMain: true, verkeyInput, enableInput }
+    const options = { skipMain: true, verkeyInput, enableInput, inputChallenges }
 
     //Generate circom
-    const verifierCircomTemplate = await pil2circom(constRootCircuit, starkInfo, options);
+    const verifierCircomTemplate = await pil2circom(constRootCircuit, starkInfo, verifierInfo, options);
     await fs.promises.writeFile(verifierFilename, verifierCircomTemplate, "utf8");
 
     // Generate recursive circom
@@ -67,11 +65,11 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
     // Build stark info
     const pilRecursive = await compile(F, `tmp/${recursiveName}.pil`);
 
-    const starkInfoRecursive = pilInfo(F, pilRecursive, true, true, false, starkStruct);
+    const {pilInfo: starkInfoRecursive, verifierInfo: verifierInfoRecursive} = pilInfo(F, pilRecursive, true, false, starkStruct);
     starkInfoRecursive.finalSubproofId = subproofId;
 
     // Build const tree
-    const {constTree, MH, verKey} = await buildConstTree(starkStruct, pilRecursive, constPols);
+    const {constTree, MH, verKey} = await buildConstTree(starkInfoRecursive, constPols);
 
     await fs.promises.writeFile(`tmp/${recursiveName}.verkey.json`, JSONbig.stringify(verKey, null, 1), "utf8");
 
@@ -87,7 +85,7 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
         await fs.promises.writeFile(`tmp/${recursiveName}_vks.json`, JSONbig.stringify(vks, 0, 1), "utf8");
     }
 
-    return { constRoot: verKey, starkInfo: starkInfoRecursive, pil: pilStr }
+    return { constRoot: verKey, starkInfo: starkInfoRecursive, verifierInfo: verifierInfoRecursive, pil: pilStr }
 
 }
 

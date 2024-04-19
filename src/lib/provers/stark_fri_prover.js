@@ -11,14 +11,16 @@ const { initProverStark,
     computeQStark,
 } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 const {
-    calculatePublics,
     callCalculateExps,
-    applyHints,
 } = require("pil2-stark-js/src/prover/prover_helpers.js");
+const {
+    applyHints,
+} = require("pil2-stark-js/src/prover/hints_helpers.js");
 
 const path = require("path");
 
 const log = require('../../../logger.js');
+const { setSymbolCalculated, isStageCalculated, tryCalculateExps } = require("pil2-stark-js/src/prover/symbols_helpers.js");
 
 class StarkFriProver extends ProverComponent {
     constructor(proofCtx) {
@@ -42,7 +44,7 @@ class StarkFriProver extends ProverComponent {
         for (const airInstance of airInstances) {  
             log.info(`[${this.name}]`, `Initializing new proof for air '${air.name}'`);
  
-            airInstance.ctx = await initProverStark(air.setup.starkInfo, air.setup.fixedPols, air.setup.constTree, this.options);
+            airInstance.ctx = await initProverStark(air.setup.starkInfo, air.setup.expressionsInfo, air.setup.fixedPols, air.setup.constTree, this.options);
             airInstance.publics = publics;
         }
     }
@@ -52,13 +54,16 @@ class StarkFriProver extends ProverComponent {
 
         ctx.errors = [];
 
-        const nConstraintsStage = ctx.pilInfo.constraints[`stage${stageId}`].length;
-        for(let i = 0; i < nConstraintsStage; i++) {
-            const constraint = ctx.pilInfo.constraints[`stage${stageId}`][i];
+        const nConstraints = ctx.expressionsInfo.constraints.length;
+        
+        for(let i = 0; i < nConstraints; i++) {
 
-            log.info(`[${this.name}]`, `··· Checking constraint ${i + 1}/${nConstraintsStage}: ${constraint.line} `);
+            const constraint = ctx.expressionsInfo.constraints[i];
+            if(constraint.stage !== stageId) continue;
 
-            await callCalculateExps(`stage${stageId}`, constraint, "n", ctx, this.options.parallelExec, this.options.useThreads, true);
+            log.info(`[${this.name}]`, `··· Checking constraint ${i + 1}/${nConstraints} line: ${constraint.line} `);
+            
+            await callCalculateExps(stageId, constraint, "n", ctx, this.options.parallelExec, this.options.useThreads, true);
         }
 
         const isValid = ctx.errors.length === 0;
@@ -100,12 +105,19 @@ class StarkFriProver extends ProverComponent {
         const ctx = airInstance.ctx;
 
         if (stageId === 1) {
-            airInstance.wtnsPols.writeToBigBuffer(ctx.cm1_n, ctx.pilInfo.mapSectionsN.cm1);
-            await this.calculatePublics(airInstance);
+            let nCm1 = ctx.pilInfo.cmPolsMap.filter(c => c.stage === "cm1").length;
+            airInstance.wtnsPols.writeToBigBuffer(ctx.cm1_n, nCm1);
+            for(let i = 0; i < nCm1; i++) {
+                setSymbolCalculated(ctx, {op: "cm", id: i}, this.options);
+            }
+            for(let i = 0; i < ctx.pilInfo.nPublics; ++i) {
+                ctx.publics[i] = airInstance.publics[i];
+                setSymbolCalculated(ctx, {op: "public", stage: 1, id: i}, this.options);
+            }
         }
 
         if(stageId <= airout.numStages + 1) {
-            const qStage = ctx.pilInfo.numChallenges.length + 1;
+            const qStage = ctx.pilInfo.nStages + 1;
 
             if(this.options.debug) {
                 ctx.errors = [];
@@ -114,19 +126,43 @@ class StarkFriProver extends ProverComponent {
 
             const dom = stageId === qStage ? "ext" : "n";
 
-            await callCalculateExps(`stage${stageId}`, ctx.pilInfo.code[`stage${stageId}`], dom, ctx, this.settings.parallelExec, this.settings.useThreads, false);
-        
-            await applyHints(stageId, ctx);
+            const symbolsCalculatedStep = ctx.expressionsInfo.stagesCode[stageId - 1].symbolsCalculated;
 
-            await callCalculateExps(`stage${stageId}`, ctx.pilInfo.code[`stage${stageId}`], dom, ctx, this.settings.parallelExec, this.settings.useThreads, false);
+            log.debug(`Calculating expressions for stage ${stageId}. `);
+            await callCalculateExps(stageId, ctx.expressionsInfo.stagesCode[stageId - 1], dom, ctx, this.settings.parallelExec, this.settings.useThreads, false);
+            log.debug(`Expressions calculated. `);
+
+            for(let i = 0; i < symbolsCalculatedStep.length; i++) {
+                const symbolCalculated = symbolsCalculatedStep[i];
+                setSymbolCalculated(ctx, symbolCalculated, this.options);
+            }
+
+            if(stageId !== qStage) {
+                let symbolsToBeCalculated = isStageCalculated(ctx, stageId, this.options);
+
+                await applyHints(stageId, ctx);
+
+                while(symbolsToBeCalculated > 0) {
+                    await tryCalculateExps(ctx, stageId, dom, this.options); 
+        
+                    await applyHints(stageId, ctx, this.options);
+                    
+                    let symbolsToBeCalculatedUpdated = isStageCalculated(ctx, stageId, this.options);
+                    if(symbolsToBeCalculatedUpdated === symbolsToBeCalculated) {
+                        throw new Error(`Something went wrong when calculating symbols for stage ${stageId}`);
+                    }
+                    symbolsToBeCalculated = symbolsToBeCalculatedUpdated;
+                }
+            }
 
             if(this.options.debug && stageId !== qStage) {
-                const nConstraintsStage = ctx.pilInfo.constraints[`stage${stageId}`].length;
+                const nConstraints = ctx.expressionsInfo.constraints.length;
 
-                for(let i = 0; i < nConstraintsStage; i++) {
-                    const constraint = ctx.pilInfo.constraints[`stage${stageId}`][i];                    
-                    log.debug(` Checking constraint ${i + 1}/${nConstraintsStage}: line ${constraint.line} `);
-                    await callCalculateExps(`stage${stageId}`, constraint, dom, ctx, this.settings.parallelExec, this.settings.useThreads, true);
+                for(let i = 0; i < nConstraints; i++) {
+                    const constraint = ctx.pilInfo.constraints[i];
+                    if(constraint.stage !== stageId) continue;         
+                    log.debug(` Checking constraint ${i + 1}/${nConstraints}: line ${constraint.line} `);
+                    await callCalculateExps(stageId, constraint, dom, ctx, this.settings.parallelExec, this.settings.useThreads, true);
                 }
             }
         }
@@ -137,11 +173,6 @@ class StarkFriProver extends ProverComponent {
         } else {
             ctx.challengeValue = ctx.F.randomValue();
         }
-    }
-
-    async calculatePublics(airInstance) {
-        const ctx = airInstance.ctx;
-        await calculatePublics(ctx, airInstance.publics);
     }
 
     async openingStage(openingId, airInstance) {

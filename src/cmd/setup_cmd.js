@@ -27,7 +27,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
 
     const setupOptions = {
         F: new F3g("0xFFFFFFFF00000001"),
-        pil1: false,
+        pil2: true,
     };
 
     let aggTypes = [];
@@ -79,7 +79,6 @@ module.exports = async function setupCmd(proofManagerConfig) {
             
             const fixedPols = newConstantPolsArrayPil2(air.symbols, air.numRows, setupOptions.F)
             getFixedPolsPil2(air, fixedPols, setupOptions.F);
-
             
             setup[subproof.subproofId][air.airId] = await starkSetup(fixedPols, air, starkStruct, setupOptions);
         }
@@ -99,6 +98,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
         for(const subproof of airout.subproofs) {
             const constRootsRecursives1 = [];
             const starkInfoRecursives1 = [];
+            const verifierInfoRecursives1 = [];
             const pilRecursives1 = [];
 
             for(const air of subproof.airs) {
@@ -111,13 +111,15 @@ module.exports = async function setupCmd(proofManagerConfig) {
                     "[Setup  Cmd]",
                     `······ Checking if air '${air.name}' needs a compressor`
                 );
+
                 let verifierCircomTemplate = await pil2circom(
                     setup[subproof.subproofId][air.airId].constRoot,
                     setup[subproof.subproofId][air.airId].starkInfo,
+                    setup[subproof.subproofId][air.airId].verifierInfo,
                     { skipMain: true }
                 );
                 verifierCircomTemplate +=
-                    "\n\ncomponent main = StarkVerifier();\n\n";
+                    `\n\ncomponent main = StarkVerifier${subproof.subproofId}();\n\n`;
                 const nameTmp = await tmpName();
                 const folder = path.dirname(nameTmp);
                 const tmpCircomFilename = nameTmp + ".circom";
@@ -155,6 +157,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
                         nBits,
                         nBitsExt: nBits + 4,
                         nQueries: nBits < 15 ? 64 : 32,
+                        hashCommits: true,
                         verificationHashType: "GL",
                         steps: [{ nBits: nBits + 4 }],
                     };
@@ -167,6 +170,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
                     }
                     const {
                         starkInfo: starkInfoRecursiveCompressor,
+                        verifierInfo: verifierInfoRecursiveCompressor,
                         constRoot: constRootRecursiveCompressor,
                     } = await genRecursiveSetup(
                         "compressor",
@@ -175,20 +179,30 @@ module.exports = async function setupCmd(proofManagerConfig) {
                         setup[subproof.subproofId][air.airId].constRoot,
                         [],
                         setup[subproof.subproofId][air.airId].starkInfo,
+                        setup[subproof.subproofId][air.airId].verifierInfo,
                         starkStructCompressor,
                         18
                     );
 
                     constRoot = constRootRecursiveCompressor.constRoot;
                     starkInfo = starkInfoRecursiveCompressor;
+                    verifierInfo = verifierInfoRecursiveCompressor;
                     setup[subproof.subproofId][air.airId].hasCompressor = true;
                 } else {
                     constRoot = setup[subproof.subproofId][air.airId].constRoot;
                     starkInfo = setup[subproof.subproofId][air.airId].starkInfo;
+                    verifierInfo = setup[subproof.subproofId][air.airId].verifierInfo;
                 }
+
+                const starkStructRecursive1 = { ...starkStructRecursive};
+                if(!setup[subproof.subproofId][air.airId].hasCompressor) {
+                    starkStructRecursive1.hashCommits = true;
+                }
+
                 const {
                     starkInfo: starkInfoRecursive1,
                     constRoot: constRootRecursive1,
+                    verifierInfo: verifierInfoRecursive1,
                     pil: pilRecursive1,
                 } = await genRecursiveSetup(
                     "recursive1",
@@ -197,13 +211,15 @@ module.exports = async function setupCmd(proofManagerConfig) {
                     constRoot,
                     [],
                     starkInfo,
+                    verifierInfo,
                     starkStructRecursive,
                     18,
-                    setup[subproof.subproofId][air.airId].hasCompressor
+                    setup[subproof.subproofId][air.airId].hasCompressor,
                 );
 
                 constRootsRecursives1[air.airId] = constRootRecursive1;
                 starkInfoRecursives1[air.airId] = starkInfoRecursive1;
+                verifierInfoRecursives1[air.airId] = verifierInfoRecursive1;
                 pilRecursives1[air.airId] = pilRecursive1;
             }
             
@@ -213,7 +229,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
                 if(hashPilRecursive1 !== hash) throw new Error("All recursive1 pil must be the same");
             }
 
-            const {starkInfo: starkInfoRecursive2, constRoot: constRootRecursive2, pil: pilRecursive2 } = await genRecursiveSetup("recursive2", subproof.subproofId, undefined, undefined, constRootsRecursives1.map(c => c.constRoot), starkInfoRecursives1[0], starkStructRecursive, 18)
+            const {starkInfo: starkInfoRecursive2, constRoot: constRootRecursive2, pil: pilRecursive2 } = await genRecursiveSetup("recursive2", subproof.subproofId, undefined, undefined, constRootsRecursives1.map(c => c.constRoot), starkInfoRecursives1[0], verifierInfoRecursives1[0], starkStructRecursive, 18)
 
 
             const hashPilRecursive2 = crypto.createHash("sha256").update(JSON.stringify(pilRecursive2)).digest("hex");

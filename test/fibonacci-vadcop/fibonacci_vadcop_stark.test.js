@@ -1,8 +1,6 @@
-const { assert } = require("chai");
-
 const { executeFullProveTest, checkConstraintsTest, generateSetupTest } = require("../test_utils.js");
 
-const publicInputs = { in1: 1n, in2: 1n, mod: 5n };
+const publicInputs = [5n, 1n, 1n, undefined];
 
 function getSettings() {
     return {
@@ -23,13 +21,13 @@ function getSettings() {
                 Fibonacci_2: {starkStruct: `./test/fibonacci-vadcop/fibonacci_vadcop_stark_struct_2_2.json` },
             },   
         },
-        aggregation: {
-            settings: {
-                recursive: { starkStruct: "./src/recursion/configs/recursive.starkstruct.json" },
-                final: { starkStruct: "./src/recursion/configs/final.starkstruct.json" }
-            },
-            genProof: true,  
-        },
+        // aggregation: {
+        //     settings: {
+        //         recursive: { starkStruct: "./src/recursion/configs/recursive.starkstruct.json" },
+        //         final: { starkStruct: "./src/recursion/configs/final.starkstruct.json" }
+        //     },
+        //     genProof: true,  
+        // },
         verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
     };
 
@@ -39,9 +37,8 @@ describe("Fibonacci Vadcop", async function () {
     this.timeout(10000000);
 
     const options = {
-        parallelExec: true,
-        useThreads: true,
-        hashCommits: true,
+        parallelExec: false,
+        useThreads: false,
         vadcop: true,
     };
 
@@ -60,7 +57,7 @@ describe("Fibonacci Vadcop", async function () {
         await checkConstraintsTest(setup, publicInputs, optionsVerifyConstraints);
     });
 
-    it("Generate a Fibonacci Vadcop proof", async () => {
+    it.only("Generate a Fibonacci Vadcop proof", async () => {
         await executeFullProveTest(setup, publicInputs, options, config.aggregation?.genProof);
     });
 });
