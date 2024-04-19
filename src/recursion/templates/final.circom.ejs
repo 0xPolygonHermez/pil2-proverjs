@@ -113,7 +113,7 @@ template VerifyGlobalChallenges() {
      } -%>
 <%    transcript.getField("calculatedChallenges[" + (c++) + "]"); -%>
 <%   for(let i = 0; i < starkInfoRecursives2.length; ++i) { -%>
-<%      transcript.put("rootQ[" + i + "]", 4); -%>
+<%      transcript.put("root" + nChallengesStages.length + "[" + i + "]", 4); -%>
 <%   } -%>
 <%   transcript.getField("calculatedChallenges[" + (c++) + "]"); -%>
 <%   for(let i = 0; i < starkInfoRecursives2.length; ++i) { -%>
@@ -198,10 +198,9 @@ template Main() {
     signal input s<%- c %>_finalPol[<%- 1 << starkInfo.starkStruct.steps[starkInfo.starkStruct.steps.length-1].nBits %>][3];
 
     signal input s<%- c %>_sv_rootC[4];
-<%  for (let i = 0; i < nChallengesStages.length; ++i) { -%>
+<%  for (let i = 0; i < nChallengesStages.length + 1; ++i) { -%>
     signal input s<%- c %>_sv_root<%- i+1 %>[4];
 <%  } -%>
-    signal input s<%- c %>_sv_rootQ[4];
     signal input s<%- c %>_sv_evalsHash[4];
 <%  for (let i = 1; i < stepsFRI.length; ++i) { -%>
     signal input s<%- c %>_sv_s<%- i %>_root[4];
@@ -217,10 +216,9 @@ template Main() {
     verifyChallenges.publics <== publics;
 <%  for(let i = 0; i < starkInfoRecursives2.length; ++i) { -%>
     verifyChallenges.rootC[<%- i %>] <== s<%- i %>_sv_rootC;
-<%      for (let j = 0; j < nChallengesStages.length; ++j) { -%>
+<%      for (let j = 0; j < nChallengesStages.length + 1; ++j) { -%>
     verifyChallenges.root<%- j + 1 %>[<%- i %>] <== s<%- i %>_sv_root<%- j+1 %>;
 <%      } -%>
-    verifyChallenges.rootQ[<%- i %>] <== s<%- i %>_sv_rootQ;
     verifyChallenges.evalsHash[<%- i %>] <== s<%- i %>_sv_evalsHash;
 <%      for (let j = 1; j < stepsFRI.length; ++j) { -%>
     verifyChallenges.s<%- j %>_root[<%- i %>] <== s<%- i %>_sv_s<%- j %>_root;
@@ -247,10 +245,9 @@ template Main() {
     signal {binary} isNull<%- c %> <== IsZero()(s<%- c %>_circuitType);
     sv<%- c %>.enable <== 1 - isNull<%- c %>;
 
-<% for (let i = 0; i < starkInfo.nStages; ++i) { -%>
+<% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
     sv<%- c %>.root<%- i+1 %> <== s<%- c %>_root<%- i + 1 %>;
 <% } -%>
-    sv<%- c %>.rootQ <== s<%- c %>_rootQ;
 
 <% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
     sv<%- c %>.s0_siblings<%- i+1 %> <== s<%- c %>_s0_siblings<%- i+1 %>;
@@ -298,17 +295,12 @@ template Main() {
     }
 <%  nPublicsInps += 4 -%>
 
-<%  for (let i = 0; i < nChallengesStages.length; i++) { -%>
+<%  for (let i = 0; i < nChallengesStages.length + 1; i++) { -%>
     for(var i = 0; i < 4; i++) {
         sv<%- c %>.publics[<%- nPublicsInps %> + i] <== s<%- c %>_sv_root<%- i+1 %>[i];
     }
 <%  nPublicsInps += 4 -%>
 <%  } -%>
-
-    for(var i = 0; i < 4; i++) {
-        sv<%- c %>.publics[<%- nPublicsInps %> + i] <== s<%- c %>_sv_rootQ[i];
-    }
-<%  nPublicsInps += 4 -%>
 
     for(var i = 0; i < 4; i++) {
         sv<%- c %>.publics[<%- nPublicsInps %> + i] <== s<%- c %>_sv_evalsHash[i];

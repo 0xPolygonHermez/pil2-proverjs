@@ -83,12 +83,10 @@ template Main() {
 <%  transcriptValues.push("sv_subAirValues"); -%>
     signal <%- inOut %> sv_rootC[4];
 <%      transcriptValues.push(`sv_rootC`); -%>
-<%  for (let i = 0; i < nChallengesStages.length; ++i) { -%>
+<%  for (let i = 0; i < nChallengesStages.length + 1; ++i) { -%>
     signal <%- inOut %> sv_root<%- i+1 %>[4];
 <%      transcriptValues.push(`sv_root${i+1}`); -%>
 <%  } -%>
-    signal <%- inOut %> sv_rootQ[4];
-<%      transcriptValues.push(`sv_rootQ`); -%>
     signal <%- inOut %> sv_evalsHash[4];
 <%  transcriptValues.push("sv_evalsHash"); -%>
 <%      for(let i = 1; i < stepsFRI.length; i++) { -%>
@@ -120,7 +118,7 @@ template Main() {
 <%  for (let i = starkInfo.nStages; i < nChallengesStages.length; ++i) { -%>
     sv_root<%- i+1 %> <== [0,0,0,0];
 <%  } -%>
-    sv_rootQ <== rootQ;
+    sv_root<%- nChallengesStages.length + 1 %> <== root<%- nChallengesStages.length + 1 %>;
     sv_evalsHash <== CalculateEvalsHash()(evals);
 <%  let friCounter = 0; -%>
 <%  for(let i = 1; i < stepsFRI.length; i++) { -%>
@@ -221,17 +219,12 @@ template Main() {
     }
 <%  nPublicsInps += 4 -%>
 
-<%  for (let i = 0; i < nChallengesStages.length; i++) { -%>
+<%  for (let i = 0; i < nChallengesStages.length + 1; i++) { -%>
     for(var i = 0; i < 4; i++) {
         sv.publics[<%- nPublicsInps %> + i] <== sv_root<%- i+1 %>[i];
     }
 <%  nPublicsInps += 4 -%>
 <%  } -%>
-
-    for(var i = 0; i < 4; i++) {
-        sv.publics[<%- nPublicsInps %> + i] <== sv_rootQ[i];
-    }
-<%  nPublicsInps += 4 -%>
 
     for(var i = 0; i < 4; i++) {
         sv.publics[<%- nPublicsInps %> + i] <== sv_evalsHash[i];

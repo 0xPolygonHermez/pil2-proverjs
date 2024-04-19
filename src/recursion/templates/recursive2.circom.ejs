@@ -67,10 +67,9 @@ template Main() {
     signal input s<%- c %>_finalPol[<%- 1 << starkInfo.starkStruct.steps[starkInfo.starkStruct.steps.length-1].nBits %>][3];
 
     signal input s<%- c %>_sv_rootC[4];
-<%  for (let i = 0; i < nChallengesStages.length; ++i) { -%>
+<%  for (let i = 0; i < nChallengesStages.length + 1; ++i) { -%>
     signal input s<%- c %>_sv_root<%- i+1 %>[4];
 <%  } -%>
-    signal input s<%- c %>_sv_rootQ[4];
     signal input s<%- c %>_sv_evalsHash[4];
 <%  for (let i = 1; i < stepsFRI.length; ++i) { -%>
     signal input s<%- c %>_sv_s<%- i %>_root[4];
@@ -82,10 +81,9 @@ template Main() {
     signal output sv_aggregationTypes[<%- nSubAirValues %>];
     signal output sv_subAirValues[<%- nSubAirValues %>][3];
     signal output sv_rootC[4];
-<%  for (let i = 0; i < nChallengesStages.length; ++i) { -%>
+<%  for (let i = 0; i < nChallengesStages.length + 1; ++i) { -%>
     signal output sv_root<%- i+1 %>[4];
 <%  } -%>
-    signal output sv_rootQ[4];
     signal output sv_evalsHash[4];
 <%      for(let i = 1; i < stepsFRI.length; i++) { -%>
     signal output sv_s<%- i %>_root[4];
@@ -167,7 +165,7 @@ template Main() {
 <%  } -%>
 
     for(var i = 0; i < 4; i++) {
-        sv<%- c %>.publics[<%- nPublicsInps %> + i] <== s<%- c %>_sv_rootQ[i];
+        sv<%- c %>.publics[<%- nPublicsInps %> + i] <== s<%- c %>_sv_root<%- nChallengesStages.length + 1%>[i];
     }
 <%  nPublicsInps += 4 -%>
 
@@ -225,10 +223,9 @@ for(var i = 0; i < 4; i++) {
         sv_subAirValues[i] <== AggregateSubAirValues()(sA_subAirValues[i], sB_subAirValues[i], isNullA, isNullB, aggTypes[i]);
     }
     sv_rootC <== AggregateValues()(sA_sv_rootC, sB_sv_rootC, isNullA, isNullB);
-<%  for (let i = 0; i < nChallengesStages.length; ++i) { -%>
+<%  for (let i = 0; i < nChallengesStages.length + 1; ++i) { -%>
     sv_root<%- i+1 %> <== AggregateValues()(sA_sv_root<%- i+1 %>, sB_sv_root<%- i+1 %>, isNullA, isNullB);
 <%  } -%>
-    sv_rootQ <== AggregateValues()(sA_sv_rootQ, sB_sv_rootQ, isNullA, isNullB);
     sv_evalsHash <== AggregateValues()(sA_sv_evalsHash, sB_sv_evalsHash, isNullA, isNullB);
 <%      for(let i = 1; i < stepsFRI.length; i++) { -%>
     sv_s<%- i %>_root <== AggregateValues()(sA_s<%- i %>_root, sB_s<%- i %>_root, isNullA, isNullB);
