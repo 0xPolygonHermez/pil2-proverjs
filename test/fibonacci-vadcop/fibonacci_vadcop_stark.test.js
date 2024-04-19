@@ -21,13 +21,13 @@ function getSettings() {
                 Fibonacci_2: {starkStruct: `./test/fibonacci-vadcop/fibonacci_vadcop_stark_struct_2_2.json` },
             },   
         },
-        // aggregation: {
-        //     settings: {
-        //         recursive: { starkStruct: "./src/recursion/configs/recursive.starkstruct.json" },
-        //         final: { starkStruct: "./src/recursion/configs/final.starkstruct.json" }
-        //     },
-        //     genProof: true,  
-        // },
+        aggregation: {
+            settings: {
+                recursive: { starkStruct: "./src/recursion/configs/recursive.starkstruct.json" },
+                final: { starkStruct: "./src/recursion/configs/final.starkstruct.json" }
+            },
+            genProof: true,  
+        },
         verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
     };
 

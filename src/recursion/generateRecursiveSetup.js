@@ -34,7 +34,7 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
     }
 
 
-    const options = { skipMain: true, verkeyInput, enableInput, inputChallenges }
+    const options = { skipMain: true, verkeyInput, enableInput, inputChallenges, subproofId }
 
     //Generate circom
     const verifierCircomTemplate = await pil2circom(constRootCircuit, starkInfo, verifierInfo, options);
@@ -74,6 +74,8 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
     await fs.promises.writeFile(`tmp/${recursiveName}.verkey.json`, JSONbig.stringify(verKey, null, 1), "utf8");
 
     await fs.promises.writeFile(`tmp/${recursiveName}.starkinfo.json`, JSON.stringify(starkInfoRecursive, null, 1), "utf8");
+
+    await fs.promises.writeFile(`tmp/${recursiveName}.verifierinfo.json`, JSON.stringify(verifierInfoRecursive, null, 1), "utf8");
 
     await MH.writeToFile(constTree, `tmp/${recursiveName}.consttree`);
 
