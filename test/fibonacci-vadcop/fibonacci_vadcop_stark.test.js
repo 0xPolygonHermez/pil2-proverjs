@@ -37,8 +37,8 @@ describe("Fibonacci Vadcop", async function () {
     this.timeout(10000000);
 
     const options = {
-        parallelExec: false,
-        useThreads: false,
+        parallelExec: true,
+        useThreads: true,
         vadcop: true,
     };
 

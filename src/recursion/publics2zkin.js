@@ -10,7 +10,7 @@ module.exports.publics2zkin = function publics2zkin(subproofId, zkin, globalInfo
         zkin.sv_subAirValues = [publics[p++], publics[p++], publics[p++]];
     }
     zkin.sv_rootC = [publics[p++], publics[p++], publics[p++], publics[p++]];
-    for(let i = 0; i < globalInfo.nStages + 1; ++i) {
+    for(let i = 0; i <globalInfo.numChallenges.length + 1; ++i) {
         zkin[`sv_root${i+1}`] = [publics[p++], publics[p++], publics[p++], publics[p++]];
     }
     
@@ -50,7 +50,7 @@ module.exports.nullpublics2zkin = function nullpublics2zkin(subproofId, zkin, gl
     }
     zkin.sv_subAirValues = new Array(globalInfo.aggTypes[subproofId].length).fill(["0", "0", "0"]);
     zkin.sv_rootC = ["0", "0", "0", "0"];
-    for(let i = 0; i < globalInfo.nStages + 1; ++i) {
+    for(let i = 0; i < globalInfo.numChallenges.length + 1; ++i) {
         zkin[`sv_root${i+1}`] = ["0", "0", "0", "0"];
     }
     zkin.sv_evalsHash = ["0", "0", "0", "0"];

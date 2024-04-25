@@ -65,7 +65,7 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
     // Build stark info
     const pilRecursive = await compile(F, `tmp/${recursiveName}.pil`);
 
-    const {pilInfo: starkInfoRecursive, verifierInfo: verifierInfoRecursive} = pilInfo(F, pilRecursive, true, false, starkStruct);
+    const {pilInfo: starkInfoRecursive, verifierInfo: verifierInfoRecursive, expressionsInfo: expressionsInfoRecursive } = pilInfo(F, pilRecursive, true, false, starkStruct, {subproofId, airId});
     starkInfoRecursive.finalSubproofId = subproofId;
 
     // Build const tree
@@ -76,6 +76,8 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
     await fs.promises.writeFile(`tmp/${recursiveName}.starkinfo.json`, JSON.stringify(starkInfoRecursive, null, 1), "utf8");
 
     await fs.promises.writeFile(`tmp/${recursiveName}.verifierinfo.json`, JSON.stringify(verifierInfoRecursive, null, 1), "utf8");
+
+    await fs.promises.writeFile(`tmp/${recursiveName}.expressionsinfo.json`, JSON.stringify(expressionsInfoRecursive, null, 1), "utf8");
 
     await MH.writeToFile(constTree, `tmp/${recursiveName}.consttree`);
 

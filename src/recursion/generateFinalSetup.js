@@ -66,14 +66,19 @@ module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, gl
     // Build stark info
     const pilFinal = await compile(F, `tmp/${finalName}.pil`);
 
-    const {pilInfo: starkInfoFinal, verifierInfo: verifierInfoFinal} = pilInfo(F, pilFinal, true, false, starkStructFinal);
+    const {pilInfo: starkInfoFinal, verifierInfo: verifierInfoFinal, expressionsInfo: expressionsInfoFinal} = pilInfo(F, pilFinal, true, false, starkStructFinal);
 
     // Build const tree
-    const {constTree, MH, verKey} = await buildConstTree(starkInfoFinal.pilInfo, constPols);
+    const {constTree, MH, verKey} = await buildConstTree(starkInfoFinal, constPols);
 
     await fs.promises.writeFile(`tmp/${finalName}.verkey.json`, JSONbig.stringify(verKey, null, 1), "utf8");
 
     await fs.promises.writeFile(`tmp/${finalName}.starkinfo.json`, JSON.stringify(starkInfoFinal, null, 1), "utf8");
+
+    await fs.promises.writeFile(`tmp/${finalName}.expressionsinfo.json`, JSON.stringify(expressionsInfoFinal, null, 1), "utf8");
+
+    await fs.promises.writeFile(`tmp/${finalName}.verifierinfo.json`, JSON.stringify(verifierInfoFinal, null, 1), "utf8");
+
 
     await MH.writeToFile(constTree, `tmp/${finalName}.consttree`);
     

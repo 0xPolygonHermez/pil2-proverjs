@@ -84,7 +84,7 @@ template VerifyGlobalChallenges() {
 <%  const stage = i + 1; -%>
     signal input root<%- stage %>[<%- starkInfoRecursives2.length %>][4];
 <% } -%>                  
-    signal input root<%- starkInfoRecursives2.nStages + 1 %>[<%- starkInfoRecursives2.length %>][4];
+    signal input root<%- nChallengesStages.length + 1 %>[<%- starkInfoRecursives2.length %>][4];
     signal input evalsHash[<%- starkInfoRecursives2.length %>][4]; 
 <% for (let s=1; s<stepsFRI.length; s++) {   -%>
     signal input s<%- s %>_root[<%- starkInfoRecursives2.length %>][4];
@@ -167,43 +167,47 @@ template Main() {
 
     signal input s<%- c %>_aggregationTypes[<%- nSubAirValues %>];
 
-<% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
-    signal input s<%- c %>_root<%- i + 1 %>[4];
+<% for (let j = 0; j < starkInfo.nStages + 1; ++j) { -%>
+    signal input s<%- c %>_root<%- j + 1 %>[4];
 <% } -%>
 
-<% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
-    signal input s<%- c %>_s0_vals<%- i+1 %>[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.mapSectionsN[`cm${i+1}`] %>];
+<% for (let j = 0; j < starkInfo.nStages + 1; ++j) { -%>
+<%  if (starkInfo.mapSectionsN[`cm${j+1}`] > 0) { -%>
+    signal input s<%- c %>_s0_vals<%- j+1 %>[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.mapSectionsN[`cm${j+1}`] %>];
+<%  } -%>
 <% } -%>
     signal input s<%- c %>_s0_valsC[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.nConstants %>];
 
-<% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
-    signal input s<%- c %>_s0_siblings<%- i+1 %>[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.starkStruct.steps[0].nBits %>][4];
+<% for (let j = 0; j < starkInfo.nStages + 1; ++j) { -%>
+<%  if (starkInfo.mapSectionsN[`cm${j+1}`] > 0) { -%>
+    signal input s<%- c %>_s0_siblings<%- j+1 %>[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.starkStruct.steps[0].nBits %>][4];
+<%  } -%>
 <% } -%>
     signal input s<%- c %>_s0_siblingsC[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.starkStruct.steps[0].nBits %>][4];
 
     signal input s<%- c %>_evals[<%- starkInfo.evMap.length %>][3];
 
-<% for(let i = 1; i < starkInfo.starkStruct.steps.length; i++) { -%>
-    signal input s<%- c %>_s<%- i %>_root[4];
+<% for(let j = 1; j < starkInfo.starkStruct.steps.length; j++) { -%>
+    signal input s<%- c %>_s<%- j %>_root[4];
 <% } -%>
 
-<% for(let i = 1; i < starkInfo.starkStruct.steps.length; i++) { -%>
-    signal input s<%- c %>_s<%- i %>_vals[<%- starkInfo.starkStruct.nQueries %>][<%- (1 << (starkInfo.starkStruct.steps[i-1].nBits - starkInfo.starkStruct.steps[i].nBits))*3 %>];
+<% for(let j = 1; j < starkInfo.starkStruct.steps.length; j++) { -%>
+    signal input s<%- c %>_s<%- j %>_vals[<%- starkInfo.starkStruct.nQueries %>][<%- (1 << (starkInfo.starkStruct.steps[j-1].nBits - starkInfo.starkStruct.steps[j].nBits))*3 %>];
 <% } -%>
 
-<% for(let i = 1; i < starkInfo.starkStruct.steps.length; i++) { -%>
-    signal input s<%- c %>_s<%- i %>_siblings[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.starkStruct.steps[i].nBits %>][4];
+<% for(let j = 1; j < starkInfo.starkStruct.steps.length; j++) { -%>
+    signal input s<%- c %>_s<%- j %>_siblings[<%- starkInfo.starkStruct.nQueries %>][<%- starkInfo.starkStruct.steps[j].nBits %>][4];
 <% } -%>
 
     signal input s<%- c %>_finalPol[<%- 1 << starkInfo.starkStruct.steps[starkInfo.starkStruct.steps.length-1].nBits %>][3];
 
     signal input s<%- c %>_sv_rootC[4];
-<%  for (let i = 0; i < nChallengesStages.length + 1; ++i) { -%>
-    signal input s<%- c %>_sv_root<%- i+1 %>[4];
+<%  for (let j = 0; j < nChallengesStages.length + 1; ++j) { -%>
+    signal input s<%- c %>_sv_root<%- j+1 %>[4];
 <%  } -%>
     signal input s<%- c %>_sv_evalsHash[4];
-<%  for (let i = 1; i < stepsFRI.length; ++i) { -%>
-    signal input s<%- c %>_sv_s<%- i %>_root[4];
+<%  for (let j = 1; j < stepsFRI.length; ++j) { -%>
+    signal input s<%- c %>_sv_s<%- j %>_root[4];
 <%  } -%>
     signal input s<%- c %>_sv_finalPolHash[4];
 
@@ -245,32 +249,36 @@ template Main() {
     signal {binary} isNull<%- c %> <== IsZero()(s<%- c %>_circuitType);
     sv<%- c %>.enable <== 1 - isNull<%- c %>;
 
-<% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
-    sv<%- c %>.root<%- i+1 %> <== s<%- c %>_root<%- i + 1 %>;
+<% for (let j = 0; j < starkInfo.nStages + 1; ++j) { -%>
+    sv<%- c %>.root<%- j+1 %> <== s<%- c %>_root<%- j + 1 %>;
 <% } -%>
 
-<% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
-    sv<%- c %>.s0_siblings<%- i+1 %> <== s<%- c %>_s0_siblings<%- i+1 %>;
+<% for (let j = 0; j < starkInfo.nStages + 1; ++j) { -%>
+<%  if (starkInfo.mapSectionsN[`cm${j+1}`] > 0) { -%>
+    sv<%- c %>.s0_siblings<%- j+1 %> <== s<%- c %>_s0_siblings<%- j+1 %>;
+<%  } -%>
 <% } -%>
     sv<%- c %>.s0_siblingsC <== s<%- c %>_s0_siblingsC;
 
-<% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
-    sv<%- c %>.s0_vals<%- i+1 %> <== s<%- c %>_s0_vals<%- i+1 %>;
+<% for (let j = 0; j < starkInfo.nStages + 1; ++j) { -%>
+<%  if (starkInfo.mapSectionsN[`cm${j+1}`] > 0) { -%>
+    sv<%- c %>.s0_vals<%- j+1 %> <== s<%- c %>_s0_vals<%- j+1 %>;
+<%  } -%>
 <% } -%>
     sv<%- c %>.s0_valsC <== s<%- c %>_s0_valsC;
 
     sv<%- c %>.evals <== s<%- c %>_evals;
     
-<% for(let i = 1; i < starkInfo.starkStruct.steps.length; i++) { -%>
-    sv<%- c %>.s<%- i %>_root <== s<%- c %>_s<%- i %>_root;
+<% for(let j = 1; j < starkInfo.starkStruct.steps.length; j++) { -%>
+    sv<%- c %>.s<%- j %>_root <== s<%- c %>_s<%- j %>_root;
 <% } -%>
 
-<% for(let i = 1; i < starkInfo.starkStruct.steps.length; i++) { -%>
-    sv<%- c %>.s<%- i %>_siblings <== s<%- c %>_s<%- i %>_siblings;
+<% for(let j = 1; j < starkInfo.starkStruct.steps.length; j++) { -%>
+    sv<%- c %>.s<%- j %>_siblings <== s<%- c %>_s<%- j %>_siblings;
 <% } -%>
 
-<% for(let i = 1; i < starkInfo.starkStruct.steps.length; i++) { -%>
-    sv<%- c %>.s<%- i %>_vals <== s<%- c %>_s<%- i %>_vals;
+<% for(let j = 1; j < starkInfo.starkStruct.steps.length; j++) { -%>
+    sv<%- c %>.s<%- j %>_vals <== s<%- c %>_s<%- j %>_vals;
 <% } -%>
 
     sv<%- c %>.finalPol <== s<%- c %>_finalPol;

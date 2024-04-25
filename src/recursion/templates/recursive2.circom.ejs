@@ -11,9 +11,9 @@ template Main() {
 
     var rootCRecursives1[<%- vks.length %>][4];
    
-    <% for(let i = 0; i < vks.length; i++) { -%>
-        rootCRecursives1[<%- i %>] = [<%- vks[i].join(', ') %>];
-    <% } -%>
+<% for(let i = 0; i < vks.length; i++) { -%>
+    rootCRecursives1[<%- i %>] = [<%- vks[i].join(', ') %>];
+<% } -%>
 
     signal input publics[<%- nPublics %>];
 
