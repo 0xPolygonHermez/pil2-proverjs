@@ -80,6 +80,12 @@ module.exports = async function setupCmd(proofManagerConfig) {
             const fixedPols = generateFixedCols(air.symbols, air.numRows)
             getFixedPolsPil2(air, fixedPols, setupOptions.F);
             
+            /***** THIS IS JUST FOR DEBUGGING PURPOSES, EXAMPLE BASIC_VADCOP *****/
+            if(fixedPols.$$defArray[0].name === "Main.L1") {
+                fixedPols.$$array[0] = fixedPols.$$array[3];
+                fixedPols.$$array[2] = fixedPols.$$array[3];
+            }
+            /********************************************************************/
             setup[subproof.subproofId][air.airId] = await starkSetup(fixedPols, air, starkStruct, setupOptions);
         }
     }

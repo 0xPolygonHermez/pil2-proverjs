@@ -47,7 +47,7 @@ module.exports = class ProofOrchestrator {
          * - prover: prover 
          * - setup: setup data
          */
-        if (!await configValid(config)) {
+        if (!await configValid(config, this.name)) {
             log.error(`[${this.name}]`, "Invalid proof orchestrator config.");
             throw new Error("Invalid proof orchestrator config.");
         }
@@ -69,27 +69,27 @@ module.exports = class ProofOrchestrator {
         
         return;
 
-        async function configValid(config) {
+        async function configValid(config, name) {
             const fields = ["airout", "witnessCalculators", "prover"];
             for (const field of fields) {
                 if (config[field] === undefined) {
-                    log.error(`[${this.name}]`, `No ${field} provided in config.`);
+                    log.error(`[${name}]`, `No ${field} provided in config.`);
                     return false;
                 }
             }
 
             if (config.name === undefined) {
                 config.name = "proof-" + Date.now();
-                log.warn(`[${this.name}]`, `No name provided in config, assigning a default name ${config.name}.`);
+                log.warn(`[${name}]`, `No name provided in config, assigning a default name ${config.name}.`);
             }
 
             if (config.witnessCalculators.length === 0) {
-                log.error(`[${this.name}]`, "No witnessCalculators provided in config.");
+                log.error(`[${name}]`, "No witnessCalculators provided in config.");
                 return false;
             }
     
             if (!await validateFileNameCorrectness(config)) {
-                log.error(`[${this.name}]`, "Invalid config.");
+                log.error(`[${name}]`, "Invalid config.");
                 return false;
             }
     

@@ -10,6 +10,7 @@
     "test:simple": "mocha test/simple/simple_stark.test.js",
     "test:fibonacci": "mocha test/fibonacci/fibonacci_stark.test.js",
     "test:fibonacci_vadcop": "mocha test/fibonacci-vadcop/fibonacci_vadcop_stark.test.js",
+    "test:basic_vadcop": "mocha test/basic_vadcop/basic_vadcop_stark.test.js",
     "test:simple:coverage": "nyc mocha test/simple/simple_stark.test.js",
     "test:fibonacci:coverage": "nyc mocha test/fibonacci/fibonacci_stark.test.js",
     "test:fibonacci_vadcop:coverage": "nyc mocha test/fibonacci-vadcop/fibonacci_vadcop_stark.test.js",
