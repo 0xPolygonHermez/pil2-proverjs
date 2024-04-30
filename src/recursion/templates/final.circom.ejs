@@ -113,7 +113,7 @@ template VerifyGlobalChallenges() {
      } -%>
 <%    transcript.getField("calculatedChallenges[" + (c++) + "]"); -%>
 <%   for(let i = 0; i < starkInfoRecursives2.length; ++i) { -%>
-<%      transcript.put("root" + nChallengesStages.length + "[" + i + "]", 4); -%>
+<%      transcript.put("root" + (nChallengesStages.length + 1) + "[" + i + "]", 4); -%>
 <%   } -%>
 <%   transcript.getField("calculatedChallenges[" + (c++) + "]"); -%>
 <%   for(let i = 0; i < starkInfoRecursives2.length; ++i) { -%>

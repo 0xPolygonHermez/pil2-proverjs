@@ -61,7 +61,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
 
     let setup = [];
     let globalConstraints;
-
+    
     for(const subproof of airout.subproofs) {
         setup[subproof.subproofId] = [];
         for(const air of subproof.airs) {

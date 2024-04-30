@@ -8,17 +8,18 @@ module.exports.joinzkinFinal = function joinzkinFinal(proofsBySubproofId, global
     for(let i = 0; i < proofsBySubproofId.length; ++i) {
         const zkin = proofsBySubproofId[i].zkinFinal;
         const starkInfo = proofsBySubproofId[i].starkInfoRecursive2;
-        for (let j = 0; j < starkInfo.nStages + 1; ++j) {
+        const nStages = Number(starkInfo.nStages) + 1;
+        for (let j = 0; j < nStages; ++j) {
             zkinFinal[`s${i}_root${j + 1}`] = zkin[`root${j + 1}`]; 
         }
 
-        for (let j = 0; j < starkInfo.nStages + 1; ++j) {
+        for (let j = 0; j < nStages; ++j) {
             zkinFinal[`s${i}_s0_vals${j + 1}`] = zkin[`s0_vals${j + 1}`]; 
         }
 
         zkinFinal[`s${i}_s0_valsC`] = zkin.s0_valsC; 
 
-        for (let j = 0; j < starkInfo.nStages + 1; ++j) {
+        for (let j = 0; j < nStages; ++j) {
             zkinFinal[`s${i}_s0_siblings${j + 1}`] = zkin[`s0_siblings${j + 1}`]; 
         }
 
@@ -39,7 +40,7 @@ module.exports.joinzkinFinal = function joinzkinFinal(proofsBySubproofId, global
         zkinFinal[`s${i}_subAirValues`] = zkin.sv_subAirValues;
 
         zkinFinal[`s${i}_sv_rootC`] = zkin.sv_rootC;
-        for(let j = 0; j < globalInfo.nStages + 1; ++j) {
+        for(let j = 0; j < globalInfo.numChallenges.length + 1; ++j) {
             zkinFinal[`s${i}_sv_root${j + 1}`] = zkin[`sv_root${j + 1}`];
         }
         zkinFinal[`s${i}_sv_evalsHash`] = zkin.sv_evalsHash;

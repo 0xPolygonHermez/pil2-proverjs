@@ -50,7 +50,7 @@ module.exports = async function verifyCircomCmd(setup, proofs, challenges, chall
             
             const verkeyRecursive2 = JSONbig.parse(await fs.promises.readFile(`tmp/recursive2_subproof${proof.subproofId}.verkey.json`, "utf8"));
             inputs.rootCRecursive2 = verkeyRecursive2.constRoot;
-  
+            
             const {zkin: zkinRecursive1, publics: publicsRecursive1} = await generateProof("recursive1", inputs, proof.subproofId, proof.airId);
 
             await fs.promises.writeFile(`tmp/proof${p}_subproof${proof.subproofId}_air${proof.airId}_recursive1.proof.zkin.json`, JSONbig.stringify(zkinRecursive1, (k, v) => {
