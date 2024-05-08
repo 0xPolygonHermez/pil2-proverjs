@@ -1,6 +1,7 @@
 const fs = require('fs');
 const protobuf = require('protobufjs');
 const log = require("../logger.js");
+const resolveGlobal = require('resolve-global');
 
 const AGGREGATION_TYPES = {
     SUM: 0,
@@ -26,7 +27,8 @@ const HINT_FIELD_TYPES = {
 };
 
 const path = require("path");
-const airoutProto = path.join(__dirname, "../node_modules/pilcom2/src/pilout.proto");
+
+const airoutProto = path.join(resolveGlobal('pil2-compiler'), "src/pilout.proto");
 
 class AirOut {
     constructor(airoutFilename) {
