@@ -32,7 +32,7 @@ class StarkFriProver extends ProverComponent {
 
         this.options.logger = log;
 
-        const starkStructFilename =  path.join(__dirname, "../../..",  settings.starkStruct);
+        const starkStructFilename = path.isAbsolute(settings.starkStruct) ? settings.starkStruct : path.join(__dirname, "../../..",  settings.starkStruct);
         this.starkStruct = require(starkStructFilename);
     }
 
