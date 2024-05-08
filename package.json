@@ -41,8 +41,7 @@
     "pilcom": "https://github.com/0xPolygonHermez/pilcom.git#polsArrayGeneric",
     "pilcom2": "https://github.com/0xPolygonHermez/pilcom.git#feature/pil2",
     "protobufjs": "^7.2.4",
-    "r1csfile": "^0.0.47",
-    "resolve-global": "^2.0.0"
+    "r1csfile": "^0.0.47"
   },
   "devDependencies": {
     "chai": "^4.3.8",
