@@ -38,7 +38,8 @@ module.exports = async function setupCmd(proofManagerConfig) {
     let stepsFRI = new Set([]);
     for(let i = 0; i < Object.keys(proofManagerConfig.prover.settings).length; i++) {
         const key = Object.keys(proofManagerConfig.prover.settings)[i];
-        const starkStructFilename =  path.join(__dirname, "../../", proofManagerConfig.prover.settings[key].starkStruct);
+        const filename = proofManagerConfig.prover.settings[key].starkStruct;
+        const starkStructFilename = filename.startsWith('/') ? filename : path.join(__dirname, "../../", filename);
         const starkStruct = require(starkStructFilename);
         starkStruct.steps.map(step => step.nBits).forEach(e => stepsFRI.add(e));
     }
@@ -61,7 +62,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
 
     let setup = [];
     let globalConstraints;
-    
+
     for(const subproof of airout.subproofs) {
         setup[subproof.subproofId] = [];
         for(const air of subproof.airs) {
@@ -74,7 +75,8 @@ module.exports = async function setupCmd(proofManagerConfig) {
                 throw new Error(`[${this.name}] No settings for air '${air.name}'${air.numRows ? ` with N=${air.numRows}` : ''}`);
             }
         
-            const starkStructFilename =  path.join(__dirname, "../../", settings.starkStruct);
+            const filename = settings.starkStruct;
+            const starkStructFilename = filename.startsWith('/') ? filename : path.join(__dirname, "../../", filename);
             const starkStruct = require(starkStructFilename);
             
             const fixedPols = newConstantPolsArrayPil2(air.symbols, air.numRows, setupOptions.F)
