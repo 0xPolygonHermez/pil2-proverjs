@@ -39,7 +39,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
     for(let i = 0; i < Object.keys(proofManagerConfig.prover.settings).length; i++) {
         const key = Object.keys(proofManagerConfig.prover.settings)[i];
         const filename = proofManagerConfig.prover.settings[key].starkStruct;
-        const starkStructFilename = filename.startsWith('/') ? filename : path.join(__dirname, "../../", filename);
+        const starkStructFilename = path.isAbsolute(filename) ? filename : path.join(__dirname, "../../", filename);
         const starkStruct = require(starkStructFilename);
         starkStruct.steps.map(step => step.nBits).forEach(e => stepsFRI.add(e));
     }
@@ -53,7 +53,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
         aggTypes,
     }
 
-    const tmpPath =  path.join(__dirname, "../..", "tmp");
+    const tmpPath = path.join(__dirname, "../..", "tmp");
     if(!fs.existsSync(tmpPath)) fs.mkdirSync(tmpPath);
 
 
@@ -76,7 +76,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
             }
         
             const filename = settings.starkStruct;
-            const starkStructFilename = filename.startsWith('/') ? filename : path.join(__dirname, "../../", filename);
+            const starkStructFilename = path.isAbsolute(filename) ? filename : path.join(__dirname, "../../", filename);
             const starkStruct = require(starkStructFilename);
             
             const fixedPols = generateFixedCols(air.symbols, air.numRows)
@@ -97,10 +97,12 @@ module.exports = async function setupCmd(proofManagerConfig) {
     }
 
     if(proofManagerConfig.aggregation && proofManagerConfig.aggregation.genProof) {
-        const starkStructFinalFilename = path.join(__dirname, "../../", proofManagerConfig.aggregation.settings.final.starkStruct);
+        const finalFilename = proofManagerConfig.aggregation.settings.final.starkStruct;
+        const starkStructFinalFilename = path.isAbsolute(finalFilename) ? finalFilename : path.join(__dirname, "../../", finalFilename);
         const starkStructFinal = require(starkStructFinalFilename);
         
-        const starkStructRecursiveFilename = path.join(__dirname, "../../", proofManagerConfig.aggregation.settings.recursive.starkStruct);
+        const recursiveFilename = proofManagerConfig.aggregation.settings.recursive.starkStruct;
+        const starkStructRecursiveFilename = path.isAbsolute(recursiveFilename) ? recursiveFilename : path.join(__dirname, "../../", recursiveFilename);
         const starkStructRecursive = require(starkStructRecursiveFilename);
 
         for(const subproof of airout.subproofs) {

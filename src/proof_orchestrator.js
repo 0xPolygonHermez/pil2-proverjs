@@ -100,7 +100,7 @@ module.exports = class ProofOrchestrator {
         }
 
         async function validateFileNameCorrectness(config) {
-            const airoutFilename =  path.join(__dirname, "..", config.airout.airoutFilename);
+            const airoutFilename = path.isAbsolute(config.airout.airoutFilename) ? config.airout.airoutFilename : path.join(__dirname, "..", config.airout.airoutFilename);
             if (!await fileExists(airoutFilename)) {
                 log.error(`[${this.name}]`, `Airout ${airoutFilename} does not exist.`);
                 return false;
@@ -110,7 +110,7 @@ module.exports = class ProofOrchestrator {
 
 
             for(const witnessCalculator of config.witnessCalculators) {
-                const witnessCalculatorLib =  path.join(__dirname, "..", witnessCalculator.filename);
+                const witnessCalculatorLib = path.isAbsolute(witnessCalculator.filename) ? witnessCalculator.filename : path.join(__dirname, "..", witnessCalculator.filename);
 
                 if (!await fileExists(witnessCalculatorLib)) {
                     log.error(`[${this.name}]`, `WitnessCalculator ${witnessCalculator.filename} does not exist.`);
@@ -119,7 +119,7 @@ module.exports = class ProofOrchestrator {
                 witnessCalculator.witnessCalculatorLib = witnessCalculatorLib;
             }                
     
-            const proverFilename =  path.join(__dirname, "..", config.prover.filename);
+            const proverFilename = path.isAbsolute(config.prover.filename) ? config.prover.filename : path.join(__dirname, "..", config.prover.filename);
 
             if (!await fileExists(proverFilename)) {
                 log.error(`[${this.name}]`, `Prover ${proverFilename} does not exist.`);
