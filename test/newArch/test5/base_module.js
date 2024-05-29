@@ -1,6 +1,7 @@
 // worker.js
 const { parentPort } = require("worker_threads");
 const Mutex = require("../../../src/concurrency/mutex.js");
+const Envelope = require("./envelope.js");
 
 const log = require("../../../logger.js");
 
@@ -18,11 +19,17 @@ class BaseModule {
   }
 
   sendCommand(command, params) {
-    this.parentPort.postMessage({ src: this.name, command, params });
+    let payload = { command, params };
+    const envelope = new Envelope(this.name, "Parent port", payload);
+
+    this.parentPort.postMessage(envelope);
   }
 
   publishMessage(channel, data) {
-    this.parentPort.postMessage({ src: this.name, command: "publish", channel, data });
+    let payload = { command: "publish", channel, data };
+    const envelope = new Envelope(this.name, "Parent port", payload);
+
+    this.parentPort.postMessage(envelope);
   }
 
   async witnessComputation() {}
@@ -33,7 +40,9 @@ class BaseModule {
     this.sendCommand("finished");
   }
 
-  async onMessage(msg) {
+  async onMessage(envelope) {
+    let msg = envelope.payload;
+
     if (msg.command) {
       await this._onCommandMessage(msg);
     } else if (msg.channel) {
@@ -44,7 +53,7 @@ class BaseModule {
   async _onCommandMessage(msg) {
     switch (msg.command) {
       case "witness_computation":
-        await this._witnessComputation(msg.params);
+        await this._witnessComputation(msg.stage_id);
         break;
       default:
     }

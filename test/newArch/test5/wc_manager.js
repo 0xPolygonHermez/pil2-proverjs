@@ -1,6 +1,7 @@
 // main.js
 const { Worker } = require("worker_threads");
 const TargetLock = require("../../../src/concurrency/target_lock.js");
+const Envelope = require("./envelope.js");
 
 const log = require("../../../logger.js");
 
@@ -42,7 +43,7 @@ module.exports = class WCManager {
         this.target_lock = new TargetLock(this.modules.length, 0);
 
         for (const module of this.modules)
-          this.sendCommand(module.worker, "witness_computation", { stage_id: stageId });
+          this.sendCommand(module.name, { command: "witness_computation", stage_id: stageId });
 
         await this.target_lock.lock();
         resolve();
@@ -55,17 +56,18 @@ module.exports = class WCManager {
 
   // COMMANDS DISPATCHER
   async dispatchMessage(msg) {
-    const command = msg.command;
+    const payload = msg.payload;
+    const sender = msg.sender;
     // log.debug(`[${this.name}]`, `Received command: ${command}`);
 
-    this.checkModuleExist(msg.src);
+    this.checkModuleExist(sender);
 
-    switch (command) {
+    switch (payload.command) {
       case "publish":
-        this.publish(msg.src, msg.channel, msg.data);
+        this.publish(sender, payload.channel, payload.data);
         break;
       case "finished":
-        log.info(msg.src + " finished");
+        log.info(sender + " finished");
         this.target_lock.release();
         break;
       default:
@@ -83,8 +85,10 @@ module.exports = class WCManager {
     return this.modules[index];
   }
 
-  sendCommand(module, command, params) {
-    module.postMessage({ src: this.name, command: command, params });
+  sendCommand(module_name, command) {
+    let module = this.checkModuleExist(module_name);
+    const envelope = new Envelope(this.name, module.name, command);
+    module.worker.postMessage(envelope);
   }
 
   subscribe(topic, name, worker) {
@@ -98,9 +102,13 @@ module.exports = class WCManager {
 
   publish(src, topic, data) {
     if (this.subscribers.has(topic)) {
-      let msg = { src, channel: topic, data };
+      let msg = { channel: topic, data };
       this.subscribers.get(topic).forEach((subscriber) => {
-        if (subscriber.name !== src) subscriber.worker.postMessage(msg);
+        if (subscriber.name !== src) {
+          const envelope = new Envelope(this.name, subscriber.name, msg);
+
+          subscriber.worker.postMessage(envelope);
+        }
       });
       log.info(`Published message to topic ${topic}`);
     }
