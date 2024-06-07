@@ -23,239 +23,318 @@ const { ModuleTypeEnum } = require("./witness_calculator_component.js");
 
 const WC_MANAGER_NAME = "WC Manager";
 
-const log = require('../logger.js');
+const log = require("../logger.js");
 const Mutex = require("./concurrency/mutex.js");
 const AsyncAccLock = require("./concurrency/async_acc_lock.js");
 const TargetLock = require("./concurrency/target_lock.js");
 
 // WitnessCalculator class acting as the composite
 module.exports = class WitnessCalculatorManager {
-    constructor() {
-        this.initialized = false;
+  constructor() {
+    this.initialized = false;
 
-        this.name = WC_MANAGER_NAME;
+    this.name = WC_MANAGER_NAME;
 
-        this.wc = [];
-        this.wcLocks = [];        
-        this.wcDeferredLock;
+    this.wc = [];
+    this.wcLocks = [];
+    this.wcDeferredLock;
 
-        this.airBus = new AirBus();
-        this.lastSolvedpayloadId;
-        this.airBusMutex = new Mutex();
+    this.airBus = new AirBus();
+    this.lastSolvedpayloadId;
+    this.airBusMutex = new Mutex();
 
-        // TODO remove when access to data is implemented
-        this.data= [];
+    // TODO remove when access to data is implemented
+    this.data = [];
 
-        this.options;
+    this.inbox = [];
+    this.mutex_inbox = new Mutex();
+
+    this.options;
+  }
+
+  async initialize(config, proofCtx, options) {
+    if (this.initialized) {
+      log.error(`[${this.name}]`, "Already initialized.");
+      throw new Error(`[${this.name}] Witness Calculator Manager already initialized.`);
     }
 
-    async initialize(config, proofCtx, options) {
-        if (this.initialized) {
-            log.error(`[${this.name}]`, "Already initialized.");
-            throw new Error(`[${this.name}] Witness Calculator Manager already initialized.`);
+    try {
+      this.proofCtx = proofCtx;
+      this.options = options;
+
+      log.info(`[${this.name}]`, "Initializing...");
+
+      for (const setting of config) {
+        const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(
+          setting.witnessCalculatorLib,
+          this,
+          this.proofCtx
+        );
+        newWitnessCalculator.initialize(setting, options);
+
+        this.wc.push(newWitnessCalculator);
+      }
+    } catch (err) {
+      log.error(`[${this.name}]`, `Error initializing Witness Calculator Manager: ${err}`);
+      throw new Error(`Error initializing Witness Calculator Manager: ${err}`);
+    } finally {
+      this.initialized = true;
+    }
+  }
+
+  checkInitialized() {
+    if (!this.initialized) {
+      log.info(`[${this.name}]`, "Not initialized.");
+      throw new Error(`[${this.name}] Not initialized.`);
+    }
+  }
+
+  async witnessComputation(stageId, publics) {
+    this.checkInitialized();
+
+    log.info(`[${this.name}]`, `--> Computing witness stage ${stageId}.`);
+
+    const regulars = this.wc.filter((wc) => wc.type === ModuleTypeEnum.REGULAR);
+    const executors = [];
+
+    this.wcDeferredLock = new TargetLock(regulars.length, 0);
+
+    // NOTE: The first witness calculator is always the witness calculator deferred
+    // executors.push(this.witnessComputationDeferred(stageId));
+
+    if (stageId === 1) {
+      for (const subproof of this.proofCtx.airout.subproofs) {
+        for (const wc of regulars) {
+          if (!wc.sm || subproof.name === wc.sm) {
+            executors.push(wc._witnessComputation(stageId, subproof.subproofId, -1, -1, publics));
+          }
         }
+      }
+    } else {
+      for (const wc of regulars) {
+        for (const airInstance of this.proofCtx.airInstances) {
+          const subproof = this.proofCtx.airout.subproofs[airInstance.subproofId];
 
-        try {
-            this.proofCtx = proofCtx;
-            this.options = options;
-
-            log.info(`[${this.name}]`, "Initializing...");
-
-            for(const setting of config) {
-                const newWitnessCalculator = await WitnessCalculatorFactory.createWitnessCalculator(setting.witnessCalculatorLib, this, this.proofCtx);
-                newWitnessCalculator.initialize(setting, options);
-        
-                this.wc.push(newWitnessCalculator);
-            }
-        } catch (err) {
-            log.error(`[${this.name}]`, `Error initializing Witness Calculator Manager: ${err}`);
-            throw new Error(`Error initializing Witness Calculator Manager: ${err}`);
-        } finally {
-            this.initialized = true;
+          if (!wc.sm || subproof.name === wc.sm) {
+            executors.push(
+              wc._witnessComputation(
+                stageId,
+                airInstance.subproofId,
+                airInstance.airId,
+                airInstance.instanceId,
+                publics
+              )
+            );
+          }
         }
+      }
     }
 
-    checkInitialized() {
-        if (!this.initialized) {
-            log.info(`[${this.name}]`, "Not initialized.");
-            throw new Error(`[${this.name}] Not initialized.`);
-        }
+    //Executor deferred exits before it has to do it...
+    await Promise.all(executors);
+
+    if (this.airBus.hasPendingPayloads()) {
+      log.error(
+        `[${this.name}]`,
+        `Some witness calculators have pending payloads for stage ${stageId}. Unable to continue`
+      );
+      throw new Error(
+        `Some witness calculators have pending payloads for stage ${stageId}. Unable to continue`
+      );
     }
 
-    async witnessComputation(stageId, publics) {
-        this.checkInitialized();
+    log.info(`[${this.name}]`, `<-- Computing witness stage ${stageId}.`);
+  }
 
-        log.info(`[${this.name}]`, `--> Computing witness stage ${stageId}.`);
-        
-        const regulars = this.wc.filter(wc => wc.type === ModuleTypeEnum.REGULAR);
-        const executors = [];
-
-        this.wcDeferredLock = new TargetLock(regulars.length, 0);
-
-        // NOTE: The first witness calculator is always the witness calculator deferred
-        executors.push(this.witnessComputationDeferred(stageId));
-
-        if(stageId === 1) {
-            for(const subproof of this.proofCtx.airout.subproofs) {
-                for (const wc of regulars) { 
-                    if(!wc.sm || subproof.name === wc.sm) {
-                        executors.push(wc._witnessComputation(stageId, subproof.subproofId, -1, -1, publics));
-                    }
-                }
-            }   
-        } else {
-            for (const wc of regulars) {
-                for(const airInstance of this.proofCtx.airInstances) {
-                    const subproof = this.proofCtx.airout.subproofs[airInstance.subproofId];
-
-                    if(!wc.sm || subproof.name === wc.sm) {
-                        executors.push(wc._witnessComputation(stageId, airInstance.subproofId, airInstance.airId, airInstance.instanceId, publics));
-                    }
-                }
-            }
-        }        
-
-        //Executor deferred exits before it has to do it...
-        await Promise.all(executors);
-
-        if(this.airBus.hasPendingPayloads()) {
-            log.error(`[${this.name}]`, `Some witness calculators have pending payloads for stage ${stageId}. Unable to continue`);
-            throw new Error(`Some witness calculators have pending payloads for stage ${stageId}. Unable to continue`);
-        }
-
-        log.info(`[${this.name}]`, `<-- Computing witness stage ${stageId}.`);
+  async addNotification(sender, recipient, tag, data, lock = false) {
+    const senderIdx = this.wc.findIndex((witnesscalculator) => witnesscalculator.name === sender);
+    if (senderIdx === -1) {
+      log.error(`[${this.name}]`, `Bus Payload sender '${sender}' not found`);
+      throw new Error(`Bus Payload sender '${sender}' not found`);
     }
 
-    async addNotification(sender, recipient, tag, data, lock = false) {
-        const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === sender);
-        if(senderIdx === -1) {
-            log.error(`[${this.name}]`, `Bus Payload sender '${sender}' not found`);
-            throw new Error(`Bus Payload sender '${sender}' not found`);
-        }
-
-        if(recipient !== this.name) {
-            const recipientIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === recipient);
-            if(recipientIdx === -1) {
-                log.error(`[${this.name}]`, `Bus Payload recipient '${recipient}' not found`);
-                throw new Error(`Bus Payload recipient '${recipient}' not found`);
-            }
-        }
-
-        const payload = new AirBusPayload(sender, recipient, PayloadTypeEnum.NOTIFICATION, tag, data);
-
-        this.airBus.addBusPayload(payload);
-
-        if(lock) {
-            if(!this.wcLocks[senderIdx]) this.wcLocks[senderIdx] = new AsyncAccLock();
-            log.info(`[${this.name}]`, `Locking witness calculator ${this.wc[senderIdx].name}`);
-
-            this.airBusMutex.unlock();
-            this.wcDeferredLock.release();
-            await this.wcLocks[senderIdx].lock();
-        }
+    if (recipient !== this.name) {
+      const recipientIdx = this.wc.findIndex(
+        (witnesscalculator) => witnesscalculator.name === recipient
+      );
+      if (recipientIdx === -1) {
+        log.error(`[${this.name}]`, `Bus Payload recipient '${recipient}' not found`);
+        throw new Error(`Bus Payload recipient '${recipient}' not found`);
+      }
     }
 
-    resolveBusPayload(payloadId) {
-        const payload = this.airBus.getPayloadById(payloadId);
+    const payload = new AirBusPayload(sender, recipient, PayloadTypeEnum.NOTIFICATION, tag, data);
 
-        if(!payload) {
-            log.error(`[${this.name}]`, `Bus Payload ${payloadId} not found`);
-            throw new Error(`Bus Payload ${payloadId} not found`);
-        }
+    this.airBus.addBusPayload(payload);
 
-        const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === payload.sender);
+    if (lock) {
+      if (!this.wcLocks[senderIdx]) this.wcLocks[senderIdx] = new AsyncAccLock();
+      log.info(`[${this.name}]`, `Locking witness calculator ${this.wc[senderIdx].name}`);
 
-        if(senderIdx === -1) {
-            log.error(`[${this.name}]`, `Bus Payload sender '${payload.sender}' not found`);
-            throw new Error(`Bus Payload sender '${payload.sender}' not found`);
-        }
+      this.airBusMutex.unlock();
+      this.wcDeferredLock.release();
+      await this.wcLocks[senderIdx].lock();
+    }
+  }
 
-        this.airBus.resolveBusPayload(payloadId);
+  resolveBusPayload(payloadId) {
+    const payload = this.airBus.getPayloadById(payloadId);
 
-        // TODO: Do we need a mutex covering this.lastSolvedpayloadId?
-        this.lastSolvedpayloadId = payloadId;
-
-        if(this.wcLocks[senderIdx]) {
-            log.info(`[${this.name}]`, `Unlocking witness calculator ${this.wc[senderIdx].name}`);
-            if(this.wcDeferredLock) this.wcDeferredLock.acquire();
-            this.wcLocks[senderIdx].unlock();
-        }
+    if (!payload) {
+      log.error(`[${this.name}]`, `Bus Payload ${payloadId} not found`);
+      throw new Error(`Bus Payload ${payloadId} not found`);
     }
 
-    async readData(module, dataId) {
-        this.airBusMutex.lock();
+    const senderIdx = this.wc.findIndex(
+      (witnesscalculator) => witnesscalculator.name === payload.sender
+    );
 
-        //TODO read data from proofCtx
-        if(!this.data[dataId]) {
-            await this.addNotification(module.name, this.name, "resolve", { dataId }, true);
-        } else {
-            this.airBusMutex.unlock();
+    if (senderIdx === -1) {
+      log.error(`[${this.name}]`, `Bus Payload sender '${payload.sender}' not found`);
+      throw new Error(`Bus Payload sender '${payload.sender}' not found`);
+    }
+
+    this.airBus.resolveBusPayload(payloadId);
+
+    // TODO: Do we need a mutex covering this.lastSolvedpayloadId?
+    this.lastSolvedpayloadId = payloadId;
+
+    if (this.wcLocks[senderIdx]) {
+      log.info(`[${this.name}]`, `Unlocking witness calculator ${this.wc[senderIdx].name}`);
+      if (this.wcDeferredLock) this.wcDeferredLock.acquire();
+      this.wcLocks[senderIdx].unlock();
+    }
+  }
+
+  async readData(module, dataId) {
+    this.airBusMutex.lock();
+
+    //TODO read data from proofCtx
+    if (!this.data[dataId]) {
+      await this.addNotification(module.name, this.name, "resolve", { dataId }, true);
+    } else {
+      this.airBusMutex.unlock();
+    }
+
+    return this.data[dataId];
+  }
+
+  async writeData(module, dataId, data) {
+    this.airBusMutex.lock();
+
+    this.data[dataId] = data;
+
+    const payloads = this.airBus.getPendingPayloadsByTagDataId("resolve", dataId);
+
+    for (const payload of payloads) {
+      payload.isPending = false;
+
+      const senderIdx = this.wc.findIndex(
+        (witnesscalculator) => witnesscalculator.name === payload.sender
+      );
+      if (this.wcLocks[senderIdx]) {
+        log.info(`[${this.name}]`, `Unlocking witness calculator ${this.wc[senderIdx].name}`);
+        this.wcLocks[senderIdx].unlock();
+      }
+    }
+
+    this.airBusMutex.unlock();
+  }
+
+  async sendBroadcastData(sender, data) {
+    for (const recipient of this.wc) {
+      //TODO! Add a flag to terminated executors and remove them from the recipients list
+      await this.sendData(sender, recipient.name, data);
+    }
+  }
+
+  async sendData(sender, recipient, data) {
+    await this.mutex_inbox.lock();
+
+    if (!this.inbox[recipient]) {
+      this.inbox[recipient] = {
+        messages: [data],
+        mutex: new AsyncAccLock(),
+      };
+    } else {
+      this.inbox[recipient].messages.push(data);
+      if (this.inbox[recipient].mutex.locked > 0) {
+        this.inbox[recipient].mutex.unlock();
+      }
+    }
+
+    this.mutex_inbox.unlock();
+  }
+
+  async receiveData(module, recipient, lock = true) {
+    await this.mutex_inbox.lock();
+
+    if (!this.inbox[recipient]) {
+      this.inbox[recipient] = {
+        messages: [],
+        mutex: new AsyncAccLock(),
+      };
+    }
+
+    if (this.inbox[recipient].messages.length === 0) {
+      if (lock) {
+        this.mutex_inbox.unlock();
+        await this.inbox[recipient].mutex.lock();
+      } else {
+        this.mutex_inbox.unlock();
+        return [];
+      }
+    }
+
+    let messages = this.inbox[recipient].messages.splice(0);
+    this.mutex_inbox.unlock();
+    return messages;
+  }
+
+  releaseDeferredLock() {
+    if (this.wcDeferredLock) this.wcDeferredLock.release();
+  }
+
+  async executeDeferredModules(stageId) {
+    const deferredModules = this.wc.filter((wc) => wc.type === ModuleTypeEnum.DEFERRED);
+
+    for (const module of deferredModules) {
+      await module._witnessComputation(stageId);
+    }
+  }
+
+  async witnessComputationDeferred(stageId) {
+    return new Promise(async (resolve, reject) => {
+      let _lastSolvedpayloadId;
+      try {
+        while (true) {
+          await this.wcDeferredLock.lock();
+
+          if (!this.airBus.hasPendingPayloads()) break;
+
+          log.info(`[${this.name}]`, `Initiating the process to unblock witness calculators`);
+
+          await this.executeDeferredModules(stageId);
+
+          const lastSolvedpayloadId = this.lastSolvedpayloadId;
+          if (_lastSolvedpayloadId === lastSolvedpayloadId) {
+            log.error(
+              `[${this.name}]`,
+              "The executing processes do not respond, processes are stucked."
+            );
+            throw new Error("The executing processes do not respond, processes are stucked.");
+          }
+
+          _lastSolvedpayloadId = lastSolvedpayloadId;
         }
 
-        return this.data[dataId];
-    }
+        this.releaseDeferredLock();
 
-    async writeData(module, dataId, data) {
-        this.airBusMutex.lock();
-
-        this.data[dataId] = data;
-
-        const payloads = this.airBus.getPendingPayloadsByTagDataId("resolve", dataId);
-        
-        for(const payload of payloads) {
-            payload.isPending = false;
-            
-            const senderIdx = this.wc.findIndex(witnesscalculator => witnesscalculator.name === payload.sender);
-            if(this.wcLocks[senderIdx]) {
-                log.info(`[${this.name}]`, `Unlocking witness calculator ${this.wc[senderIdx].name}`);
-                this.wcLocks[senderIdx].unlock();
-            }
-        }
-
-        this.airBusMutex.unlock();
-    }
-
-    releaseDeferredLock() { 
-        if(this.wcDeferredLock) this.wcDeferredLock.release();
-    }
-
-    async executeDeferredModules(stageId) {
-        const deferredModules = this.wc.filter(wc => wc.type === ModuleTypeEnum.DEFERRED);
-
-        for(const module of deferredModules) {
-            await module._witnessComputation(stageId);
-        }
-    }
-
-    async witnessComputationDeferred(stageId) {
-        return new Promise(async (resolve, reject) => {
-            let _lastSolvedpayloadId;
-            try {
-                while(true) {
-                    await this.wcDeferredLock.lock();
-    
-                    if(!this.airBus.hasPendingPayloads()) break;
-
-                    log.info(`[${this.name}]`, `Initiating the process to unblock witness calculators`);
-
-                    await this.executeDeferredModules(stageId);
-    
-                    const lastSolvedpayloadId = this.lastSolvedpayloadId;
-                    if(_lastSolvedpayloadId === lastSolvedpayloadId) {
-                        log.error(`[${this.name}]`, "The executing processes do not respond, processes are stucked.")
-                        throw new Error("The executing processes do not respond, processes are stucked.");
-                    }   
-                    
-                    _lastSolvedpayloadId = lastSolvedpayloadId;
-                }
-    
-                this.releaseDeferredLock();
-                
-                resolve();
-            } catch (err) {
-                log.error(`[${this.name}]`, `Witness computation failed.`, err);
-                reject(err);
-            }
-        });
-    }
-}
+        resolve();
+      } catch (err) {
+        log.error(`[${this.name}]`, `Witness computation failed.`, err);
+        reject(err);
+      }
+    });
+  }
+};

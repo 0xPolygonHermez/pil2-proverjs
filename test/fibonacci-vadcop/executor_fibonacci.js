@@ -4,7 +4,7 @@ const log = require("../../logger.js");
 
 class FibonacciVadcop extends WitnessCalculatorComponent {
     constructor(wcManager, proofCtx) {
-        super("FibonccExe", wcManager, proofCtx);
+        super("Fibonacci", wcManager, proofCtx);
     }
 
     async witnessComputation(stageId, subproofId, airId, instanceId, publics) { 
@@ -14,8 +14,10 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
                 throw new Error(`[${this.name}]`, `Air instance id already existing in stageId 1.`);
             }
 
+            await new Promise((r) => setTimeout(r, 1000));
+
             /// NOTE: Here we decide for test purposes to create a fibonacci 2**4 and a module 2**4
-            await this.wcManager.writeData(this, "Module.createInstances", {"airId": 0});
+            await this.wcManager.sendData(this, "Module", {command: "createInstances", airId: 0});
             airId = 1;
 
             const air = this.proofCtx.airout.subproofs[subproofId].airs[airId];

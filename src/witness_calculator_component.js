@@ -16,65 +16,71 @@ const { AirBusPayload, PayloadTypeEnum } = require("./proof_bus.js");
 const log = require("../logger.js");
 
 const ModuleTypeEnum = {
-    REGULAR: 1,
-    DEFERRED: 2
-}
+  REGULAR: 1,
+  DEFERRED: 2,
+};
 
 // Abstract base class for all WitnessCalculator components
 class WitnessCalculatorComponent {
-    constructor(name, wcManager, proofCtx, type = ModuleTypeEnum.REGULAR) {
-        this.name = name;
-        this.wcManager = wcManager;
-        this.proofCtx = proofCtx;
-        this.type = type;
+  constructor(name, wcManager, proofCtx, type = ModuleTypeEnum.REGULAR) {
+    this.name = name;
+    this.wcManager = wcManager;
+    this.proofCtx = proofCtx;
+    this.type = type;
 
-        this.initialized = false;
-        this.settings = null;
-        this.options = null;
+    this.initialized = false;
+    this.settings = null;
+    this.options = null;
 
-        log.info(`[${this.name}]`, "Created.");
+    log.info(`[${this.name}]`, "Created.");
+  }
+
+  initialize(config, options) {
+    log.info(`[${this.name}]`, "Initializing...");
+
+    this.settings = config.settings;
+    this.sm = config.sm;
+    this.options = options;
+    this.initialized = true;
+  }
+
+  checkInitialized() {
+    if (!this.initialized) {
+      log.info(`[${this.name}]`, "Not initialized.");
+      throw new Error(`[${this.name}] Not initialized.`);
     }
+  }
 
-    initialize(config, options) {
-        log.info(`[${this.name}]`, "Initializing...");
+  async witnessComputation() {
+    throw new Error("Method 'witnessComputation' must be implemented in concrete classes.");
+  }
 
-        this.settings = config.settings;
-        this.sm = config.sm;
-        this.options = options;
-        this.initialized = true;
-    }
+  async _witnessComputation(stageId, subproofId, airId, instanceId, publics) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // log.info(`[${this.name}]`, `-> stageId: ${stageId} airId: ${airId} instanceId: ${instanceId}`);
 
-    checkInitialized() {
-        if (!this.initialized) {
-            log.info(`[${this.name}]`, "Not initialized.");
-            throw new Error(`[${this.name}] Not initialized.`);
-        }
-    }
+        await this.witnessComputation(stageId, subproofId, airId, instanceId, publics);
 
-    async witnessComputation() {
-        throw new Error("Method 'witnessComputation' must be implemented in concrete classes.");
-    }
-
-    async _witnessComputation(stageId, subproofId, airId, instanceId, publics) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                // log.info(`[${this.name}]`, `-> stageId: ${stageId} airId: ${airId} instanceId: ${instanceId}`);
-
-                await this.witnessComputation(stageId, subproofId, airId, instanceId, publics);
-
-                this.wcManager.releaseDeferredLock();
-                
-                resolve();
-
-                // log.info(`[${this.name}]`, `<- stageId: ${stageId} airId: ${airId} instanceId: ${instanceId}`);
-            } catch (err) {
-                log.error(`[${this.name}]`, `Witness computation failed.`, err);
-                reject(err);
-            }
+        this.wcManager.sendBroadcastData(this, {
+          sender: this.name,
+          type: "notification",
+          payload: { data: "finished", stageId, subproofId, airId, instanceId },
         });
-    }
+        this.wcManager.releaseDeferredLock();
+
+        resolve();
+
+        // log.info(`[${this.name}]`, `<- stageId: ${stageId} airId: ${airId} instanceId: ${instanceId}`);
+      } catch (err) {
+        log.error(`[${this.name}]`, `Witness computation failed.`, err);
+        reject(err);
+      }
+    });
+  }
 }
 
 module.exports = {
-    WitnessCalculatorComponent, ModuleTypeEnum
+  WitnessCalculatorComponent,
+  ModuleTypeEnum,
 };
