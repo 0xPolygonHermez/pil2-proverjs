@@ -6,7 +6,7 @@ const log = require("../../../logger.js");
 
 module.exports = class LogUp extends WitnessCalculatorComponent {
     constructor(wcManager, proofCtx) {
-        super("LogUp WC  ", wcManager, proofCtx);
+        super("LogUp", wcManager, proofCtx);
     }
 
     async witnessComputation(stageId, subproofId, airId, instanceId, publics) {
