@@ -3,7 +3,7 @@ const F3g = require("pil2-stark-js/src/helpers/f3g");
 const { AirOut } = require("../airout.js");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
-const { newConstantPolsArrayPil2 } = require("pilcom2/src/polsarray.js");
+const { generateFixedCols } = require("pil2-stark-js/src/witness/witnessCalculator.js");
 const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
 const starkSetup = require("pil2-stark-js/src/stark/stark_setup");
 const { genNullProof } = require("pil2-stark-js/src/proof2zkin.js");
@@ -77,7 +77,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
             const starkStructFilename =  path.join(__dirname, "../../", settings.starkStruct);
             const starkStruct = require(starkStructFilename);
             
-            const fixedPols = newConstantPolsArrayPil2(air.symbols, air.numRows, setupOptions.F)
+            const fixedPols = generateFixedCols(air.symbols, air.numRows)
             getFixedPolsPil2(air, fixedPols, setupOptions.F);
             
             setup[subproof.subproofId][air.airId] = await starkSetup(fixedPols, air, starkStruct, setupOptions);

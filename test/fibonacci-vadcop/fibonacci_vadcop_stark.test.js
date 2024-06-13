@@ -26,7 +26,7 @@ function getSettings() {
                 recursive: { starkStruct: "./src/recursion/configs/recursive.starkstruct.json" },
                 final: { starkStruct: "./src/recursion/configs/final.starkstruct.json" }
             },
-            genProof: true,  
+            genProof: false,  
         },
         verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
     };

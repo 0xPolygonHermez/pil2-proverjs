@@ -1,6 +1,6 @@
 const log = require("../logger.js");
 
-const { newCommitPolsArrayPil2 } = require("pilcom2/src/polsarray.js");
+const { generateWtnsCols } = require("pil2-stark-js/src/witness/witnessCalculator.js");
 const { addTranscriptStark, getChallengeStark } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 const { buildPoseidonGL, Transcript } = require("pil2-stark-js");
 
@@ -70,7 +70,7 @@ class ProofCtx {
         const airInstance = new AirInstance(subproofId, airId, instanceId, layout);
         this.airInstances[instanceId] = airInstance;
 
-        airInstance.wtnsPols = newCommitPolsArrayPil2(air.symbols, air.numRows, this.F);
+        airInstance.wtnsPols = generateWtnsCols(1, air.symbols, air.numRows);
 
         return { result: true, airInstance};
     }   
