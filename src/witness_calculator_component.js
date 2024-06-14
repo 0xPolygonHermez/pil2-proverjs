@@ -85,7 +85,7 @@ class WitnessCalculatorComponent {
   calculateExpAtRow = function calculateExpAtRow(airInstance, expId, row) {
     const air = this.proofCtx.airout.getAirBySubproofIdAirId(airInstance.subproofId, airInstance.airId);
 
-    const setup = this.proofCtx.setup.setup[airInstance.subproofId, airInstance.airId];
+    const setup = this.proofCtx.setup.setup[airInstance.subproofId][airInstance.airId];
 
     const expressionsInfo = setup.expressionsInfo;
     const starkInfo = setup.starkInfo;
