@@ -14,6 +14,7 @@
 
 const { AirBusPayload, PayloadTypeEnum } = require("./proof_bus.js");
 const log = require("../logger.js");
+const { calculateExpression, calculateExpressionAtRow } = require("pil2-stark-js/src/prover/prover_helpers.js");
 
 const ModuleTypeEnum = {
   REGULAR: 1,
@@ -54,6 +55,60 @@ class WitnessCalculatorComponent {
   async witnessComputation() {
     throw new Error("Method 'witnessComputation' must be implemented in concrete classes.");
   }
+
+  calculateExp = function calculateExp(airInstance, expId) {
+    const air = this.proofCtx.airout.getAirBySubproofIdAirId(airInstance.subproofId, airInstance.airId);
+
+    const setup = this.proofCtx.setup.setup[airInstance.subproofId][airInstance.airId];
+
+    const expressionsInfo = setup.expressionsInfo;
+    const starkInfo = setup.starkInfo;
+
+    let ctx;
+    if(airInstance.ctx) {
+        ctx = airInstance.ctx;
+    } else {
+          ctx = {
+            N: air.numRows,
+            nBits: Math.log2(air.numRows),
+            pilInfo: starkInfo,
+            expressionsInfo,
+            const_n: setup.fixedPols.polBuffer,
+            cm1_n: airInstance.wtnsPols.polBuffer,
+            publics: this.proofCtx.publics,
+         }
+    }
+
+    return calculateExpression(ctx, expId);
+  }
+
+  calculateExpAtRow = function calculateExpAtRow(airInstance, expId, row) {
+    const air = this.proofCtx.airout.getAirBySubproofIdAirId(airInstance.subproofId, airInstance.airId);
+
+    const setup = this.proofCtx.setup.setup[airInstance.subproofId, airInstance.airId];
+
+    const expressionsInfo = setup.expressionsInfo;
+    const starkInfo = setup.starkInfo;
+
+    let ctx;
+    if(airInstance.ctx) {
+        ctx = airInstance.ctx;
+    } else {
+          ctx = {
+            N: air.numRows,
+            nBits: Math.log2(air.numRows),
+            pilInfo: starkInfo,
+            expressionsInfo,
+            const_n: setup.fixedPols.polBuffer,
+            cm1_n: airInstance.wtnsPols.polBuffer,
+            publics: this.proofCtx.publics,
+         }
+    }
+
+
+    return calculateExpressionAtRow(ctx, expId, row);
+  }
+
 
   async _witnessComputation(stageId, subproofId, airId, instanceId, publics) {
     return new Promise(async (resolve, reject) => {

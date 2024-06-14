@@ -135,8 +135,8 @@ module.exports = class ProofOrchestrator {
         }
     }
 
-    async newProof(publics) {
-        await this.proofCtx.initialize(publics);
+    async newProof(publics, setup) {
+        await this.proofCtx.initialize(publics, setup);
     }
 
     async generateProof(setup, publics) {
@@ -147,7 +147,7 @@ module.exports = class ProofOrchestrator {
                 log.info(`[${this.name}]`, `==> STARTING GENERATION OF THE PROOF '${this.config.name}'.`);
             }
 
-            await this.newProof(publics);
+            await this.newProof(publics, setup);
 
             let proverStatus = PROVER_OPENINGS_PENDING;
             for (let stageId = 1; proverStatus !== PROVER_OPENINGS_COMPLETED; stageId++) {

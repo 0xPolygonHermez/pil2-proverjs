@@ -25,8 +25,9 @@ class ProofCtx {
         this.numInstances = 0;
     }
 
-    async initialize(publics) {
+    async initialize(publics, setup) {
         this.publics = publics;
+        this.setup = setup;
 
         const poseidon = await buildPoseidonGL();
         this.transcript = new Transcript(poseidon);
