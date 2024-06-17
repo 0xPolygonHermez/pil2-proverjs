@@ -74,7 +74,7 @@ class ProofCtx {
         const airInstance = new AirInstance(subproofId, airId, instanceId, layout);
         this.airInstances[subproofId][airId][instanceId] = airInstance;
 
-        airInstance.wtnsPols = generateWtnsCols(1, air.symbols, air.numRows);
+        airInstance.wtnsPols = generateWtnsCols(air.symbols, air.numRows);
 
         return { result: true, airInstance};
     }   
