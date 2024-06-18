@@ -165,16 +165,16 @@ module.exports = class ProofOrchestrator {
                 if(stageId === this.proofCtx.airout.numStages) {
                     for(let i = 0; i < this.proofCtx.airout.subproofs.length; i++) {
                         const subproof = this.proofCtx.airout.subproofs[i];
-                        const subAirValues = subproof.subproofvalues;
-                        if(subAirValues === undefined) continue;
+                        const subproofValues = subproof.subproofvalues;
+                        if(subproofValues === undefined) continue;
                         const instances = this.proofCtx.getAirInstancesBySubproofId(i);
-                        for(let j = 0; j < subAirValues.length; j++) {
-                            const aggType = subAirValues[j].aggType;
+                        for(let j = 0; j < subproofValues.length; j++) {
+                            const aggType = subproofValues[j].aggType;
                             for(const instance of instances) {
-                                const subproofValue = instance.ctx.subAirValues[j];
-                                this.proofCtx.subAirValues[i][j] = aggType === 0 
-                                    ? this.proofCtx.F.add(this.proofCtx.subAirValues[i][j], subproofValue) 
-                                    : this.proofCtx.F.mul(this.proofCtx.subAirValues[i][j], subproofValue);
+                                const subproofValue = instance.ctx.subproofValues[j];
+                                this.proofCtx.subproofValues[i][j] = aggType === 0 
+                                    ? this.proofCtx.F.add(this.proofCtx.subproofValues[i][j], subproofValue) 
+                                    : this.proofCtx.F.mul(this.proofCtx.subproofValues[i][j], subproofValue);
                             }
                         }
                     }
@@ -222,7 +222,7 @@ module.exports = class ProofOrchestrator {
                 proofs,
                 challenges: this.proofCtx.challenges.slice(0, this.proofCtx.airout.numStages + 3),
                 challengesFRISteps: this.proofCtx.challenges.slice(this.proofCtx.airout.numStages + 3).map(c => c[0]),
-                subAirValues: this.proofCtx.subAirValues,
+                subproofValues: this.proofCtx.subproofValues,
             };
 
         } catch (error) {

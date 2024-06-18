@@ -100,7 +100,7 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
             const t3 = F.mul(alpha, x);
             const t4 = F.mul(F.square(alpha), x_mod);
 
-            return F.add(F.add(F.add(t1, t2), t3), t4);
+        return F.add(F.add(F.add(t1, t2), t3), t4);
         }
     } 
 }

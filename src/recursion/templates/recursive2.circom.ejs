@@ -17,7 +17,7 @@ template Main() {
 
     signal input publics[<%- nPublics %>];
 
-    signal input aggregationTypes[<%- nSubAirValues %>];
+    signal input aggregationTypes[<%- nSubproofValues %>];
 
     signal input challenges[<%- nChallengesStages.reduce((nc, acc) => nc + acc, 0) + 4 %>][3];
 
@@ -30,7 +30,7 @@ template Main() {
 <%      let c = circuits[i] -%>
     signal input s<%- c %>_circuitType;
 
-    signal input s<%- c %>_subAirValues[<%- nSubAirValues %>][3];
+    signal input s<%- c %>_subproofValues[<%- nSubproofValues %>][3];
 
 <% for (let i = 0; i < starkInfo.nStages + 1; ++i) { -%>
     signal input s<%- c %>_root<%- i + 1 %>[4];
@@ -78,8 +78,8 @@ template Main() {
 <%  } -%>
     
     signal output sv_circuitType;
-    signal output sv_aggregationTypes[<%- nSubAirValues %>];
-    signal output sv_subAirValues[<%- nSubAirValues %>][3];
+    signal output sv_aggregationTypes[<%- nSubproofValues %>];
+    signal output sv_subproofValues[<%- nSubproofValues %>][3];
     signal output sv_rootC[4];
 <%  for (let i = 0; i < nChallengesStages.length + 1; ++i) { -%>
     signal output sv_root<%- i+1 %>[4];
@@ -137,18 +137,18 @@ template Main() {
 <%  let nPublicsInps = 0; -%>
     sv<%- c %>.publics[<%- nPublicsInps++ %>] <== s<%- c %>_circuitType;
 
-<%  if(nSubAirValues > 0) { -%>
-    for(var i = 0; i < <%- nSubAirValues %>; i++) {
+<%  if(nSubproofValues > 0) { -%>
+    for(var i = 0; i < <%- nSubproofValues %>; i++) {
         sv<%- c %>.publics[<%- nPublicsInps %> + i] <== aggregationTypes[i];
     }
-<%  nPublicsInps += nSubAirValues; -%>
+<%  nPublicsInps += nSubproofValues; -%>
 
-    for(var i = 0; i < <%- nSubAirValues %>; i++) {
-        sv<%- c %>.publics[<%- nPublicsInps %> + 3*i] <== s<%- c %>_subAirValues[i][0];
-        sv<%- c %>.publics[<%- nPublicsInps %> + 3*i + 1] <== s<%- c %>_subAirValues[i][1];
-        sv<%- c %>.publics[<%- nPublicsInps %> + 3*i + 2] <== s<%- c %>_subAirValues[i][2];
+    for(var i = 0; i < <%- nSubproofValues %>; i++) {
+        sv<%- c %>.publics[<%- nPublicsInps %> + 3*i] <== s<%- c %>_subproofValues[i][0];
+        sv<%- c %>.publics[<%- nPublicsInps %> + 3*i + 1] <== s<%- c %>_subproofValues[i][1];
+        sv<%- c %>.publics[<%- nPublicsInps %> + 3*i + 2] <== s<%- c %>_subproofValues[i][2];
     }
-<%  nPublicsInps += 3*nSubAirValues; -%>
+<%  nPublicsInps += 3*nSubproofValues; -%>
 <%  } -%>
 
     for(var i = 0; i < 4; i++) {
@@ -211,16 +211,16 @@ for(var i = 0; i < 4; i++) {
 <%  nPublicsInps += 4 -%>
 <%  } -%>
     
-    signal {binary} aggTypes[<%- nSubAirValues %>];
-    for(var i = 0; i < <%- nSubAirValues %>; i++) {
+    signal {binary} aggTypes[<%- nSubproofValues %>];
+    for(var i = 0; i < <%- nSubproofValues %>; i++) {
         aggregationTypes[i] * (aggregationTypes[i] - 1) === 0;
         aggTypes[i] <== aggregationTypes[i];
     }
 
     sv_circuitType <== 1;
     sv_aggregationTypes <== aggTypes;
-    for(var i = 0; i < <%- nSubAirValues %>; i++) {
-        sv_subAirValues[i] <== AggregateSubAirValues()(sA_subAirValues[i], sB_subAirValues[i], isNullA, isNullB, aggTypes[i]);
+    for(var i = 0; i < <%- nSubproofValues %>; i++) {
+        sv_subproofValues[i] <== AggregateSubproofValues()(sA_subproofValues[i], sB_subproofValues[i], isNullA, isNullB, aggTypes[i]);
     }
     sv_rootC <== AggregateValues()(sA_sv_rootC, sB_sv_rootC, isNullA, isNullB);
 <%  for (let i = 0; i < nChallengesStages.length + 1; ++i) { -%>

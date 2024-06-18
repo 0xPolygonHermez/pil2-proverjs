@@ -49,7 +49,7 @@ class StarkFriProver extends ProverComponent {
                 setSymbolCalculated(airInstance.ctx, {op: "public", stage: 1, id: i}, this.options);
             }
 
-            let nCm1 = airInstance.ctx.pilInfo.cmPolsMap.filter(c => c.stage === "cm1").length;
+            let nCm1 = airInstance.ctx.pilInfo.cmPolsMap.filter(c => c.stage === 1).length;
             airInstance.wtnsPols.writeToBigBuffer(airInstance.ctx.cm1_n, nCm1);
             for(let i = 0; i < nCm1; i++) {
                 setSymbolCalculated(airInstance.ctx, {op: "cm", id: i}, this.options);
