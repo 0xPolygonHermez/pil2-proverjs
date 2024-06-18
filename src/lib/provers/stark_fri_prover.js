@@ -17,7 +17,7 @@ const {
 const path = require("path");
 
 const log = require('../../../logger.js');
-const { setSymbolCalculated, isStageCalculated, tryCalculateExps } = require("pil2-stark-js/src/prover/symbols_helpers.js");
+const { setSymbolCalculated, isStageCalculated } = require("pil2-stark-js/src/prover/symbols_helpers.js");
 
 class StarkFriProver extends ProverComponent {
     constructor(proofCtx) {
@@ -239,8 +239,8 @@ class StarkFriProver extends ProverComponent {
 
         computeFRIQueries(ctx, friQueries);
 
-        this.proofCtx.airInstances[airInstance.instanceId].proof = await genProofStark(ctx, this.options);
-    }    
+        this.proofCtx.airInstances[airInstance.subproofId][airInstance.airId][airInstance.instanceId].proof = await genProofStark(ctx, this.options);
+    }
 
 }
 

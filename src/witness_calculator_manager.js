@@ -112,7 +112,7 @@ module.exports = class WitnessCalculatorManager {
       }
     } else {
       for (const wc of regulars) {
-        for (const airInstance of this.proofCtx.airInstances) {
+        for (const airInstance of this.proofCtx.getAirInstances()) {
           const subproof = this.proofCtx.airout.subproofs[airInstance.subproofId];
 
           if (!wc.sm || subproof.name === wc.sm) {

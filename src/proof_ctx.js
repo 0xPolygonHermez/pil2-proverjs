@@ -22,7 +22,6 @@ class ProofCtx {
         this.challenges = [];
         this.stepsFRI = [];
         this.airInstances = [];
-        this.numInstances = 0;
     }
 
     async initialize(publics, setup) {
@@ -32,7 +31,12 @@ class ProofCtx {
         const poseidon = await buildPoseidonGL();
         this.transcript = new Transcript(poseidon);
 
-        this.airInstances = [];
+        await this.initializeAirInstances();
+    }
+
+    async initializeAirInstances() {
+        // Initialize the airInstances array
+        this.airInstances = this.airout.subproofs.map((subproof) => subproof.airs.map(() => []));
     }
 
     addChallengeToTranscript(challenge) {
@@ -60,16 +64,15 @@ class ProofCtx {
         return this.airout;
     }
 
-    // Allocate a new buffer for the given subproofId and airId with the given numRows.
     addAirInstance(subproofId, airId, numRows) {
         const air = this.airout.getAirBySubproofIdAirId(subproofId, airId);
 
         if (air === undefined) return { result: false, data: undefined };
 
-        const instanceId = this.numInstances++;
+        const instanceId = this.airInstances[subproofId][airId].length;
         const layout = { numRows };
         const airInstance = new AirInstance(subproofId, airId, instanceId, layout);
-        this.airInstances[instanceId] = airInstance;
+        this.airInstances[subproofId][airId][instanceId] = airInstance;
 
         airInstance.wtnsPols = generateWtnsCols(air.symbols, air.numRows);
 
@@ -77,10 +80,18 @@ class ProofCtx {
     }   
 
     // Proof API
-    getAirInstancesBySubproofIdAirId(subproofId, airId) {
-        const airInstances = this.airInstances.filter(airInstance => airInstance.subproofId === subproofId && airInstance.airId === airId);
+    getAirInstances() {
+        return this.airInstances.flat(2);
+    }
 
-        return airInstances.sort((a, b) => a.instanceId - b.instanceId);
+    getAirInstancesBySubproofId(subproofId) {
+        return this.airInstances[subproofId].flat();
+    }
+
+    getAirInstancesBySubproofIdAirId(subproofId, airId) {
+        const airInstances = this.airInstances[subproofId][airId];
+
+        return airInstances;
     }
 
     // getAirCols(subproofId, airId)
@@ -121,6 +132,7 @@ class ProofCtx {
                 proofCtx.subAirValues[i][j] = aggType === 0 ? zero : one;
             }
         }
+
         return proofCtx;
     }
 }
