@@ -11,7 +11,7 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
 
     async witnessComputation(stageId, subproofId, airId, instanceId, publics) {
         if(stageId === 2) {
-            const airInstance = this.proofCtx.airInstances[instanceId];
+            const airInstance = this.proofCtx.getAirInstancesBySubproofIdAirId(subproofId, airId)[instanceId];
             const subproof = this.proofCtx.airout.subproofs[subproofId];
             const gsumPolName = subproof.name + ".gsum";
             const polIdx = airInstance.ctx.pilInfo.cmPolsMap.findIndex(c => c.name === gsumPolName);
@@ -71,8 +71,6 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
                 airInstance.tmpPol[tmpPolIdx][i] = gsumitemFibo(polA[i], polA[iPrime], polB[i], this.proofCtx.publics[3], std_alpha, std_beta, MODULE_ID, nextIsLast);
             }    
         }
-
-        // await this.wcManager.addNotification(this.name, "divLib", "div_batch", { instanceId: airInstance.instanceId, tmpPolIdx }, true);
         
         airInstance.tmpPol[tmpPolIdx] = F.batchInverse(airInstance.tmpPol[tmpPolIdx]);
         
