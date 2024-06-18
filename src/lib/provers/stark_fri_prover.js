@@ -13,9 +13,6 @@ const { initProverStark,
 const {
     callCalculateExps,
 } = require("pil2-stark-js/src/prover/prover_helpers.js");
-const {
-    applyHints,
-} = require("pil2-stark-js/src/prover/hints_helpers.js");
 
 const path = require("path");
 
@@ -46,6 +43,17 @@ class StarkFriProver extends ProverComponent {
  
             airInstance.ctx = await initProverStark(air.setup.starkInfo, air.setup.expressionsInfo, air.setup.fixedPols, air.setup.constTree, this.options);
             airInstance.publics = publics;
+
+            for(let i = 0; i < airInstance.ctx.pilInfo.nPublics; ++i) {
+                airInstance.ctx.publics[i] = airInstance.publics[i];
+                setSymbolCalculated(airInstance.ctx, {op: "public", stage: 1, id: i}, this.options);
+            }
+
+            let nCm1 = airInstance.ctx.pilInfo.cmPolsMap.filter(c => c.stage === "cm1").length;
+            airInstance.wtnsPols.writeToBigBuffer(airInstance.ctx.cm1_n, nCm1);
+            for(let i = 0; i < nCm1; i++) {
+                setSymbolCalculated(airInstance.ctx, {op: "cm", id: i}, this.options);
+            }
         }
     }
 
@@ -104,18 +112,6 @@ class StarkFriProver extends ProverComponent {
         const airout = this.proofCtx.getAirout();
         const ctx = airInstance.ctx;
 
-        if (stageId === 1) {
-            let nCm1 = ctx.pilInfo.cmPolsMap.filter(c => c.stage === "cm1").length;
-            airInstance.wtnsPols.writeToBigBuffer(ctx.cm1_n, nCm1);
-            for(let i = 0; i < nCm1; i++) {
-                setSymbolCalculated(ctx, {op: "cm", id: i}, this.options);
-            }
-            for(let i = 0; i < ctx.pilInfo.nPublics; ++i) {
-                ctx.publics[i] = airInstance.publics[i];
-                setSymbolCalculated(ctx, {op: "public", stage: 1, id: i}, this.options);
-            }
-        }
-
         if(stageId <= airout.numStages + 1) {
             const qStage = ctx.pilInfo.nStages + 1;
 
@@ -126,44 +122,27 @@ class StarkFriProver extends ProverComponent {
 
             const dom = stageId === qStage ? "ext" : "n";
 
-            const symbolsCalculatedStep = ctx.expressionsInfo.stagesCode[stageId - 1].symbolsCalculated;
+            if(stageId !== qStage) {                
+                if(isStageCalculated(ctx, stageId, this.options) > 0) {
+                    throw new Error(`Something went wrong when calculating symbols for stage ${stageId}`);
+                }
 
-            log.debug(`Calculating expressions for stage ${stageId}. `);
-            await callCalculateExps(stageId, ctx.expressionsInfo.stagesCode[stageId - 1], dom, ctx, this.settings.parallelExec, this.settings.useThreads, false);
-            log.debug(`Expressions calculated. `);
-
-            for(let i = 0; i < symbolsCalculatedStep.length; i++) {
-                const symbolCalculated = symbolsCalculatedStep[i];
-                setSymbolCalculated(ctx, symbolCalculated, this.options);
-            }
-
-            if(stageId !== qStage) {
-                let symbolsToBeCalculated = isStageCalculated(ctx, stageId, this.options);
-
-                await applyHints(stageId, ctx);
-
-                while(symbolsToBeCalculated > 0) {
-                    await tryCalculateExps(ctx, stageId, dom, this.options); 
-        
-                    await applyHints(stageId, ctx, this.options);
-                    
-                    let symbolsToBeCalculatedUpdated = isStageCalculated(ctx, stageId, this.options);
-                    if(symbolsToBeCalculatedUpdated === symbolsToBeCalculated) {
-                        throw new Error(`Something went wrong when calculating symbols for stage ${stageId}`);
+                if(this.options.debug) {
+                    const nConstraints = ctx.expressionsInfo.constraints.length;
+    
+                    for(let i = 0; i < nConstraints; i++) {
+                        const constraint = ctx.pilInfo.constraints[i];
+                        if(constraint.stage !== stageId) continue;         
+                        log.debug(` Checking constraint ${i + 1}/${nConstraints}: line ${constraint.line} `);
+                        await callCalculateExps(stageId, constraint, dom, ctx, this.settings.parallelExec, this.settings.useThreads, true);
                     }
-                    symbolsToBeCalculated = symbolsToBeCalculatedUpdated;
+                } else {
+                    if(stageId === qStage - 1) {
+                        await callCalculateExps(stageId, ctx.expressionsInfo.imPolsCode, dom, ctx, this.settings.parallelExec, this.settings.useThreads);
+                    }
                 }
-            }
-
-            if(this.options.debug && stageId !== qStage) {
-                const nConstraints = ctx.expressionsInfo.constraints.length;
-
-                for(let i = 0; i < nConstraints; i++) {
-                    const constraint = ctx.pilInfo.constraints[i];
-                    if(constraint.stage !== stageId) continue;         
-                    log.debug(` Checking constraint ${i + 1}/${nConstraints}: line ${constraint.line} `);
-                    await callCalculateExps(stageId, constraint, dom, ctx, this.settings.parallelExec, this.settings.useThreads, true);
-                }
+            } else {
+                await callCalculateExps(stageId, ctx.expressionsInfo.expressionsCode[ctx.pilInfo.cExpId].code, dom, ctx, this.settings.parallelExec, this.settings.useThreads);
             }
         }
 

@@ -1,6 +1,6 @@
 const { WitnessCalculatorComponent } = require("../../witness_calculator_component.js");
 
-const { setPol } = require("pil2-stark-js/src/prover/prover_helpers.js");
+const { setPol, setSubproofValue } = require("pil2-stark-js/src/prover/prover_helpers.js");
 
 const log = require("../../../logger.js");
 
@@ -10,7 +10,6 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
     }
 
     async witnessComputation(stageId, subproofId, airId, instanceId, publics) {
-        return;
         if(stageId === 2) {
             const airInstance = this.proofCtx.airInstances[instanceId];
             const subproof = this.proofCtx.airout.subproofs[subproofId];
@@ -68,12 +67,14 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
                 const isLast = i === numRows - 1;
                 const nextIsLast = i + 1 === numRows - 1;
                 const iPrime = isLast ? 0 : i + 1;
-    
-                airInstance.tmpPol[tmpPolIdx][i] = gsumitemFibo(polA[i], polA[iPrime], polB[i], this.proofCtx.publics.out, std_alpha, std_beta, MODULE_ID, nextIsLast);
+                
+                airInstance.tmpPol[tmpPolIdx][i] = gsumitemFibo(polA[i], polA[iPrime], polB[i], this.proofCtx.publics[3], std_alpha, std_beta, MODULE_ID, nextIsLast);
             }    
         }
 
-        await this.wcManager.addNotification(this.name, "divLib", "div_batch", { instanceId: airInstance.instanceId, tmpPolIdx }, true);
+        // await this.wcManager.addNotification(this.name, "divLib", "div_batch", { instanceId: airInstance.instanceId, tmpPolIdx }, true);
+        
+        airInstance.tmpPol[tmpPolIdx] = F.batchInverse(airInstance.tmpPol[tmpPolIdx]);
         
         const result = airInstance.tmpPol[tmpPolIdx];
         for (let i = 0; i < numRows; i++) {
@@ -81,8 +82,8 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
             if(i!==0) result[i] = F.add(result[i], result[i-1]);
         }
 
-        // TODO: Replace this with hint
-        airInstance.ctx.subAirValues.push(result[numRows - 1]);
+
+        setSubproofValue(airInstance.ctx, 0, result[numRows - 1]);
         
         return result;
 
