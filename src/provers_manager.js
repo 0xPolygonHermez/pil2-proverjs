@@ -76,7 +76,7 @@ class ProversManager {
     async setup(setup) {
         this.checkInitialized();
 
-        for (const airInstance of this.proofCtx.airInstances) {
+        for (const airInstance of this.proofCtx.getAirInstances()) {
             const air = this.proofCtx.airout.getAirBySubproofIdAirId(airInstance.subproofId, airInstance.airId);
             air.setup = setup.setup[airInstance.subproofId][airInstance.airId];
         }
@@ -101,7 +101,7 @@ class ProversManager {
     async verifyConstraints(stageId) {
         let result = true;
 
-        for (const airInstance of this.proofCtx.airInstances) {
+        for (const airInstance of this.proofCtx.getAirInstances()) {
             const proverId = this.getProverIdFromInstance(airInstance);
 
             result = result && await this.provers[proverId].verifyConstraints(stageId, airInstance);
@@ -116,7 +116,7 @@ class ProversManager {
     }
 
     async verifyGlobalConstraints() {
-        const proverId = this.getProverIdFromInstance(this.proofCtx.airInstances[0]);
+        const proverId = this.getProverIdFromInstance(this.proofCtx.getAirInstancesBySubproofId(0)[0]);
         const validGlobalConstraints = await this.provers[proverId].verifyGlobalConstraints();
         
         if(!validGlobalConstraints) log.error(`[${this.name}]`, `Global constraints verification failed.`);
@@ -148,10 +148,10 @@ class ProversManager {
     }
 
     async commitStage(stageId) {
-        for (const airInstance of this.proofCtx.airInstances) {
-            const proverId = this.getProverIdFromInstance(airInstance);
+        for (const airInstance of this.proofCtx.getAirInstances()) {
+          const proverId = this.getProverIdFromInstance(airInstance);
 
-            await this.provers[proverId].commitStage(stageId, airInstance);
+          await this.provers[proverId].commitStage(stageId, airInstance);
         }
 
         return PROVER_OPENINGS_PENDING;
@@ -159,7 +159,7 @@ class ProversManager {
 
     async openingStage(openingId) {
         let state;
-        for (const airInstance of this.proofCtx.airInstances) {
+        for (const airInstance of this.proofCtx.getAirInstances()) {
             const proverId = this.getProverIdFromInstance(airInstance);
 
             state = await this.provers[proverId].openingStage(openingId, airInstance);
@@ -240,13 +240,17 @@ class ProversManager {
     }
 
     setChallenges(stageId, challenges) {
-        for (const airInstance of this.proofCtx.airInstances) {
-            airInstance.ctx.challenges[stageId] = challenges;
-            for(let i = 0; i < airInstance.ctx.pilInfo.challengesMap.length; i++) {
-                if(airInstance.ctx.pilInfo.challengesMap[i].stageNum === stageId + 1) {
-                    setSymbolCalculated(airInstance.ctx, { op: "challenge", stageId: stageId + 1, id: i}, this.options);
-                }
+        for (const airInstance of this.proofCtx.getAirInstances()) {
+          airInstance.ctx.challenges[stageId] = challenges;
+          for (let i = 0; i < airInstance.ctx.pilInfo.challengesMap.length; i++) {
+            if (airInstance.ctx.pilInfo.challengesMap[i].stageNum === stageId + 1) {
+              setSymbolCalculated(
+                airInstance.ctx,
+                { op: "challenge", stageId: stageId + 1, id: i },
+                this.options
+              );
             }
+          }
         }
     }
 }

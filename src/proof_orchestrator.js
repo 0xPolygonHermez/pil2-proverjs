@@ -167,7 +167,7 @@ module.exports = class ProofOrchestrator {
                         const subproof = this.proofCtx.airout.subproofs[i];
                         const subAirValues = subproof.subproofvalues;
                         if(subAirValues === undefined) continue;
-                        const instances = this.proofCtx.airInstances.filter(airInstance => airInstance.subproofId === i);
+                        const instances = this.proofCtx.getAirInstancesBySubproofId(i);
                         for(let j = 0; j < subAirValues.length; j++) {
                             const aggType = subAirValues[j].aggType;
                             for(const instance of instances) {
@@ -212,7 +212,7 @@ module.exports = class ProofOrchestrator {
 
             let proofs = [];
     
-            for(const airInstance of this.proofCtx.airInstances) {
+            for(const airInstance of this.proofCtx.getAirInstances()) {
                 airInstance.proof.subproofId = airInstance.subproofId;
                 airInstance.proof.airId = airInstance.airId;
                 proofs.push(airInstance.proof);
