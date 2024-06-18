@@ -37,7 +37,7 @@ module.exports.joinzkinFinal = function joinzkinFinal(proofsBySubproofId, global
 
         zkinFinal[`s${i}_circuitType`] = zkin.sv_circuitType;
         zkinFinal[`s${i}_aggregationTypes`] = zkin.sv_aggregationTypes;
-        zkinFinal[`s${i}_subAirValues`] = zkin.sv_subAirValues;
+        zkinFinal[`s${i}_subproofValues`] = zkin.sv_subproofValues;
 
         zkinFinal[`s${i}_sv_rootC`] = zkin.sv_rootC;
         for(let j = 0; j < globalInfo.numChallenges.length + 1; ++j) {

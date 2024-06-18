@@ -44,14 +44,14 @@ module.exports.genRecursive = async function genRecursive(template, subproofId, 
     hasCompressor = template !== "recursive1" ? false : hasCompressor;
 
     const aggregationTypes = aggTypes[starkInfo.finalSubproofId];
-    const nSubAirValues = aggregationTypes.length;
+    const nSubproofValues = aggregationTypes.length;
 
     const obj = {
         starkInfo,
         vks,
         hasCompressor,
         nPublics,
-        nSubAirValues,
+        nSubproofValues,
         aggregationTypes,
         nChallengesStages,
         stepsFRI,

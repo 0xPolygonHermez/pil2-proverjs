@@ -22,7 +22,7 @@ async function generateSetupTest(proofManagerConfig) {
 async function executeFullProveTest(setup, publics, options, genCircomProof) {
     log.info("[FullProve ]", "==> FULL PROVE TEST")
 
-    const { proofs, challenges, challengesFRISteps, subAirValues } = await proveCmd(setup, publics, options);
+    const { proofs, challenges, challengesFRISteps, subproofValues } = await proveCmd(setup, publics, options);
         
     const tmpPath =  path.join(__dirname, "..", "tmp");
     if(!fs.existsSync(tmpPath)) fs.mkdirSync(tmpPath);
@@ -56,7 +56,7 @@ async function executeFullProveTest(setup, publics, options, genCircomProof) {
         await fs.promises.writeFile(verKeyFilename, JSONbig.stringify(constRoot, null, 1), "utf8");
     }
     
-    const isValid = await verifyCmd(setup, proofs, challenges, challengesFRISteps, subAirValues, options);
+    const isValid = await verifyCmd(setup, proofs, challenges, challengesFRISteps, subproofValues, options);
 
     assert(isValid == true, "PROOF NOT VALID");
 

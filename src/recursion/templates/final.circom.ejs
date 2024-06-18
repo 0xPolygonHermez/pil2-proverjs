@@ -20,7 +20,7 @@ include "cmul.circom";
         } else if (r.type == "number") {
             return r.value;
         } else if (r.type === "subproofValue") {
-            return "s" + r.subproofId + "_subAirValues[" + r.id + "]";
+            return "s" + r.subproofId + "_subproofValues[" + r.id + "]";
         } else {
             throw new Error("Invalid Ref: " +r.type);
         }
@@ -159,13 +159,13 @@ template Main() {
 
 <%  for(let i = 0; i < starkInfoRecursives2.length; ++i) { -%>
 <%      let starkInfo = starkInfoRecursives2[i].starkInfo; -%>
-<%      let nSubAirValues = aggregationTypes[starkInfo.finalSubproofId].length; -%>
+<%      let nSubproofValues = aggregationTypes[starkInfo.finalSubproofId].length; -%>
 <%      let c = i; -%>
-    signal input s<%- c %>_subAirValues[<%- nSubAirValues %>][3];
+    signal input s<%- c %>_subproofValues[<%- nSubproofValues %>][3];
 
     signal input s<%- c %>_circuitType;
 
-    signal input s<%- c %>_aggregationTypes[<%- nSubAirValues %>];
+    signal input s<%- c %>_aggregationTypes[<%- nSubproofValues %>];
 
 <% for (let j = 0; j < starkInfo.nStages + 1; ++j) { -%>
     signal input s<%- c %>_root<%- j + 1 %>[4];
@@ -232,7 +232,7 @@ template Main() {
 
 <%  for(let i = 0; i < starkInfoRecursives2.length; ++i) { -%>
 <%      let starkInfo = starkInfoRecursives2[i].starkInfo; -%>
-<%      let nSubAirValues = aggregationTypes[starkInfo.finalSubproofId].length; -%>
+<%      let nSubproofValues = aggregationTypes[starkInfo.finalSubproofId].length; -%>
 <%      let c = i; -%>
 
     component sv<%- c %> = StarkVerifier<%- i %>();
@@ -285,17 +285,17 @@ template Main() {
 
 <%  let nPublicsInps = 0; -%>
     sv<%- c %>.publics[<%- nPublicsInps++ %>] <== s<%- c %>_circuitType;
-<%  if(nSubAirValues > 0) { -%>
-    for(var i = 0; i < <%- nSubAirValues %>; i++) {
+<%  if(nSubproofValues > 0) { -%>
+    for(var i = 0; i < <%- nSubproofValues %>; i++) {
         sv<%- c %>.publics[<%- nPublicsInps %> + i] <== s<%- c %>_aggregationTypes[i];
     }
-<%  nPublicsInps += nSubAirValues; -%>
-    for(var i = 0; i < <%- nSubAirValues %>; i++) {
-        sv<%- c %>.publics[<%- nPublicsInps %> + 3*i] <== s<%- c %>_subAirValues[i][0];
-        sv<%- c %>.publics[<%- nPublicsInps %> + 3*i + 1] <== s<%- c %>_subAirValues[i][1];
-        sv<%- c %>.publics[<%- nPublicsInps %> + 3*i + 2] <== s<%- c %>_subAirValues[i][2];
+<%  nPublicsInps += nSubproofValues; -%>
+    for(var i = 0; i < <%- nSubproofValues %>; i++) {
+        sv<%- c %>.publics[<%- nPublicsInps %> + 3*i] <== s<%- c %>_subproofValues[i][0];
+        sv<%- c %>.publics[<%- nPublicsInps %> + 3*i + 1] <== s<%- c %>_subproofValues[i][1];
+        sv<%- c %>.publics[<%- nPublicsInps %> + 3*i + 2] <== s<%- c %>_subproofValues[i][2];
     }
-<%  nPublicsInps += 3*nSubAirValues; -%>
+<%  nPublicsInps += 3*nSubproofValues; -%>
 <%  } -%>
 
     for(var i = 0; i < 4; i++) {

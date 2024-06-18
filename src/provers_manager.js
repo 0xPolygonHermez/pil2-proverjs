@@ -243,7 +243,7 @@ class ProversManager {
         for (const airInstance of this.proofCtx.getAirInstances()) {
           airInstance.ctx.challenges[stageId] = challenges;
           for (let i = 0; i < airInstance.ctx.pilInfo.challengesMap.length; i++) {
-            if (airInstance.ctx.pilInfo.challengesMap[i].stageNum === stageId + 1) {
+            if (airInstance.ctx.pilInfo.challengesMap[i].stage === stageId + 1) {
               setSymbolCalculated(
                 airInstance.ctx,
                 { op: "challenge", stageId: stageId + 1, id: i },
