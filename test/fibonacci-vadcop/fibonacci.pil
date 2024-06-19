@@ -1,9 +1,11 @@
-include "module.pil";
+require "module.pil";
 
-challenge stage(2) std_alpha;
-challenge stage(2) std_beta;
-
-public mod;
+if (!defined(std_alpha)) {
+    challenge stage(2) std_alpha;
+}
+if (!defined(std_beta)) {
+    challenge stage(2) std_beta;
+}
 public in1;
 public in2;
 public out;
@@ -12,7 +14,7 @@ function final_function() {
     gsum_fibonacci + gsum_module === 0;
 }
 
-subproof aggregate Fibonacci(2**2, 2**4) {
+air aggregate Fibonacci(int N = 2**4) {
 
     subproofval aggregate(sum) gsum_fibonacci;
 
@@ -37,4 +39,5 @@ subproof aggregate Fibonacci(2**2, 2**4) {
     on final proof final_function();
 };
 
-
+// Fibonacci(2**2);
+Fibonacci(2**4);

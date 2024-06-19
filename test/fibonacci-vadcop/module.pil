@@ -1,6 +1,15 @@
-constant MODULE_ID = 1;
+const int MODULE_ID = 1;
 
-subproof Module(2**4) {
+if (!defined(std_alpha)) {
+    challenge stage(2) std_alpha;
+}
+if (!defined(std_beta)) {
+    challenge stage(2) std_beta;
+}
+
+public mod;
+
+air Module(int N = 2**4) {
 
     subproofval aggregate(sum) gsum_module;
 
@@ -20,3 +29,5 @@ subproof Module(2**4) {
 
     L1' * (gsum - gsum_module) === 0;
 }
+
+Module(2**4);
