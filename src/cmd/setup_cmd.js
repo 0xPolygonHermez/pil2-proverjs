@@ -68,7 +68,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
         for(const air of subproof.airs) {
             log.info("[Setup  Cmd]", `··· Computing setup for air '${air.name}'`);
 
-            let settings = proofManagerConfig.prover.settings[air.name] || proofManagerConfig.prover.settings.default;
+            let settings = proofManagerConfig.prover.settings[air.name + "_" + Math.log2(air.numRows)] || proofManagerConfig.prover.settings.default;
             
             if (!settings) {
                 log.error(`[${this.name}]`, `No settings for air '${air.name}'${air.numRows ? ` with N=${air.numRows}` : ''}`);

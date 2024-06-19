@@ -1,10 +1,10 @@
 require "module.pil";
 
 if (!defined(std_alpha)) {
-    challenge stage(2) std_alpha;
+challenge stage(2) std_alpha;
 }
 if (!defined(std_beta)) {
-    challenge stage(2) std_beta;
+challenge stage(2) std_beta;
 }
 public in1;
 public in2;
@@ -39,5 +39,5 @@ air aggregate Fibonacci(int N = 2**4) {
     on final proof final_function();
 };
 
-// Fibonacci(2**2);
+Fibonacci(2**2);
 Fibonacci(2**4);
