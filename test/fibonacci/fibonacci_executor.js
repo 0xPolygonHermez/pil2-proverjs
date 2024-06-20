@@ -32,14 +32,14 @@ class ExecutorFibonacci extends WitnessCalculatorComponent {
         const polA = airInstance.wtnsPols.Fibonacci.a;
         const polB = airInstance.wtnsPols.Fibonacci.b;
 
-        polB[0] = publics.in1;
-        polA[0] = publics.in2;
+        polB[0] = publics[0];
+        polA[0] = publics[1];
         for (let i = 1; i < N; i++) {
             polB[i] = polA[i-1];
             polA[i] = F.add(F.square(polB[i-1]), F.square(polA[i-1]));    
         }
 
-        publics.out = polA[N-1];
+        publics[2] = polA[N-1];
     
         return;
     }

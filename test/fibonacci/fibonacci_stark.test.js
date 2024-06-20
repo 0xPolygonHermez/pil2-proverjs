@@ -1,6 +1,6 @@
 const { executeFullProveTest, checkConstraintsTest, generateSetupTest } = require("../test_utils.js");
 
-const inputs = { in1: 1n, in2: 2n };
+const publicInputs = [1n, 2n, undefined];
 
 function getSettings() {
     return {
@@ -17,6 +17,10 @@ function getSettings() {
                 default: { starkStruct: `./test/fibonacci/fibonacci_stark_struct.json` },
             },
         },
+        aggregation: {
+            settings: {},
+            genProof: false,
+        },
         verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
     };
 }
@@ -32,18 +36,19 @@ describe("PIL2 proof manager stark simple tests", async function () {
     const optionsVerifyConstraints = {...options, onlyCheck: true};
 
     let setup;
+    let config;
 
     before(async () => {
-        let config = getSettings();
+        config = getSettings();
         setup = await generateSetupTest(config);
     });
 
     it("verify Fibonacci constraints", async () => {
-        await checkConstraintsTest(setup, inputs, optionsVerifyConstraints);
+        await checkConstraintsTest(setup, publicInputs, optionsVerifyConstraints);
     });
 
     it("prove Fibonacci", async () => {
-        await executeFullProveTest(setup, inputs, options, true);
+        await executeFullProveTest(setup, publicInputs, options, config.aggregation?.genProof);
     });
 
 });
