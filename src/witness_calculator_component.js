@@ -110,23 +110,24 @@ class WitnessCalculatorComponent {
   }
 
 
-  async _witnessComputation(stageId, subproofId, airId, instanceId, publics) {
+  async _witnessComputation(stageId, subproofId, airInstance, publics) {
     return new Promise(async (resolve, reject) => {
       try {
-        // log.info(`[${this.name}]`, `-> stageId: ${stageId} airId: ${airId} instanceId: ${instanceId}`);
+        // log.info(`[${this.name}]`, `-> stageId: ${stageId} airId: ${airInstance.airId} instanceId: ${airInstance.instanceId}`);
 
-        await this.witnessComputation(stageId, subproofId, airId, instanceId, publics);
+        await this.witnessComputation(stageId, subproofId, airInstance, publics);
 
         this.wcManager.sendBroadcastData(this, {
           sender: this.name,
           type: "notification",
-          payload: { data: "finished", stageId, subproofId, airId, instanceId },
+          payload: { data: "finished", stageId, subproofId, airId: airInstance.airId, instanceId: airInstance.instanceId },
         });
+
         this.wcManager.releaseDeferredLock();
 
         resolve();
 
-        // log.info(`[${this.name}]`, `<- stageId: ${stageId} airId: ${airId} instanceId: ${instanceId}`);
+        // log.info(`[${this.name}]`, `<- stageId: ${stageId} airId: ${airInstance.airId} instanceId: ${airInstance.instanceId}`);
       } catch (err) {
         log.error(`[${this.name}]`, `Witness computation failed.`, err);
         reject(err);

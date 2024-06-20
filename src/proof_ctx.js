@@ -64,19 +64,23 @@ class ProofCtx {
         return this.airout;
     }
 
-    addAirInstance(subproofId, airId, numRows) {
+    addAirInstance(subproofId, airInstance, numRows) {
+        const airId = airInstance.airId;
         const air = this.airout.getAirBySubproofIdAirId(subproofId, airId);
 
         if (air === undefined) return { result: false, data: undefined };
 
         const instanceId = this.airInstances[subproofId][airId].length;
         const layout = { numRows };
-        const airInstance = new AirInstance(subproofId, airId, instanceId, layout);
+
+        airInstance.instanceId = instanceId;
+        airInstance.layout = layout;
+
         this.airInstances[subproofId][airId][instanceId] = airInstance;
 
         airInstance.wtnsPols = generateWtnsCols(air.symbols, air.numRows);
 
-        return { result: true, airInstance};
+        return true;
     }   
 
     // Proof API
@@ -138,7 +142,7 @@ class ProofCtx {
 }
 
 class AirInstance {
-    constructor(subproofId, airId, instanceId, layout) {
+    constructor(subproofId, airId, instanceId, layout = {}) {
         this.subproofId = subproofId;
         this.airId = airId;
         this.instanceId = instanceId;
@@ -149,4 +153,6 @@ class AirInstance {
     }
 }
 
-module.exports = ProofCtx;
+module.exports = {
+    ProofCtx, AirInstance
+};
