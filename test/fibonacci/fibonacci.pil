@@ -2,7 +2,7 @@ public in1;
 public in2;
 public out;
 
-subproof Fibonacci(2**3) {
+air Fibonacci(int N = 2**3) {
 
     col witness a,b;
 
@@ -15,3 +15,5 @@ subproof Fibonacci(2**3) {
     L1 * (a - in2) === 0;
     LLAST * (a - out) === 0;
 }
+
+Fibonacci(2**3);
