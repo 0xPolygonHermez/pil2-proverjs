@@ -27,6 +27,7 @@ const log = require("../logger.js");
 const Mutex = require("./concurrency/mutex.js");
 const AsyncAccLock = require("./concurrency/async_acc_lock.js");
 const TargetLock = require("./concurrency/target_lock.js");
+const { AirInstance } = require("./proof_ctx.js");
 
 // WitnessCalculator class acting as the composite
 module.exports = class WitnessCalculatorManager {
@@ -106,7 +107,8 @@ module.exports = class WitnessCalculatorManager {
       for (const subproof of this.proofCtx.airout.subproofs) {
         for (const wc of regulars) {
           if (!wc.sm || subproof.name === wc.sm) {
-            executors.push(wc._witnessComputation(stageId, subproof.subproofId, -1, -1, publics));
+            let airInstance = new AirInstance(subproof.subproofId, -1, -1);
+            executors.push(wc._witnessComputation(stageId, subproof.subproofId, airInstance, publics));
           }
         }
       }
@@ -120,8 +122,7 @@ module.exports = class WitnessCalculatorManager {
               wc._witnessComputation(
                 stageId,
                 airInstance.subproofId,
-                airInstance.airId,
-                airInstance.instanceId,
+                airInstance,
                 publics
               )
             );

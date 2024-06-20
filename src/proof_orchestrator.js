@@ -6,7 +6,7 @@ const {
 } = require("./provers_manager.js");
 
 const { AirOut } = require("./airout.js");
-const ProofCtx = require("./proof_ctx.js");
+const { ProofCtx } = require("./proof_ctx.js");
 
 const { fileExists } = require("./utils.js");
 const path = require("path");
