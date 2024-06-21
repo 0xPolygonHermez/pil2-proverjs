@@ -33,6 +33,8 @@ class WitnessCalculatorComponent {
     this.settings = null;
     this.options = null;
 
+    this.inboxId = null;
+
     log.info(`[${this.name}]`, "Created.");
   }
 
@@ -114,10 +116,13 @@ class WitnessCalculatorComponent {
     return new Promise(async (resolve, reject) => {
       try {
         // log.info(`[${this.name}]`, `-> stageId: ${stageId} airId: ${airInstance.airId} instanceId: ${airInstance.instanceId}`);
-
+        
+        console.log(this.name);
+        if(!this.inboxId) this.inboxId = this.wcManager.addInbox(this.name);
+        
         await this.witnessComputation(stageId, subproofId, airInstance, publics);
 
-        this.wcManager.sendBroadcastData(this, {
+        this.wcManager.sendBroadcastData({
           sender: this.name,
           type: "notification",
           payload: { data: "finished", stageId, subproofId, airId: airInstance.airId, instanceId: airInstance.instanceId },
