@@ -83,6 +83,20 @@ module.exports = class WitnessCalculatorManager {
     }
   }
 
+  addInbox(name) {
+    console.log({
+      name,
+      messages: [],
+      mutex: new AsyncAccLock(),
+    })
+    this.inbox.push({
+      name,
+      messages: [],
+      mutex: new AsyncAccLock(),
+    })
+
+    return this.inbox.length - 1;
+  }
   checkInitialized() {
     if (!this.initialized) {
       log.info(`[${this.name}]`, "Not initialized.");
@@ -144,6 +158,9 @@ module.exports = class WitnessCalculatorManager {
       );
     }
 
+    for(let i = 0; i < this.inbox.length; ++i) {
+      this.inbox[i].messages = [];
+    }
     log.info(`[${this.name}]`, `<-- Computing witness stage ${stageId}.`);
   }
 
@@ -242,52 +259,47 @@ module.exports = class WitnessCalculatorManager {
     this.airBusMutex.unlock();
   }
 
-  async sendBroadcastData(sender, data) {
-    for (const recipient of this.wc) {
+  async sendBroadcastData(data) {
+    for (let i = 0; i < this.inbox.length; ++i) {
       //TODO! Add a flag to terminated executors and remove them from the recipients list
-      await this.sendData(sender, recipient.name, data);
+      await this.mutex_inbox.lock();
+
+      this.inbox[i].messages.push(data);
+      if (this.inbox[i].mutex.locked > 0) {
+        this.inbox[i].mutex.unlock();
+      }
+
+      this.mutex_inbox.unlock();
     }
   }
 
-  async sendData(sender, recipient, data) {
+  async sendData(recipient, data) {
     await this.mutex_inbox.lock();
 
-    if (!this.inbox[recipient]) {
-      this.inbox[recipient] = {
-        messages: [data],
-        mutex: new AsyncAccLock(),
-      };
-    } else {
-      this.inbox[recipient].messages.push(data);
-      if (this.inbox[recipient].mutex.locked > 0) {
-        this.inbox[recipient].mutex.unlock();
-      }
+    const recipientInboxId = this.inbox.findIndex(i => i.name === recipient);
+    if(recipientInboxId === -1) throw new Error(`Recipient with name ${recipient} not found`);
+    this.inbox[recipientInboxId].messages.push(data);
+    if (this.inbox[recipientInboxId].mutex.locked > 0) {
+      this.inbox[recipientInboxId].mutex.unlock();
     }
 
     this.mutex_inbox.unlock();
   }
 
-  async receiveData(module, recipient, lock = true) {
+  async receiveData(inboxId, lock = true) {
     await this.mutex_inbox.lock();
 
-    if (!this.inbox[recipient]) {
-      this.inbox[recipient] = {
-        messages: [],
-        mutex: new AsyncAccLock(),
-      };
-    }
-
-    if (this.inbox[recipient].messages.length === 0) {
+    if (this.inbox[inboxId].messages.length === 0) {
       if (lock) {
         this.mutex_inbox.unlock();
-        await this.inbox[recipient].mutex.lock();
+        await this.inbox[inboxId].mutex.lock();
       } else {
         this.mutex_inbox.unlock();
         return [];
       }
     }
 
-    let messages = this.inbox[recipient].messages.splice(0);
+    let messages = this.inbox[inboxId].messages.splice(0);
     this.mutex_inbox.unlock();
     return messages;
   }
