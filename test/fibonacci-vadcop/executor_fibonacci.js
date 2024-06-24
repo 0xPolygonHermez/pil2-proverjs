@@ -17,7 +17,7 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
             await new Promise((r) => setTimeout(r, 1000));
 
             /// NOTE: Here we decide for test purposes to create a fibonacci 2**4 and a module 2**4
-            await this.wcManager.sendData(this, "Module", {command: "createInstances", airId: 0});
+            await this.sendData("Module", {command: "createInstances", airId: 0});
             airId = 1;
 
             const air = this.proofCtx.airout.subproofs[subproofId].airs[airId];
