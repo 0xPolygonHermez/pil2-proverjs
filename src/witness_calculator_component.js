@@ -111,18 +111,28 @@ class WitnessCalculatorComponent {
     return calculateExpressionAtRow(ctx, expId, row);
   }
 
+  async sendData(recipient, data) {
+    await this.wcManager.sendData(recipient, data);    
+  }
+
+  async receiveData(lock = true) {
+    return this.wcManager.receiveData(this.inboxId, lock);
+  }
+
+  async sendBroadcastData(data) {
+    await this.wcManager.sendBroadcastData(data);
+  }
 
   async _witnessComputation(stageId, subproofId, airInstance, publics) {
     return new Promise(async (resolve, reject) => {
       try {
         // log.info(`[${this.name}]`, `-> stageId: ${stageId} airId: ${airInstance.airId} instanceId: ${airInstance.instanceId}`);
         
-        console.log(this.name);
         if(!this.inboxId) this.inboxId = this.wcManager.addInbox(this.name);
         
         await this.witnessComputation(stageId, subproofId, airInstance, publics);
 
-        this.wcManager.sendBroadcastData({
+        this.sendBroadcastData({
           sender: this.name,
           type: "notification",
           payload: { data: "finished", stageId, subproofId, airId: airInstance.airId, instanceId: airInstance.instanceId },

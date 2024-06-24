@@ -84,11 +84,6 @@ module.exports = class WitnessCalculatorManager {
   }
 
   addInbox(name) {
-    console.log({
-      name,
-      messages: [],
-      mutex: new AsyncAccLock(),
-    })
     this.inbox.push({
       name,
       messages: [],

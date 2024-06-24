@@ -16,7 +16,7 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
       }
 
       while (!this.terminate) {
-        let instanceData = await this.wcManager.receiveData(this, "Module");
+        let instanceData = await this.receiveData();
         for (let i = 0; i < instanceData.length; i++) {
           this.processMessage(stageId, subproofId, airId, instanceId, publics, instanceData[i]);
         }
