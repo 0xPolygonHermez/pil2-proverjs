@@ -7,19 +7,19 @@ class ExecutorSimple1 extends WitnessCalculatorComponent {
         super("Simple1Ex", wcManager, proofCtx);
     }
 
-    async witnessComputation(stageId, subproofId, airId, instanceId) {
+    async witnessComputation(stageId, subproofId, airInstance) {
         if(stageId !== 1) return;
 
-        if(instanceId !== -1) {
+        if(airInstance.instanceId !== -1) {
             log.error(`[${this.name}]`, `Air instance id already existing in stageId 1.`);
             throw new Error(`[${this.name}]`, `Air instance id already existing in stageId 1.`);
         }
 
         // For tests purposes we only use airId === 0
-        airId = 0;
-        const air = this.proofCtx.airout.subproofs[subproofId].airs[airId];
+        airInstance.airId = 0;
+        const air = this.proofCtx.airout.subproofs[subproofId].airs[airInstance.airId];
 
-        let { result, airInstance } = this.proofCtx.addAirInstance(subproofId, airId, air.numRows);
+        let result = this.proofCtx.addAirInstance(subproofId, airInstance, air.numRows);
 
         if (result === false) {
             log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);

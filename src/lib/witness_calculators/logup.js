@@ -9,9 +9,8 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
         super("LogUp", wcManager, proofCtx);
     }
 
-    async witnessComputation(stageId, subproofId, airId, instanceId, publics) {
+    async witnessComputation(stageId, subproofId, airInstance, publics) {
         if(stageId === 2) {
-            const airInstance = this.proofCtx.getAirInstancesBySubproofIdAirId(subproofId, airId)[instanceId];
             const subproof = this.proofCtx.airout.subproofs[subproofId];
             const gsumPolName = subproof.name + ".gsum";
             const polIdx = airInstance.ctx.pilInfo.cmPolsMap.findIndex(c => c.name === gsumPolName);
