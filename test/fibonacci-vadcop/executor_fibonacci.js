@@ -7,31 +7,30 @@ class FibonacciVadcop extends WitnessCalculatorComponent {
         super("Fibonacci", wcManager, proofCtx);
     }
 
-    async witnessComputation(stageId, subproofId, airId, instanceId, publics) { 
-        if(stageId === 1) {
-            if(instanceId !== -1) {
-                log.error(`[${this.name}]`, `Air instance id already existing in stageId 1.`);
-                throw new Error(`[${this.name}]`, `Air instance id already existing in stageId 1.`);
-            }
-
-            await new Promise((r) => setTimeout(r, 1000));
-
-            /// NOTE: Here we decide for test purposes to create a fibonacci 2**4 and a module 2**4
-            await this.sendData("Module", {command: "createInstances", airId: 0});
-            airId = 1;
-
-            const air = this.proofCtx.airout.subproofs[subproofId].airs[airId];
-
-            log.info(`[${this.name}]`, `Creating air instance for air '${air.name}' with N=${air.numRows} rows.`)
-            let { result, airInstance } = this.proofCtx.addAirInstance(subproofId, airId, air.numRows);
-
-            if (result === false) {
-                log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
-                throw new Error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
-            }
-        
-            this.createPolynomialTraces(airInstance, publics);
+    async witnessComputation(stageId, subproofId, airInstance, publics) {
+        if(stageId !== 1) return;
+        if(airInstance && airInstance.instanceId !== -1) {
+            log.error(`[${this.name}]`, `Air instance id already existing in stageId 1.`);
+            throw new Error(`[${this.name}]`, `Air instance id already existing in stageId 1.`);
         }
+
+        await new Promise((r) => setTimeout(r, 1000));
+
+        /// NOTE: Here we decide for test purposes to create a fibonacci 2**4 and a module 2**4
+        await this.sendData("Module", {command: "createInstances", airId: 0});
+        airInstance.airId = 1;
+
+        const air = this.proofCtx.airout.subproofs[subproofId].airs[airInstance.airId];
+
+        log.info(`[${this.name}]`, `Creating air instance for air '${air.name}' with N=${air.numRows} rows.`)
+        let result = this.proofCtx.addAirInstance(subproofId, airInstance, air.numRows);
+
+        if (result === false) {
+            log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
+            throw new Error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);
+        }
+    
+        this.createPolynomialTraces(airInstance, publics);
 
         return;
     }
