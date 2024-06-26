@@ -254,8 +254,11 @@ module.exports = class WitnessCalculatorManager {
     this.airBusMutex.unlock();
   }
 
-  async sendBroadcastData(data) {
+  async sendBroadcastData(sender, data) {
+    const senderInboxId = this.inbox.findIndex(i => i.name === sender);
+    if(senderInboxId === -1) throw new Error(`Sender with name ${sender} not found`);
     for (let i = 0; i < this.inbox.length; ++i) {
+      if(senderInboxId === i) continue;
       //TODO! Add a flag to terminated executors and remove them from the recipients list
       await this.mutex_inbox.lock();
 
