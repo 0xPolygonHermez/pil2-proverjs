@@ -120,7 +120,7 @@ class WitnessCalculatorComponent {
   }
 
   async sendBroadcastData(data) {
-    await this.wcManager.sendBroadcastData(data);
+    await this.wcManager.sendBroadcastData(this.name, data);
   }
 
   async _witnessComputation(stageId, subproofId, airInstance, publics) {

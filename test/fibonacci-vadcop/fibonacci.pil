@@ -11,7 +11,7 @@ public in2;
 public out;
 
 function final_function() {
-    gsum_fibonacci + gsum_module === 0;
+    Fibonacci.gsum_fibonacci + Module.gsum_module === 0;
 }
 
 air aggregate Fibonacci(int N = 2**4) {
