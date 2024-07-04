@@ -20,6 +20,7 @@ const { getCompressorConstraints } = require("pil2-stark-js/src/compressor/compr
 const { readR1cs } = require("r1csfile");
 const pil2circom = require("pil2-stark-js/src/pil2circom.js");
 const { log2 } = require("pilcom/src/utils.js");
+const { generateStarkStruct } = require("../utils.js");
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
 module.exports = async function setupCmd(proofManagerConfig) {
@@ -30,17 +31,48 @@ module.exports = async function setupCmd(proofManagerConfig) {
         pil2: true,
     };
 
+    let setup = [];
+
+    let starkStructs = [];
+
+    for(const subproof of airout.subproofs) {
+        setup[subproof.subproofId] = [];
+        for(const air of subproof.airs) {
+            log.info("[Setup  Cmd]", `··· Computing setup for air '${air.name}'`);
+
+            let settings = proofManagerConfig.prover.settings[air.name + "_" + Math.log2(air.numRows)] || proofManagerConfig.prover.settings.default;
+            
+            if (!settings) {
+                log.error(`[${this.name}]`, `No settings for air '${air.name}'${air.numRows ? ` with N=${air.numRows}` : ''}`);
+                throw new Error(`[${this.name}] No settings for air '${air.name}'${air.numRows ? ` with N=${air.numRows}` : ''}`);
+            }
+        
+            let starkStruct;
+            const filename = settings.starkStruct;
+            if(filename) {
+                const starkStructFilename = path.isAbsolute(filename) ? filename : path.join(__dirname, "../../", filename);
+                starkStruct = require(starkStructFilename);
+            } else {
+                starkStruct = generateStarkStruct(settings, air.numRows);
+            }
+
+            starkStructs.push(starkStruct);
+            
+            const fixedPols = generateFixedCols(air.symbols, air.numRows)
+            getFixedPolsPil2(air, fixedPols, setupOptions.F);
+            
+            setup[subproof.subproofId][air.airId] = await starkSetup(fixedPols, air, starkStruct, setupOptions);
+        }
+    }
+
     let aggTypes = [];
     for(const subproof of airout.subproofs) {
         aggTypes[subproof.subproofId] = subproof.subproofvalues;
     }
 
     let stepsFRI = new Set([]);
-    for(let i = 0; i < Object.keys(proofManagerConfig.prover.settings).length; i++) {
-        const key = Object.keys(proofManagerConfig.prover.settings)[i];
-        const filename = proofManagerConfig.prover.settings[key].starkStruct;
-        const starkStructFilename = path.isAbsolute(filename) ? filename : path.join(__dirname, "../../", filename);
-        const starkStruct = require(starkStructFilename);
+    for(let i = 0; i < starkStructs.length; i++) {
+        const starkStruct = starkStructs[i];
         starkStruct.steps.map(step => step.nBits).forEach(e => stepsFRI.add(e));
     }
 
@@ -60,32 +92,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
     let globalInfoFilename = path.join(tmpPath, "globalInfo.json");
     await fs.promises.writeFile(globalInfoFilename, JSON.stringify(globalInfo, null, 1), "utf8");
 
-    let setup = [];
     let globalConstraints;
-
-    for(const subproof of airout.subproofs) {
-        setup[subproof.subproofId] = [];
-        for(const air of subproof.airs) {
-            log.info("[Setup  Cmd]", `··· Computing setup for air '${air.name}'`);
-
-            let settings = proofManagerConfig.prover.settings[air.name + "_" + Math.log2(air.numRows)] || proofManagerConfig.prover.settings.default;
-            
-            if (!settings) {
-                log.error(`[${this.name}]`, `No settings for air '${air.name}'${air.numRows ? ` with N=${air.numRows}` : ''}`);
-                throw new Error(`[${this.name}] No settings for air '${air.name}'${air.numRows ? ` with N=${air.numRows}` : ''}`);
-            }
-        
-            const filename = settings.starkStruct;
-            const starkStructFilename = path.isAbsolute(filename) ? filename : path.join(__dirname, "../../", filename);
-            const starkStruct = require(starkStructFilename);
-            
-            const fixedPols = generateFixedCols(air.symbols, air.numRows)
-            getFixedPolsPil2(air, fixedPols, setupOptions.F);
-            
-            setup[subproof.subproofId][air.airId] = await starkSetup(fixedPols, air, starkStruct, setupOptions);
-        }
-    }
-
     if(airout.constraints !== undefined) {
         globalConstraints = getGlobalConstraintsInfo(airout, true);
     }

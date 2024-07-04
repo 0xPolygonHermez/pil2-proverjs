@@ -17,7 +17,7 @@ function getSettings() {
         prover: {
             filename: "./src/lib/provers/stark_fri_prover.js",
             settings: {
-                default: { starkStruct: `./test/fibonacci-vadcop/fibonacci_vadcop_stark_struct_2_4.json` },
+                default: { },
                 Fibonacci_2: {starkStruct: `./test/fibonacci-vadcop/fibonacci_vadcop_stark_struct_2_2.json` },
             },   
         },
@@ -37,8 +37,8 @@ describe("Fibonacci Vadcop", async function () {
     this.timeout(10000000);
 
     const options = {
-        parallelExec: true,
-        useThreads: true,
+        parallelExec: false,
+        useThreads: false,
         vadcop: true,
     };
 

@@ -11,10 +11,11 @@ class ProverComponent {
         this.options = null;
     }
 
-    initialize(settings, options) {
+    initialize(settings, N, options) {
         log.info(`[${this.name}]`, "Initializing...");
 
         this.settings = settings;
+        this.N = N;
         this.options = options;
         this.initialized = true;
     }
