@@ -1,4 +1,5 @@
 const fs =require("fs");
+const { log2 } = require("pil2-compiler/src/utils");
 
 async function fileExists(path) {
     return fs.promises.access(path, fs.constants.F_OK)
@@ -6,6 +7,35 @@ async function fileExists(path) {
         .catch(() => false);
 }
 
+
+function generateStarkStruct(settings, N) {
+    let starkStruct = {
+        nBits: log2(N),
+        verificationHashType: "GL",
+        hashCommits: true,
+    };
+    
+    let blowupFactor = settings.blowupFactor || 1;
+    let nQueries = Math.ceil(128 / blowupFactor);
+    let foldingFactor = settings.foldingFactor || 4;
+    let finalDegree = settings.finalDegree || 5;
+    
+    starkStruct.nBitsExt = starkStruct.nBits + blowupFactor;
+    starkStruct.nQueries = nQueries;
+    
+    starkStruct.steps = [{nBits: starkStruct.nBitsExt}];
+    let friStepBits = starkStruct.nBitsExt;
+    while (friStepBits > finalDegree) {
+        friStepBits = Math.max(friStepBits - foldingFactor, finalDegree);
+        starkStruct.steps.push({
+            nBits: friStepBits,
+        });
+    }
+
+    return starkStruct;
+}
+
 module.exports = {
     fileExists,
+    generateStarkStruct,
 }

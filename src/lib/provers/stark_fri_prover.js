@@ -18,19 +18,25 @@ const path = require("path");
 
 const log = require('../../../logger.js');
 const { setSymbolCalculated, isStageCalculated } = require("pil2-stark-js/src/prover/symbols_helpers.js");
+const { generateStarkStruct } = require("../../utils.js");
 
 class StarkFriProver extends ProverComponent {
     constructor(proofCtx) {
         super("FRI Prover", proofCtx);
     }
 
-    initialize(settings, options) {
-        super.initialize(settings, options);
+    initialize(settings, N, options) {
+        super.initialize(settings, N, options);
 
         this.options.logger = log;
 
-        const starkStructFilename = path.isAbsolute(settings.starkStruct) ? settings.starkStruct : path.join(__dirname, "../../..",  settings.starkStruct);
-        this.starkStruct = require(starkStructFilename);
+        let starkStruct;
+        if(settings.starkStruct) {
+            const starkStructFilename = path.isAbsolute(settings.starkStruct) ? settings.starkStruct : path.join(__dirname, "../../..",  settings.starkStruct);
+            starkStruct = require(starkStructFilename);
+        } else {
+            starkStruct = generateStarkStruct(settings, N);
+        }
     }
 
     // TODO instances has to be here or to be called from provers manager?

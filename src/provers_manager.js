@@ -50,7 +50,7 @@ class ProversManager {
                     throw new Error(`[${this.name}] No settings for air '${airName}'${N ? ` with N=${N}` : ""}`);
                 }
 
-                prover.initialize(settings, options);
+                prover.initialize(settings, N, options);
 
                 const proverId = this.getProverId(subproof.subproofId, air.airId, air.numRows);
                 this.provers[proverId] = prover;
