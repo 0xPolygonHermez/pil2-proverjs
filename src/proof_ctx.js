@@ -1,6 +1,6 @@
 const log = require("../logger.js");
 
-const { generateWtnsCols } = require("pil2-stark-js/src/witness/witnessCalculator.js");
+const { generateWtnsCols } = require("pil2-stark-js/src/setup/witness/witnessCalculator.js");
 const { addTranscriptStark, getChallengeStark } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 const { buildPoseidonGL, Transcript } = require("pil2-stark-js");
 
