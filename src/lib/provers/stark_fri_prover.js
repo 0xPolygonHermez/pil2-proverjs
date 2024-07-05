@@ -19,6 +19,7 @@ const path = require("path");
 const log = require('../../../logger.js');
 const { setSymbolCalculated, isStageCalculated } = require("pil2-stark-js/src/prover/symbols_helpers.js");
 const { generateStarkStruct } = require("../../utils.js");
+const { log2 } = require("stark-recurser/src/utils/utils.js");
 
 class StarkFriProver extends ProverComponent {
     constructor(proofCtx) {
@@ -35,7 +36,7 @@ class StarkFriProver extends ProverComponent {
             const starkStructFilename = path.isAbsolute(settings.starkStruct) ? settings.starkStruct : path.join(__dirname, "../../..",  settings.starkStruct);
             starkStruct = require(starkStructFilename);
         } else {
-            starkStruct = generateStarkStruct(settings, N);
+            starkStruct = generateStarkStruct(settings, log2(N));
         }
     }
 

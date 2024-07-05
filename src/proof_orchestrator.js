@@ -29,7 +29,7 @@ module.exports = class ProofOrchestrator {
         }
     }
 
-    async initialize(config, stepsFRI, options) {
+    async initialize(config, airoutInfo, options) {
         if (this.initialized) {
             log.error(`[${this.name}]`, "Already initialized.");
             throw new Error(`[${this.name}] Proof Orchestrator already initialized.`);
@@ -57,7 +57,7 @@ module.exports = class ProofOrchestrator {
 
         // Create the finite field object
         const finiteField = FiniteFieldFactory.createFiniteField(airout.baseField);
-        this.proofCtx = ProofCtx.createProofCtxFromAirout(this.config.name, airout, stepsFRI, finiteField);
+        this.proofCtx = ProofCtx.createProofCtxFromAirout(this.config.name, airout, airoutInfo, finiteField);
         
         this.wcManager = new WitnessCalculatorManager();
         await this.wcManager.initialize(config.witnessCalculators, this.proofCtx, this.options);

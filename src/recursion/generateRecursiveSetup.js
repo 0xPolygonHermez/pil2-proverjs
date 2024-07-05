@@ -4,14 +4,14 @@ const exec = util.promisify(require('child_process').exec);
 const JSONbig = require('json-bigint')({ useNativeBigInt: true, alwaysParseAsBig: true });
 const fs = require('fs');
 const F3g = require('pil2-stark-js/src/helpers/f3g');
-const {compressorSetup} = require('pil2-stark-js/src/compressor/compressor_setup');
 const { compile } = require('pilcom');
-const { pilInfo } = require('pil2-stark-js');
+const pilInfo = require('pil2-stark-js/src/pil_info/pil_info.js');
 const {buildConstTree} = require('pil2-stark-js/src/stark/stark_buildConstTree.js');
-const pil2circom = require('pil2-stark-js/src/pil2circom');
-const {genRecursive} = require('./genrecursive.js');
+const pil2circom = require('stark-recurser/src/pil2circom/pil2circom.js');
+const {compressorSetup} = require('stark-recurser/src/circom2pil/compressor_setup');
+const {genCircom} = require('stark-recurser/src/gencircom.js');
 
-async function genRecursiveSetup(template, subproofId, airId, constRoot, verificationKeys, starkInfo, verifierInfo, starkStruct, compressorCols, hasCompressor) {
+async function genRecursiveSetup(template, subproofId, airId, globalInfo, constRoot, verificationKeys = [], starkInfo, verifierInfo, starkStruct, compressorCols, hasCompressor) {
 
     const F = new F3g();
 
@@ -21,33 +21,34 @@ async function genRecursiveSetup(template, subproofId, airId, constRoot, verific
     let verkeyInput = false;
     let enableInput = false;
     let verifierFilename;
+    let templateFilename;
     let constRootCircuit = constRoot || [];
     if((template === "recursive1" && !hasCompressor) || template === "compressor") {
         inputChallenges = true; 
-        verifierFilename = `tmp/basic_stark_subproof${subproofId}_air${airId}.verifier.circom`;
+        verifierFilename = `basic_stark_subproof${subproofId}_air${airId}.verifier.circom`;
+        templateFilename = `node_modules/stark-recurser/src/vadcop/templates/compressor.circom.ejs`;
     } else if(template === "recursive1") {
-        verifierFilename = `tmp/compressor_subproof${subproofId}_air${airId}.verifier.circom`;
+        verifierFilename = `compressor_subproof${subproofId}_air${airId}.verifier.circom`;
+        templateFilename = `node_modules/stark-recurser/src/vadcop/templates/recursive1.circom.ejs`;
     } else if (template === "recursive2") {
-        verifierFilename = `tmp/recursive1_subproof${subproofId}.verifier.circom`;
-        enableInput = true;
+        verifierFilename = `recursive1_subproof${subproofId}.verifier.circom`;
+        templateFilename = `node_modules/stark-recurser/src/vadcop/templates/recursive2.circom.ejs`;
+        enableInput = globalInfo.aggTypes.length > 1 ? true : false;
         verkeyInput = true;
     }
 
-
-    const options = { skipMain: true, verkeyInput, enableInput, inputChallenges, subproofId }
-
+    const options = { skipMain: true, verkeyInput, enableInput, inputChallenges, subproofId, hasCompressor }
+    
     //Generate circom
     const verifierCircomTemplate = await pil2circom(constRootCircuit, starkInfo, verifierInfo, options);
-    await fs.promises.writeFile(verifierFilename, verifierCircomTemplate, "utf8");
+    await fs.promises.writeFile(`tmp/${verifierFilename}`, verifierCircomTemplate, "utf8");
 
-    // Generate recursive circom
-    const globalInfo = JSON.parse(await fs.promises.readFile("tmp/globalInfo.json", "utf8"));
-    const recursiveVerifier = await genRecursive(template, subproofId, airId, verificationKeys, starkInfo, globalInfo, hasCompressor);
+    const recursiveVerifier = await genCircom(templateFilename, [starkInfo], globalInfo, [verifierFilename], verificationKeys, [], [], options);
     const recursiveFilename = `tmp/${recursiveName}.circom`;
     await fs.promises.writeFile(recursiveFilename, recursiveVerifier, "utf8");
 
     // Compile circom
-    const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --verbose -l node_modules/pil2-stark-js/circuits.gl tmp/${recursiveName}.circom -o tmp`;
+    const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --verbose -l node_modules/stark-recurser/src/vadcop/helpers/circuits -l node_modules/stark-recurser/src/pil2circom/circuits.gl tmp/${recursiveName}.circom -o tmp`;
     await exec(compileRecursiveCommand);
 
     // Generate setup

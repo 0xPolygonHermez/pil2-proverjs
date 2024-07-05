@@ -1,6 +1,6 @@
 const log = require("../logger.js");
 
-const { generateWtnsCols } = require("pil2-stark-js/src/setup/witness/witnessCalculator.js");
+const { generateWtnsCols } = require("pil2-stark-js/src/witness/witnessCalculator.js");
 const { addTranscriptStark, getChallengeStark } = require("pil2-stark-js/src/stark/stark_gen_helpers.js");
 const { buildPoseidonGL, Transcript } = require("pil2-stark-js");
 
@@ -101,7 +101,7 @@ class ProofCtx {
     // getAirCols(subproofId, airId)
     //
 
-    static createProofCtxFromAirout(name, airout, stepsFRI, finiteField) {
+    static createProofCtxFromAirout(name, airout, airoutInfo, finiteField) {
         const proofCtx = new ProofCtx(name, finiteField);
         proofCtx.airout = airout;
 
@@ -123,11 +123,11 @@ class ProofCtx {
         proofCtx.challenges.push(new Array(1).fill(null));
         proofCtx.challenges.push(new Array(2).fill(null));
         
-        for(let i = 0; i < stepsFRI.length + 1; ++i) {
+        for(let i = 0; i < airoutInfo.stepsFRI.length + 1; ++i) {
             proofCtx.challenges.push(new Array(1).fill(null));
         }
 
-        proofCtx.stepsFRI = stepsFRI;
+        proofCtx.stepsFRI = airoutInfo.stepsFRI;
         
         for(let i = 0; i < airout.subproofs.length; i++) {
             proofCtx.subproofValues[i] = [];

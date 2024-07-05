@@ -9,7 +9,7 @@
     "test:coverage": "nyc mocha test/simple/simple_stark.test.js test/fibonacci/fibonacci_stark.test.js test/fibonacci-vadcop/fibonacci_vadcop_stark.test.js test/wc_manager/wc_manager.test.js",
     "test:simple": "mocha test/simple/simple_stark.test.js",
     "test:fibonacci": "mocha test/fibonacci/fibonacci_stark.test.js",
-    "test:fibonacci_vadcop": "mocha test/fibonacci-vadcop/fibonacci_vadcop_stark.test.js",
+    "test:fibonacci_vadcop": "node --max-old-space-size=32000 node_modules/mocha/bin/mocha test/fibonacci-vadcop/fibonacci_vadcop_stark.test.js",
     "test:basic_vadcop": "mocha test/basic_vadcop/basic_vadcop_stark.test.js",
     "test:simple:coverage": "nyc mocha test/simple/simple_stark.test.js",
     "test:fibonacci:coverage": "nyc mocha test/fibonacci/fibonacci_stark.test.js",
@@ -37,7 +37,8 @@
   "dependencies": {
     "json-bigint": "^1.0.0",
     "npmlog": "^7.0.1",
-    "pil2-stark-js": "https://github.com/0xPolygonHermez/pil2-stark-js.git",
+    "pil2-stark-js": "https://github.com/0xPolygonHermez/pil2-stark-js.git#pil2",
+    "stark-recurser":  "github:0xPolygonHermez/stark-recurser#develop",
     "pilcom": "https://github.com/0xPolygonHermez/pilcom.git#polsArrayGeneric",
     "pil2-compiler": "https://github.com/0xPolygonHermez/pil2-compiler.git#develop",
     "protobufjs": "^7.2.4",

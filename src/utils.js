@@ -8,18 +8,20 @@ async function fileExists(path) {
 }
 
 
-function generateStarkStruct(settings, N) {
+function generateStarkStruct(settings, nBits) {
     let starkStruct = {
-        nBits: log2(N),
+        nBits,
         verificationHashType: "GL",
-        hashCommits: true,
     };
-    
+
+    let hashCommits = settings.hashCommits || true;
     let blowupFactor = settings.blowupFactor || 1;
     let nQueries = Math.ceil(128 / blowupFactor);
+    if(settings.nQueries > nQueries) nQueries = settings.nQueries;
     let foldingFactor = settings.foldingFactor || 4;
     let finalDegree = settings.finalDegree || 5;
     
+    starkStruct.hashCommits = hashCommits;
     starkStruct.nBitsExt = starkStruct.nBits + blowupFactor;
     starkStruct.nQueries = nQueries;
     
