@@ -1,32 +1,45 @@
 
-const F3g = require("pil2-stark-js/src/helpers/f3g");
 const { AirOut } = require("../airout.js");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
+const F3g = require("pil2-stark-js/src/helpers/f3g");
 const { generateFixedCols } = require("pil2-stark-js/src/witness/witnessCalculator.js");
 const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
+const buildMerkleHashGL = require("pil2-stark-js/src/helpers/hash/merklehash/merklehash_p.js");
 const { starkSetup } = require("pil2-stark-js");
-const { genNullProof } = require("pil2-stark-js/src/proof2zkin.js");
+const { getGlobalConstraintsInfo } = require("pil2-stark-js/src/pil_info/getGlobalConstraintsInfo.js");
 const { genFinalSetup } = require("../recursion/generateFinalSetup.js");
 const {genRecursiveSetup} = require("../recursion/generateRecursiveSetup.js");
 const path = require("path");
 const crypto = require('crypto');
 const fs = require("fs");
 const {tmpName} = require("tmp-promise");
+const JSONbig = require('json-bigint')({ useNativeBigInt: true, alwaysParseAsBig: true });
 
 const log = require("../../logger.js");
-const { getGlobalConstraintsInfo } = require("pil2-stark-js/src/pil_info/getGlobalConstraintsInfo.js");
 const pil2circom = require("stark-recurser/src/pil2circom/pil2circom.js");
 const { generateStarkStruct } = require("../utils.js");
 const { isCompressorNeeded } = require("stark-recurser/src/vadcop/is_compressor_needed.js");
 const { log2 } = require("stark-recurser/src/utils/utils.js");
 
-function setAiroutInfo(airout, starkStructs) {
+async function setAiroutInfo(airout, starkStructs) {
     let vadcopInfo = {};
 
+    vadcopInfo.name = airout.name;
+
+    vadcopInfo.airs = [];
+    vadcopInfo.subproofs = [];
+    
     vadcopInfo.aggTypes = [];
-    for(const subproof of airout.subproofs) {
-        vadcopInfo.aggTypes[subproof.subproofId] = subproof.subproofvalues;
+    for(let i = 0; i < airout.subproofs.length; ++i) {
+        const subproof = airout.subproofs[i];
+        const subproofId = subproof.subproofId;
+        vadcopInfo.aggTypes[subproofId] = subproof.subproofvalues;
+        vadcopInfo.subproofs.push(subproof.name);
+        vadcopInfo.airs[i] = [];
+        for(let j = 0; j < subproof.airs.length; ++j) {
+            vadcopInfo.airs[subproofId][j] = {name: `${subproof.name}_${j}`};
+        }
     }
 
     let stepsFRI = new Set([]);
@@ -38,13 +51,14 @@ function setAiroutInfo(airout, starkStructs) {
     vadcopInfo.stepsFRI = Array.from(stepsFRI).sort((a, b) => b - a).map(s => { return { nBits: s }});
     vadcopInfo.nPublics = airout.numPublicValues;
     vadcopInfo.numChallenges = airout.numChallenges;
-    vadcopInfo.nAirs = airout.subproofs.map(s => s.airs.length);
 
+
+    let globalConstraints = [];
     if(airout.constraints !== undefined) {
-        vadcopInfo.globalConstraints = getGlobalConstraintsInfo(airout, true);
+        globalConstraints = getGlobalConstraintsInfo(airout, true);
     }
 
-    return vadcopInfo;
+    return { vadcopInfo, globalConstraints };
 }
 
 
@@ -88,19 +102,31 @@ module.exports = async function setupCmd(proofManagerConfig) {
             getFixedPolsPil2(air, fixedPols, setupOptions.F);
             
             setup[subproof.subproofId][air.airId] = await starkSetup(fixedPols, air, starkStruct, setupOptions);
+
+            const filesDir = `tmp/config/${airout.name}/${subproof.name}/airs/${subproof.name}_${air.airId}/air`;
+            await fs.promises.mkdir(filesDir, { recursive: true });
+
+            const MH = await buildMerkleHashGL(starkStruct.splitLinearHash);
+
+            await MH.writeToFile(setup[subproof.subproofId][air.airId].constTree, `${filesDir}/${subproof.name}_${air.airId}.consttree`);
+
+            await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.verkey.json`, JSONbig.stringify(setup[subproof.subproofId][air.airId].constRoot, null, 1), "utf8");
+
+            await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.starkinfo.json`, JSON.stringify(setup[subproof.subproofId][air.airId].starkInfo, null, 1), "utf8");
+        
+            await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.verifierinfo.json`, JSON.stringify(setup[subproof.subproofId][air.airId].verifierInfo, null, 1), "utf8");
+        
+            await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.expressionsinfo.json`, JSON.stringify(setup[subproof.subproofId][air.airId].expressionsInfo, null, 1), "utf8");
         }
     }
 
-    const globalInfo = setAiroutInfo(airout, starkStructs);
-
-    const tmpPath = path.join(__dirname, "../..", "tmp");
-    if(!fs.existsSync(tmpPath)) fs.mkdirSync(tmpPath);
-
-
-    let globalInfoFilename = path.join(tmpPath, "globalInfo.json");
-    await fs.promises.writeFile(globalInfoFilename, JSON.stringify(globalInfo, null, 1), "utf8");
-
-    if(proofManagerConfig.aggregation && proofManagerConfig.aggregation.genProof) {
+    let globalInfo;
+    
+    if(proofManagerConfig.aggregation && proofManagerConfig.aggregation.genSetup) {
+        const airoutInfo = await setAiroutInfo(airout, starkStructs);
+        let globalConstraints = airoutInfo.globalConstraints;
+        globalInfo = airoutInfo.vadcopInfo;
+        
         const recursiveSettings = proofManagerConfig.aggregation.settings.recursive || proofManagerConfig.aggregation.settings.default || {};
 
         let starkStructRecursive;
@@ -166,6 +192,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
                 
                 if(compressorNeeded.hasCompressor) {
                     setup[subproof.subproofId][air.airId].hasCompressor = true;
+                    globalInfo.airs[subproof.subproofId][air.airId].hasCompressor = true;
 
                     const starkStructSettings = {};
                     starkStructSettings.blowupFactor = 4;
@@ -175,6 +202,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
                     
                     const recursiveSetup = await genRecursiveSetup(
                         "compressor",
+                        subproof.name,
                         subproof.subproofId,
                         air.airId,
                         globalInfo,
@@ -186,7 +214,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
                         18
                     );
                     
-                    constRoot = recursiveSetup.constRoot.constRoot;
+                    constRoot = recursiveSetup.constRoot;
                     starkInfo = recursiveSetup.starkInfo;
                     verifierInfo = recursiveSetup.verifierInfo;
                 } else {
@@ -203,6 +231,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
                     pil: pilRecursive1,
                 } = await genRecursiveSetup(
                     "recursive1",
+                    subproof.name,
                     subproof.subproofId,
                     air.airId,
                     globalInfo,
@@ -227,13 +256,14 @@ module.exports = async function setupCmd(proofManagerConfig) {
                 if(hashPilRecursive1 !== hash) throw new Error("All recursive1 pil must be the same");
             }
 
-            const {starkInfo: starkInfoRecursive2, constRoot: constRootRecursive2, pil: pilRecursive2 } = await genRecursiveSetup(
+            const { pil: pilRecursive2 } = await genRecursiveSetup(
                 "recursive2", 
+                subproof.name,
                 subproof.subproofId,
                 undefined,
                 globalInfo,
                 [],
-                constRootsRecursives1.map(c => c.constRoot),
+                constRootsRecursives1,
                 starkInfoRecursives1[0], 
                 verifierInfoRecursives1[0], 
                 starkStructRecursive, 18)
@@ -241,9 +271,6 @@ module.exports = async function setupCmd(proofManagerConfig) {
             const hashPilRecursive2 = crypto.createHash("sha256").update(JSON.stringify(pilRecursive2)).digest("hex");
 
             if(hashPilRecursive1 !== hashPilRecursive2) throw new Error("Recursive1 and recursive2 pil must be the same");
-
-            const nullProof = genNullProof(starkInfoRecursive2);
-            await fs.promises.writeFile(`tmp/subproof${subproof.subproofId}_null.proof.zkin.json`, JSON.stringify(nullProof, 0, 1), "utf8");
         }
 
         const finalSettings = proofManagerConfig.aggregation.settings.final || proofManagerConfig.aggregation.settings.default;
@@ -256,16 +283,16 @@ module.exports = async function setupCmd(proofManagerConfig) {
             starkStructFinal = generateStarkStruct(finalSettings, log2(N));
         }
 
-        await genFinalSetup(starkStructFinal, globalInfo, 18);
-    } else {
-        for(const subproof of airout.subproofs) {
-            for(const air of subproof.airs) {
-                if(fs.existsSync(`tmp/compressor_subproof${subproof.subproofId}_air${air.airId}.verifier.circom`)) {
-                    setup[subproof.subproofId][air.airId].hasCompressor = true;
-                }
-            }
-        }
+        await fs.promises.writeFile("tmp/config/airout.globalInfo.json", JSON.stringify(globalInfo, null, 1), "utf8");
+
+        await fs.promises.writeFile("tmp/config/airout.globalConstraints.json", JSON.stringify(globalConstraints, null, 1), "utf8");
+
+        await genFinalSetup(starkStructFinal, 18);
     }
 
+    if(!globalInfo) {
+        const airoutInfo = await setAiroutInfo(airout, starkStructs);
+        globalInfo = airoutInfo.vadcopInfo;
+    }
     return { setup, airoutInfo: globalInfo, config: proofManagerConfig };
 }

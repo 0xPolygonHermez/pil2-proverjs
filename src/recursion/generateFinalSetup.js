@@ -3,84 +3,85 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const JSONbig = require('json-bigint')({ useNativeBigInt: true, alwaysParseAsBig: true });
 const fs = require('fs');
-const F3g = require('pil2-stark-js/src/helpers/f3g');
-const {compressorSetup} = require('pil2-stark-js/src/compressor/compressor_setup');
 const { compile } = require('pilcom');
-const { pilInfo } = require('pil2-stark-js');
-const {buildConstTree} = require('pil2-stark-js/src/stark/stark_buildConstTree.js');
-const pil2circom = require('pil2-stark-js/src/pil2circom');
-const { genFinal } = require('./genfinal.js');
 
-module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, globalInfo, compressorCols) {
+const F3g = require('pil2-stark-js/src/helpers/f3g');
+const buildMerkleHashGL = require("pil2-stark-js/src/helpers/hash/merklehash/merklehash_p.js");
+const { starkSetup } = require('pil2-stark-js');
+
+const { compressorSetup } = require('stark-recurser/src/circom2pil/compressor_setup.js');
+const { genCircom } = require('stark-recurser/src/gencircom.js');
+
+
+module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, compressorCols) {
     const F = new F3g();
 
-    const starkInfosRecursives2 = [];
+    const starkInfos = [];
+    const verifierInfos = [];
+    const aggregatedKeysRecursive2 = [];
+    const basicKeysRecursive1 = [];
+    const verifierNames = [];
+
+    const finalFilename = `tmp/circom/final.circom`;
+
+    const globalInfo = JSON.parse(await fs.promises.readFile(`tmp/config/airout.globalInfo.json`, "utf8"));
+
+    const globalConstraints = JSON.parse(await fs.promises.readFile(`tmp/config/airout.globalConstraints.json`, "utf8"));
 
     for(let i = 0; i < globalInfo.aggTypes.length; i++) {
-        const name = `recursive2_subproof${i}`;
-        const starkInfo = JSON.parse(await fs.promises.readFile(`tmp/${name}.starkinfo.json`, "utf8"));
-        const verifierInfo = JSON.parse(await fs.promises.readFile(`tmp/${name}.verifierinfo.json`, "utf8"));
-        const verificationKeys = JSONbig.parse(await fs.promises.readFile(`tmp/${name}_vks.json`, "utf8"));
+        const starkInfo = JSON.parse(await fs.promises.readFile(`tmp/config/${globalInfo.name}/${globalInfo.subproofs[i]}/recursive2/recursive2.starkinfo.json`, "utf8"));
+        const verifierInfo = JSON.parse(await fs.promises.readFile(`tmp/config/${globalInfo.name}/${globalInfo.subproofs[i]}/recursive2/recursive2.verifierinfo.json`, "utf8"));
+        const verificationKeys = JSONbig.parse(await fs.promises.readFile(`tmp/config/${globalInfo.name}/${globalInfo.subproofs[i]}/recursive2/recursive2.vks.json`, "utf8"));
 
-        const res = { 
-            starkInfo,
-            rootCRecursives1: verificationKeys.rootCRecursives1,
-            rootCRecursive2: verificationKeys.rootCRecursive2,
-            verifierInfo,
-         };
-
-        starkInfosRecursives2.push(res);
+        starkInfos.push(starkInfo);
+        verifierInfos.push(verifierInfo);
+        aggregatedKeysRecursive2.push(verificationKeys.rootCRecursive2);
+        basicKeysRecursive1.push(verificationKeys.rootCRecursives1);
+        verifierNames.push( `recursive2_${globalInfo.subproofs[i]}.verifier.circom`);
     }
-    
-    const finalName = "final";
         
-    //Generate Recursive2 verifiers circom
-    for(let i = 0; i < starkInfosRecursives2.length; ++i) {
-        const verifierCircomTemplate = await pil2circom(null, starkInfosRecursives2[i].starkInfo, starkInfosRecursives2[i].verifierInfo, { skipMain: true, subproofId: i, verkeyInput: true, enableInput: true });
-        await fs.promises.writeFile(`tmp/recursive2_subproof${i}.verifier.circom`, verifierCircomTemplate, "utf8");
-    }    
+    const filesDir = `tmp/final`;
+
+    let templateFilename = `node_modules/stark-recurser/src/vadcop/templates/final.circom.ejs`;
 
     // Generate final circom
-    const globalInfo = JSON.parse(await fs.promises.readFile("tmp/globalInfo.json", "utf8"));
-    const finalVerifier = await genFinal(globalInfo, starkInfosRecursives2);
-    const finalFilename = `tmp/final.circom`;
+    const finalVerifier = await genCircom(templateFilename, starkInfos, {...globalInfo, globalConstraints }, verifierNames, basicKeysRecursive1, aggregatedKeysRecursive2);
     await fs.promises.writeFile(finalFilename, finalVerifier, "utf8");
 
 
     // Compile circom
     console.log("Compiling " + finalFilename + "...");
-    const compileFinalCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --verbose -l node_modules/pil2-stark-js/circuits.gl tmp/${finalName}.circom -o tmp`;
+    const compileFinalCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --c --verbose -l node_modules/stark-recurser/src/vadcop/helpers/circuits -l node_modules/pil2-stark-js/circuits.gl ${finalFilename} -o tmp/build`;
     const execCompile = await exec(compileFinalCommand);
     console.log(execCompile.stdout);
 
     // Generate setup
-    const finalR1csFile = `tmp/${finalName}.r1cs`;
+    const finalR1csFile = `tmp/build/final.r1cs`;
     const {exec: execBuff, pilStr, constPols} = await compressorSetup(F, finalR1csFile, compressorCols);
 
-    const fd =await fs.promises.open(`tmp/${finalName}.exec`, "w+");
+    const fd =await fs.promises.open(`${filesDir}/final.exec`, "w+");
     await fd.write(execBuff);
     await fd.close();
 
-    await fs.promises.writeFile(`tmp/${finalName}.pil`, pilStr, "utf8");
+    const pilFilename = `tmp/pil/final.pil`
+    await fs.promises.writeFile(pilFilename, pilStr, "utf8");
+
+    // Compile pil
+    const pilFinal = await compile(F, pilFilename);
 
     // Build stark info
-    const pilFinal = await compile(F, `tmp/${finalName}.pil`);
+    const setup = await starkSetup(constPols, pilFinal, starkStructFinal, {F, pil2: false});
 
-    const {pilInfo: starkInfoFinal, verifierInfo: verifierInfoFinal, expressionsInfo: expressionsInfoFinal} = pilInfo(F, pilFinal, true, false, starkStructFinal);
+    await fs.promises.writeFile(`${filesDir}/final.verkey.json`, JSONbig.stringify(setup.constRoot, null, 1), "utf8");
 
-    // Build const tree
-    const {constTree, MH, verKey} = await buildConstTree(starkInfoFinal, constPols);
+    await fs.promises.writeFile(`${filesDir}/final.starkinfo.json`, JSON.stringify(setup.starkInfo, null, 1), "utf8");
 
-    await fs.promises.writeFile(`tmp/${finalName}.verkey.json`, JSONbig.stringify(verKey, null, 1), "utf8");
+    await fs.promises.writeFile(`${filesDir}/final.expressionsinfo.json`, JSON.stringify(setup.expressionsInfo, null, 1), "utf8");
 
-    await fs.promises.writeFile(`tmp/${finalName}.starkinfo.json`, JSON.stringify(starkInfoFinal, null, 1), "utf8");
+    await fs.promises.writeFile(`${filesDir}/final.verifierinfo.json`, JSON.stringify(setup.verifierInfo, null, 1), "utf8");
 
-    await fs.promises.writeFile(`tmp/${finalName}.expressionsinfo.json`, JSON.stringify(expressionsInfoFinal, null, 1), "utf8");
-
-    await fs.promises.writeFile(`tmp/${finalName}.verifierinfo.json`, JSON.stringify(verifierInfoFinal, null, 1), "utf8");
-
-
-    await MH.writeToFile(constTree, `tmp/${finalName}.consttree`);
+    const MH = await buildMerkleHashGL();
+    await MH.writeToFile(setup.constTree, `${filesDir}/final.consttree`);
     
-    return {starkInfoFinal, verifierInfoFinal, constRootFinal: verKey};
+    return {starkInfoFinal: setup.starkInfo, verifierInfoFinal: setup.verifierInfo, constRootFinal: setup.constRoot};
 }

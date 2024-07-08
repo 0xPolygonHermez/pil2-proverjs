@@ -26,7 +26,8 @@ function getSettings() {
                 recursive: { starkStruct: "./src/recursion/configs/recursive.starkstruct.json" },
                 final: { starkStruct: "./src/recursion/configs/final.starkstruct.json" }
             },
-            genProof: true,  
+            genProof: true,
+            genSetup: false,
         },
         verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
     };
@@ -37,8 +38,8 @@ describe("Fibonacci Vadcop", async function () {
     this.timeout(10000000);
 
     const options = {
-        parallelExec: false,
-        useThreads: false,
+        parallelExec: true,
+        useThreads: true,
         vadcop: true,
     };
 

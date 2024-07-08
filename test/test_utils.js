@@ -6,7 +6,7 @@ const JSONbig = require('json-bigint')({ useNativeBigInt: true, alwaysParseAsBig
 const { assert } = require("chai");
 const fs = require("fs");
 const log = require("../logger.js");
-const { proof2zkin } = require("pil2-stark-js");
+const { proof2zkin } = require("stark-recurser/src/pil2circom/proof2zkin.js");
 const path = require("path");
 
 async function generateSetupTest(proofManagerConfig) {
@@ -30,14 +30,6 @@ async function executeFullProveTest(setup, publics, options, genCircomProof) {
     for(const proof of proofs) {
         let proofZkinFilename = path.join(tmpPath, "basic_stark_subproof" + proof.subproofId + "_air" + proof.airId + ".proof.zkin.json");
 
-        let starkInfoFilename = path.join(tmpPath, "basic_stark_subproof" + proof.subproofId + "_air" + proof.airId + ".starkinfo.json");
-
-        let verKeyFilename = path.join(tmpPath, "basic_stark_subproof" + proof.subproofId + "_air" + proof.airId +  ".verkey.json");
-
-        const starkInfo = setup.setup[proof.subproofId][proof.airId].starkInfo;
-
-        const constRoot = {constRoot: setup.setup[proof.subproofId][proof.airId].constRoot};
-
         const zkin = proof2zkin(proof.proof, setup.setup[proof.subproofId][proof.airId].starkInfo);
         zkin.publics = proof.publics;
         zkin.challenges = challenges.flat();
@@ -50,10 +42,6 @@ async function executeFullProveTest(setup, publics, options, genCircomProof) {
                 return v;
             }
         }, 1), "utf8");
-
-        await fs.promises.writeFile(starkInfoFilename, JSON.stringify(starkInfo, null, 1), "utf8");
-
-        await fs.promises.writeFile(verKeyFilename, JSONbig.stringify(constRoot, null, 1), "utf8");
     }
     
     const isValid = await verifyCmd(setup, proofs, challenges, challengesFRISteps, subproofValues, options);
