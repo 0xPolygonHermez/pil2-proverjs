@@ -71,32 +71,14 @@ module.exports = async function verifyCircomCmd(proofs, challenges, challengesFR
                 publics: [],
             };
 
-            proofsBySubproofId[subproofId].zkin[airId] = zkinRecursive1;
-            proofsBySubproofId[subproofId].publics[airId] = publicsRecursive1;
+            proofsBySubproofId[subproofId].zkin.push(zkinRecursive1);
+            proofsBySubproofId[subproofId].publics.push(publicsRecursive1);
         } catch (error) {
             log.error(`[CircomVrfr]`, `Error while verifying proof (subproofId ${subproofId} airId ${airId}):`);
             log.error(`[CircomVrfr]`, `${error}`);
             throw error;
         }
     }
-
-    const verkeyRecursive2_subproof0 = JSON.parse(await fs.promises.readFile(`tmp/provingKey/${globalInfo.name}/${globalInfo.subproofs[0]}/recursive2/recursive2.verkey.json`, "utf8"));
-
-    proofsBySubproofId[0] = {
-        starkInfoRecursive2: JSON.parse(await fs.promises.readFile(`tmp/provingKey/${globalInfo.name}/${globalInfo.subproofs[0]}/recursive2/recursive2.starkinfo.json`, "utf8")),  
-        rootCRecursive2: verkeyRecursive2_subproof0.constRoot,
-        zkin: [JSONbig.parse(await fs.promises.readFile(`tmp/proofs/proof0_subproof0_air0_recursive1.proof.zkin.json`, "utf8"))],
-        publics: [JSONbig.parse(await fs.promises.readFile(`tmp/proofs/proof0_subproof0_air0_recursive1.publics.json`, "utf8"))],
-    };
-
-    const verkeyRecursive2_subproof1 = JSONbig.parse(await fs.promises.readFile(`tmp/provingKey/${globalInfo.name}/${globalInfo.subproofs[1]}/recursive2/recursive2.verkey.json`, "utf8"));
-
-    proofsBySubproofId[1] = {
-        starkInfoRecursive2: JSONbig.parse(await fs.promises.readFile(`tmp/provingKey/${globalInfo.name}/${globalInfo.subproofs[1]}/recursive2/recursive2.starkinfo.json`, "utf8")),  
-        rootCRecursive2: verkeyRecursive2_subproof1.constRoot,
-        zkin: [JSONbig.parse(await fs.promises.readFile(`tmp/proofs/proof1_subproof1_air1_recursive1.proof.zkin.json`, "utf8"))],
-        publics: [JSONbig.parse(await fs.promises.readFile(`tmp/proofs/proof1_subproof1_air1_recursive1.publics.json`, "utf8"))],
-    };
 
 
     for(let i = 0; i < globalInfo.subproofs.length; ++i) {
