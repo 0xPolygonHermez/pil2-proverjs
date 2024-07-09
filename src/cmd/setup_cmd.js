@@ -29,6 +29,7 @@ module.exports = async function setupCmd(proofManagerConfig) {
     const setupOptions = {
         F: new F3g("0xFFFFFFFF00000001"),
         pil2: true,
+        debugLine: true,
     };
 
     let setup = [];
