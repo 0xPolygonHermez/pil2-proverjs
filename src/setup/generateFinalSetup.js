@@ -11,9 +11,10 @@ const { starkSetup } = require('pil2-stark-js');
 
 const { compressorSetup } = require('stark-recurser/src/circom2pil/compressor_setup.js');
 const { genCircom } = require('stark-recurser/src/gencircom.js');
+const { writeCHelpersFile } = require('pil2-stark-js/src/stark/chelpers/binFile');
 
 
-module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, compressorCols) {
+module.exports.genFinalSetup = async function genFinalSetup(buildDir, starkStructFinal, compressorCols) {
     const F = new F3g();
 
     const starkInfos = [];
@@ -22,16 +23,16 @@ module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, co
     const basicKeysRecursive1 = [];
     const verifierNames = [];
 
-    const finalFilename = `tmp/circom/final.circom`;
+    const finalFilename = `${buildDir}/circom/final.circom`;
 
-    const globalInfo = JSON.parse(await fs.promises.readFile(`tmp/config/airout.globalInfo.json`, "utf8"));
+    const globalInfo = JSON.parse(await fs.promises.readFile(`${buildDir}/provingKey/pilout.globalInfo.json`, "utf8"));
 
-    const globalConstraints = JSON.parse(await fs.promises.readFile(`tmp/config/airout.globalConstraints.json`, "utf8"));
+    const globalConstraints = JSON.parse(await fs.promises.readFile(`${buildDir}/provingKey/pilout.globalConstraints.json`, "utf8"));
 
     for(let i = 0; i < globalInfo.aggTypes.length; i++) {
-        const starkInfo = JSON.parse(await fs.promises.readFile(`tmp/config/${globalInfo.name}/${globalInfo.subproofs[i]}/recursive2/recursive2.starkinfo.json`, "utf8"));
-        const verifierInfo = JSON.parse(await fs.promises.readFile(`tmp/config/${globalInfo.name}/${globalInfo.subproofs[i]}/recursive2/recursive2.verifierinfo.json`, "utf8"));
-        const verificationKeys = JSONbig.parse(await fs.promises.readFile(`tmp/config/${globalInfo.name}/${globalInfo.subproofs[i]}/recursive2/recursive2.vks.json`, "utf8"));
+        const starkInfo = JSON.parse(await fs.promises.readFile(`${buildDir}/provingKey/${globalInfo.name}/${globalInfo.subproofs[i]}/recursive2/recursive2.starkinfo.json`, "utf8"));
+        const verifierInfo = JSON.parse(await fs.promises.readFile(`${buildDir}/provingKey/${globalInfo.name}/${globalInfo.subproofs[i]}/recursive2/recursive2.verifierinfo.json`, "utf8"));
+        const verificationKeys = JSONbig.parse(await fs.promises.readFile(`${buildDir}/provingKey/${globalInfo.name}/${globalInfo.subproofs[i]}/recursive2/recursive2.vks.json`, "utf8"));
 
         starkInfos.push(starkInfo);
         verifierInfos.push(verifierInfo);
@@ -40,7 +41,8 @@ module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, co
         verifierNames.push( `recursive2_${globalInfo.subproofs[i]}.verifier.circom`);
     }
         
-    const filesDir = `tmp/final`;
+    const filesDir = `${buildDir}/provingKey/${globalInfo.name}/final`;
+    await fs.promises.mkdir(filesDir, { recursive: true });
 
     let templateFilename = `node_modules/stark-recurser/src/vadcop/templates/final.circom.ejs`;
 
@@ -51,19 +53,21 @@ module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, co
 
     // Compile circom
     console.log("Compiling " + finalFilename + "...");
-    const compileFinalCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --c --verbose -l node_modules/stark-recurser/src/vadcop/helpers/circuits -l node_modules/pil2-stark-js/circuits.gl ${finalFilename} -o tmp/build`;
+    const compileFinalCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --c --verbose -l node_modules/stark-recurser/src/vadcop/helpers/circuits -l node_modules/pil2-stark-js/circuits.gl ${finalFilename} -o ${buildDir}/build`;
     const execCompile = await exec(compileFinalCommand);
     console.log(execCompile.stdout);
+    
+    fs.copyFile(`${buildDir}/build/final_cpp/final.dat`, `${buildDir}/provingKey/${globalInfo.name}/final/final.dat`, (err) => { if(err) throw err; });
 
     // Generate setup
-    const finalR1csFile = `tmp/build/final.r1cs`;
+    const finalR1csFile = `${buildDir}/build/final.r1cs`;
     const {exec: execBuff, pilStr, constPols} = await compressorSetup(F, finalR1csFile, compressorCols);
 
     const fd =await fs.promises.open(`${filesDir}/final.exec`, "w+");
     await fd.write(execBuff);
     await fd.close();
 
-    const pilFilename = `tmp/pil/final.pil`
+    const pilFilename = `${buildDir}/pil/final.pil`
     await fs.promises.writeFile(pilFilename, pilStr, "utf8");
 
     // Compile pil
@@ -71,6 +75,8 @@ module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, co
 
     // Build stark info
     const setup = await starkSetup(constPols, pilFinal, starkStructFinal, {F, pil2: false});
+
+    await constPols.saveToFile(`${filesDir}/final.const`);
 
     await fs.promises.writeFile(`${filesDir}/final.verkey.json`, JSONbig.stringify(setup.constRoot, null, 1), "utf8");
 
@@ -80,6 +86,8 @@ module.exports.genFinalSetup = async function genFinalSetup(starkStructFinal, co
 
     await fs.promises.writeFile(`${filesDir}/final.verifierinfo.json`, JSON.stringify(setup.verifierInfo, null, 1), "utf8");
 
+    await writeCHelpersFile(`${filesDir}/final.bin`, setup.genericBinFileInfo);
+    
     const MH = await buildMerkleHashGL();
     await MH.writeToFile(setup.constTree, `${filesDir}/final.consttree`);
     

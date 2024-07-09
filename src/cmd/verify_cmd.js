@@ -1,6 +1,6 @@
 const VerifierFactory = require("../verifier_factory.js");
 
-const { fileExists } = require("../utils.js");
+const { fileExists } = require("../setup/utils.js");
 const path = require("path");
 
 const log = require("../../logger.js");

@@ -13,13 +13,11 @@ function getSettings() {
         ],
         prover: {
             filename: "./src/lib/provers/stark_fri_prover.js",
-            settings: {
-                default: { starkStruct: `./test/fibonacci/fibonacci_stark_struct.json` },
-            },
         },
-        aggregation: {
-            settings: {},
-            genProof: false,
+        setup: {
+            settings: {
+                default: { starkStruct: { "nBits": 3, "nBitsExt": 4, "nQueries": 8, "verificationHashType": "GL", "steps": [ {"nBits": 4}, {"nBits": 3}, {"nBits": 2} ] } },
+            },
         },
         verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
     };
@@ -48,7 +46,7 @@ describe("PIL2 proof manager stark simple tests", async function () {
     });
 
     it("prove Fibonacci", async () => {
-        await executeFullProveTest(setup, publicInputs, options, config.aggregation?.genProof);
+        await executeFullProveTest(setup, publicInputs, options, config.prover?.genAggregationProof);
     });
 
 });

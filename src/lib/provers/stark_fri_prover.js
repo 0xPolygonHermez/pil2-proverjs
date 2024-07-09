@@ -18,8 +18,6 @@ const path = require("path");
 
 const log = require('../../../logger.js');
 const { setSymbolCalculated, isStageCalculated } = require("pil2-stark-js/src/prover/symbols_helpers.js");
-const { generateStarkStruct } = require("../../utils.js");
-const { log2 } = require("stark-recurser/src/utils/utils.js");
 
 class StarkFriProver extends ProverComponent {
     constructor(proofCtx) {
@@ -29,15 +27,7 @@ class StarkFriProver extends ProverComponent {
     initialize(settings, N, options) {
         super.initialize(settings, N, options);
 
-        this.options.logger = log;
-
-        let starkStruct;
-        if(settings.starkStruct) {
-            const starkStructFilename = path.isAbsolute(settings.starkStruct) ? settings.starkStruct : path.join(__dirname, "../../..",  settings.starkStruct);
-            starkStruct = require(starkStructFilename);
-        } else {
-            starkStruct = generateStarkStruct(settings, log2(N));
-        }
+        this.options.logger = log;        
     }
 
     // TODO instances has to be here or to be called from provers manager?
@@ -175,7 +165,7 @@ class StarkFriProver extends ProverComponent {
             const globalStepFRI = this.proofCtx.stepsFRI[openingId - 3].nBits;
             const step = airInstance.ctx.pilInfo.starkStruct.steps.findIndex(s => s.nBits === globalStepFRI);
             if(step === -1) {
-                airInstance.ctx.challengeValue = [];
+                airInstance.ctx.challengeValue = [ [ 0n, 0n, 0n, 0n] ];
             } else {
                 await this.computeFRIFolding(numStages + openingId, airInstance, { step });
             }

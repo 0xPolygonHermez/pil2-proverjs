@@ -12,9 +12,11 @@ function getSettings() {
         ],
         prover: {
             filename: "./src/lib/provers/stark_fri_prover.js",
+        },
+        setup: {
             settings: {
-                default: { starkStruct: `./test/basic_vadcop/basic_vadcop_stark_struct_2_16.json` },
-                Rom: {starkStruct: `./test/basic_vadcop/basic_vadcop_stark_struct_2_10.json` },
+                default: { starkStruct: { "nBits": 10, "nBitsExt": 12, "nQueries": 8, "hashCommits": true, "verificationHashType": "GL", "steps": [ {"nBits": 12}, {"nBits": 8}, {"nBits": 4}] } },
+                Rom_0: {starkStruct: { "nBits": 16, "nBitsExt": 18, "nQueries": 8, "hashCommits": true, "verificationHashType": "GL", "steps": [ {"nBits": 18}, {"nBits": 14},{"nBits": 10}, {"nBits": 6} ] } },
             },   
         },
         verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
@@ -47,6 +49,6 @@ describe("Basic Vadcop", async function () {
     });
 
     it.only("Generate a Basic Vadcop proof", async () => {
-        await executeFullProveTest(setup, publicInputs, options, config.aggregation?.genProof);
+        await executeFullProveTest(setup, publicInputs, options, config.prover?.genAggregationProof);
     });
 });

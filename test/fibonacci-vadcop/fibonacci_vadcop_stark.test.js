@@ -16,18 +16,17 @@ function getSettings() {
         ],
         prover: {
             filename: "./src/lib/provers/stark_fri_prover.js",
-            settings: {
-                default: { },
-                Fibonacci_2: {starkStruct: `./test/fibonacci-vadcop/fibonacci_vadcop_stark_struct_2_2.json` },
-            },   
+            genAggregationProof: true,
         },
-        aggregation: {
+        setup: {
             settings: {
-                recursive: { starkStruct: "./src/recursion/configs/recursive.starkstruct.json" },
-                final: { starkStruct: "./src/recursion/configs/final.starkstruct.json" }
+                Fibonacci_0: { starkStruct: { "nBits": 2, "nBitsExt": 5, "nQueries": 8, "hashCommits": true, "verificationHashType": "GL", "steps": [ {"nBits": 5}, {"nBits": 4}, {"nBits": 2} ] } },
+                Module_1: { starkStruct: { "nBits": 4, "nBitsExt": 5, "nQueries": 64, "hashCommits": true, "verificationHashType": "GL", "steps": [ {"nBits": 5}, {"nBits": 4}, {"nBits": 2} ] } },
+                Fibonacci_1: { starkStruct: { "nBits": 4, "nBitsExt": 5, "nQueries": 64, "hashCommits": true, "verificationHashType": "GL", "steps": [ {"nBits": 5}, {"nBits": 4}, {"nBits": 2} ] } },
+                recursive: { blowupFactor: 3 },
+                final: { blowupFactor: 3 },
             },
-            genProof: true,
-            genSetup: false,
+            genAggregationSetup: false,
         },
         verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
     };
@@ -59,6 +58,6 @@ describe("Fibonacci Vadcop", async function () {
     });
 
     it.only("Generate a Fibonacci Vadcop proof", async () => {
-        await executeFullProveTest(setup, publicInputs, options, config.aggregation?.genProof);
+        await executeFullProveTest(setup, publicInputs, options, config.prover?.genAggregationProof);
     });
 });

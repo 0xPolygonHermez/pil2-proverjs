@@ -8,7 +8,7 @@ const {
 const { AirOut } = require("./airout.js");
 const { ProofCtx } = require("./proof_ctx.js");
 
-const { fileExists } = require("./utils.js");
+const { fileExists } = require("./setup/utils.js");
 const path = require("path");
 
 const FiniteFieldFactory = require("./finite_field_factory.js");

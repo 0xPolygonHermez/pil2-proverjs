@@ -43,7 +43,7 @@ class ProversManager {
 
                 const airName = air.name;
                 const N = air.numRows;
-                let settings = config.settings[airName] || config.settings.default;
+                let settings = config.settings ? config.settings[airName] || config.settings.default || {} : {};
 
                 if (!settings) {
                     log.error(`[${this.name}]`, `No settings for air '${airName}'${N ? ` with N=${N}` : ""}`);

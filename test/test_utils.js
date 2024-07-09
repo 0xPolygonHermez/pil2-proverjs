@@ -24,11 +24,10 @@ async function executeFullProveTest(setup, publics, options, genCircomProof) {
 
     const { proofs, challenges, challengesFRISteps, subproofValues } = await proveCmd(setup, publics, options);
         
-    const tmpPath =  path.join(__dirname, "..", "tmp");
-    if(!fs.existsSync(tmpPath)) fs.mkdirSync(tmpPath);
+    await fs.promises.mkdir("tmp/proofs", { recursive: true });
 
     for(const proof of proofs) {
-        let proofZkinFilename = path.join(tmpPath, "basic_stark_subproof" + proof.subproofId + "_air" + proof.airId + ".proof.zkin.json");
+        let proofZkinFilename = path.join("tmp/proofs/basic_stark_subproof" + proof.subproofId + "_air" + proof.airId + ".proof.zkin.json");
 
         const zkin = proof2zkin(proof.proof, setup.setup[proof.subproofId][proof.airId].starkInfo);
         zkin.publics = proof.publics;
@@ -48,7 +47,7 @@ async function executeFullProveTest(setup, publics, options, genCircomProof) {
 
     assert(isValid == true, "PROOF NOT VALID");
 
-    if(genCircomProof) await verifyCircomCmd(setup, proofs, challenges, challengesFRISteps);
+    if(genCircomProof) await verifyCircomCmd(proofs, challenges, challengesFRISteps);
 
     log.info("[FullProve ]", "<== FULL PROVE TEST")
 }

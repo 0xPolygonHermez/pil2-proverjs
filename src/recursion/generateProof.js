@@ -6,10 +6,11 @@ const { starkGen, starkVerify } = require('pil2-stark-js');
 const F3g = require("pil2-stark-js/src/helpers/f3g");
 const { proof2zkin } = require('pil2-stark-js/src/proof2zkin');
 const buildMerkleHashGL = require("pil2-stark-js/src/helpers/hash/merklehash/merklehash_p.js");
-const { compressorExec, readExecFile } = require('pil2-stark-js/src/compressor/compressor_exec');
-const { publics2zkin } = require('stark-recurser/src/pil2circom/publics2zkin.js');
 const log = require("../../logger.js");
 const { generateFixedCols } = require('pil2-stark-js/src/witness/witnessCalculator.js');
+
+const { publics2zkin } = require('stark-recurser/src/pil2circom/publics2zkin.js');
+const { compressorExec, readExecFile } = require('stark-recurser/src/circom2pil/compressor_exec.js');
 
 module.exports.generateProof = async function generateProof(template, inputs, globalInfo, subproofId, airId) {
     const F = new F3g();
@@ -20,13 +21,13 @@ module.exports.generateProof = async function generateProof(template, inputs, gl
     let filesDir;
     if(template === "final") {
         recursiveName = "final";
-        filesDir = `tmp/config/${globalInfo.name}/final`;
+        filesDir = `tmp/provingKey/${globalInfo.name}/final`;
     } else if(template === "recursive2") {
-        recursiveName = `recursive2_${subproofName}`;
-        filesDir = `tmp/config/${globalInfo.name}/${subproofName}/recursive2`;
+        recursiveName = `${subproofName}_recursive2`;
+        filesDir = `tmp/provingKey/${globalInfo.name}/${subproofName}/recursive2`;
     } else if(["recursive1", "compressor"].includes(template)) {
-        recursiveName = `${template}_${subproofName}_${airId}`;
-        filesDir = `tmp/config/${globalInfo.name}/${subproofName}/airs/${subproofName}_${airId}/${template}`;
+        recursiveName = `${subproofName}_${airId}_${template}`;
+        filesDir = `tmp/provingKey/${globalInfo.name}/${subproofName}/airs/${subproofName}_${airId}/${template}`;
     } else {
         throw new Error("Unknown template");
     }
@@ -39,7 +40,7 @@ module.exports.generateProof = async function generateProof(template, inputs, gl
 
     const constRoot = JSONbig.parse(await fs.promises.readFile(`${filesDir}/${template}.verkey.json`, "utf8"));
 
-    const pil = await compile(F, `tmp/pil/${template}_${subproofName}_${airId}.pil`);
+    const pil = await compile(F, `tmp/pil/${recursiveName}.pil`);
 
     const exec = await readExecFile(`${filesDir}/${template}.exec`, pil.references["Compressor.a"].len);
     
@@ -49,9 +50,10 @@ module.exports.generateProof = async function generateProof(template, inputs, gl
     await fd.read(wasm, 0, st.size);
     await fd.close();
 
-    const {cmPols, publics} = await compressorExec(F, pil, wasm, inputs, exec, starkInfo.nPublics);
+    const {cmPols, publics} = await compressorExec(F, pil, wasm, inputs, exec, false);
 
     const constPols = generateFixedCols(pil.references, Object.values(pil.references)[0].polDeg, false);
+
     await constPols.loadFromFile(`${filesDir}/${template}.const`);
 
     const MH = await buildMerkleHashGL();
@@ -67,12 +69,14 @@ module.exports.generateProof = async function generateProof(template, inputs, gl
 
     if (!resV) {
         throw new Error("Verification FAIL!");
+    } else {
+        log.info("Stark Verification SUCCEEDED!");
     }
 
     let zkin = proof2zkin(resP.proof, starkInfo);
 
     if(template === "compressor") {
-        const globalInfo =  JSON.parse(await fs.promises.readFile(`tmp/config/airout.globalInfo.json`, "utf8"));
+        const globalInfo =  JSON.parse(await fs.promises.readFile(`tmp/provingKey/pilout.globalInfo.json`, "utf8"));
         zkin = publics2zkin(subproofId, zkin, globalInfo, resP.publics);
     }    
 

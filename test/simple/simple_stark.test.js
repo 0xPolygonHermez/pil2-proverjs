@@ -11,9 +11,11 @@ function getSettings(prefix) {
         ],
         prover: {
             filename: "./src/lib/provers/stark_fri_prover.js",
+        },
+        setup: {
             settings: {
-                default: { starkStruct: `./test/simple/${prefix}/${prefix}_stark_struct.json` },
-            },
+                default: { blowupFactor: 3 },
+            }
         },
         verifier: {
             filename: "./src/lib/provers/stark_fri_verifier.js",
