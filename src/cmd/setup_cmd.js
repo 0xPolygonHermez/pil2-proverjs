@@ -162,9 +162,10 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
                     setup[subproof.subproofId][air.airId].hasCompressor = true;
                     globalInfo.airs[subproof.subproofId][air.airId].hasCompressor = true;
 
+                    // TODO: THIS SHOULD BE IMPROVED
                     const starkStructSettings = {};
                     starkStructSettings.blowupFactor = 4;
-                    if(compressorNeeded.nBits <= 15) starkStructSettings.nQueries = 64;
+                    starkStructSettings.nQueries = 64;
 
                     const starkStructCompressor = generateStarkStruct(starkStructSettings, compressorNeeded.nBits);
                     
@@ -248,11 +249,9 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
 
         await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalConstraints.json`, JSON.stringify(globalConstraints, null, 1), "utf8");
 
-        const finalSettings = proofManagerConfig.setup.settings.final || { blowupFactor: 3};
+        const finalSettings = proofManagerConfig.setup.settings.final || { blowupFactor: 3 };
 
-        let starkStructFinal = finalSettings.starkStruct || generateStarkStruct(finalSettings, 17); // TODO: THIS 17 SHOULD NOT BE HARDCODED!;
-
-        await genFinalSetup(buildDir, starkStructFinal, 18);
+        await genFinalSetup(buildDir, finalSettings, 18);
         
         // TODO: GENERATE COMPRESSOR / RECURSIVE1 / RECURSIVE2 / RECURSIVEF / FINAL
     }

@@ -1,4 +1,4 @@
-
+const {readR1cs} = require("r1csfile");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const JSONbig = require('json-bigint')({ useNativeBigInt: true, alwaysParseAsBig: true });
@@ -12,9 +12,10 @@ const { starkSetup } = require('pil2-stark-js');
 const { compressorSetup } = require('stark-recurser/src/circom2pil/compressor_setup.js');
 const { genCircom } = require('stark-recurser/src/gencircom.js');
 const { writeCHelpersFile } = require('pil2-stark-js/src/stark/chelpers/binFile');
+const { generateStarkStruct } = require("./utils");
 
 
-module.exports.genFinalSetup = async function genFinalSetup(buildDir, starkStructFinal, compressorCols) {
+module.exports.genFinalSetup = async function genFinalSetup(buildDir, finalSettings, compressorCols) {
     const F = new F3g();
 
     const starkInfos = [];
@@ -38,7 +39,7 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, starkStruc
         verifierInfos.push(verifierInfo);
         aggregatedKeysRecursive2.push(verificationKeys.rootCRecursive2);
         basicKeysRecursive1.push(verificationKeys.rootCRecursives1);
-        verifierNames.push( `recursive2_${globalInfo.subproofs[i]}.verifier.circom`);
+        verifierNames.push( `${globalInfo.subproofs[i]}_recursive2.verifier.circom`);
     }
         
     const filesDir = `${buildDir}/provingKey/${globalInfo.name}/final`;
@@ -61,7 +62,7 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, starkStruc
 
     // Generate setup
     const finalR1csFile = `${buildDir}/build/final.r1cs`;
-    const {exec: execBuff, pilStr, constPols} = await compressorSetup(F, finalR1csFile, compressorCols);
+    const {exec: execBuff, pilStr, constPols, nBits } = await compressorSetup(F, finalR1csFile, compressorCols);
 
     const fd =await fs.promises.open(`${filesDir}/final.exec`, "w+");
     await fd.write(execBuff);
@@ -73,6 +74,12 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, starkStruc
     // Compile pil
     const pilFinal = await compile(F, pilFilename);
 
+    if(finalSettings.starkStruct && finalSettings.starkStruct.nBits !== nBits) {
+        throw new Error("Final starkStruct nBits does not match with final circuit size");
+    };
+
+    let starkStructFinal = finalSettings.starkStruct || generateStarkStruct(finalSettings, nBits);
+    
     // Build stark info
     const setup = await starkSetup(constPols, pilFinal, starkStructFinal, {F, pil2: false});
 

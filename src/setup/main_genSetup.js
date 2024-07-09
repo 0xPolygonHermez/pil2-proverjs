@@ -12,8 +12,8 @@ const argv = require("yargs")
     .usage("node main_gensetup.js -p <pil.json> -a <airout.ptb> -s <starkstructs.json> -b <buildDir> ")
     .alias("a", "airout")
     .alias("p", "pil")
-    .alias("s", "starkstructs")
     .alias("b", "builddir")
+    .alias("s", "starkstructs")
     .argv;
 
 async function run() {

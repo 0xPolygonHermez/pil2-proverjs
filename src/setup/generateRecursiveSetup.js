@@ -30,7 +30,7 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, te
         inputChallenges = true;
         verifierName = `${subproofName}_${airId}.verifier.circom`;
         nameFilename = `${subproofName}_${airId}_${template}`;
-        templateFilename = `node_modules/stark-recurser/src/vadcop/templates/compressor.circom.ejs`;
+        templateFilename = `node_modules/stark-recurser/src/vadcop/templates/${template}.circom.ejs`;
         filesDir = `${buildDir}/provingKey/${globalInfo.name}/${subproofName}/airs/${subproofName}_${airId}/${template}`;
     } else if(template === "recursive1") {
         verifierName = `${subproofName}_${airId}_compressor.verifier.circom`;
