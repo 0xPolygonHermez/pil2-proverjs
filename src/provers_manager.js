@@ -2,7 +2,6 @@ const ProverFactory = require("./prover_factory.js");
 const { hashBTree } = require("./hash_binary_tree.js");
 
 const log = require('../logger.js');
-const { calculateHashStark } = require("pil2-stark-js");
 const { setSymbolCalculated } = require("pil2-stark-js/src/prover/symbols_helpers.js");
 
 const PROVER_OPENINGS_PENDING  = 1;

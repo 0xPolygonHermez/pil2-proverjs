@@ -14,8 +14,6 @@ const {
     callCalculateExps,
 } = require("pil2-stark-js/src/prover/prover_helpers.js");
 
-const path = require("path");
-
 const log = require('../../../logger.js');
 const { setSymbolCalculated, isStageCalculated } = require("pil2-stark-js/src/prover/symbols_helpers.js");
 
