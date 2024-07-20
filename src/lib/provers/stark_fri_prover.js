@@ -137,7 +137,7 @@ class StarkFriProver extends ProverComponent {
                     }
                 }
             } else {
-                await callCalculateExps(stageId, ctx.expressionsInfo.expressionsCode[ctx.pilInfo.cExpId].code, dom, ctx, this.settings.parallelExec, this.settings.useThreads);
+                await callCalculateExps(stageId, ctx.expressionsInfo.expressionsCode.find(e => e.expId === ctx.pilInfo.cExpId).code, dom, ctx, this.settings.parallelExec, this.settings.useThreads);
             }
         }
 
