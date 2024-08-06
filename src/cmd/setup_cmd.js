@@ -34,6 +34,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
     const setupOptions = {
         F: new F3g("0xFFFFFFFF00000001"),
         pil2: true,
+        optImPols: proofManagerConfig.setup.optImPols || false,
     };
 
     let setup = [];

@@ -14,7 +14,7 @@ const argv = require("yargs")
     .alias("p", "pil")
     .alias("b", "builddir")
     .alias("s", "starkstructs")
-    .argv;
+        .argv;
 
 async function run() {
     if(!argv.airout && !argv.pil) throw new Error("Either pilout or pil file needs to be provided!");
