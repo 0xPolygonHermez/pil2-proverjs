@@ -14,6 +14,7 @@ const argv = require("yargs")
     .alias("p", "pil")
     .alias("b", "builddir")
     .alias("s", "starkstructs")
+    .alias("r", "recursive")
         .argv;
 
 async function run() {
@@ -43,7 +44,7 @@ async function run() {
         },
         setup: {
             settings: starkStructsInfo,
-            genAggregationSetup: true,
+            genAggregationSetup: argv.recursive || false,
         }
     }
 

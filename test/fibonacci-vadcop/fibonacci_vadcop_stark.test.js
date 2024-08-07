@@ -27,7 +27,7 @@ function getSettings() {
                 final: { blowupFactor: 3 },
             },
             optImPols: true,
-            genAggregationSetup: false,
+            genAggregationSetup: true,
         },
         verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
     };

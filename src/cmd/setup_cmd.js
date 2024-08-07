@@ -102,10 +102,11 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
     }
 
     let globalInfo;
+    let globalConstraints;
     
     if(proofManagerConfig.setup && proofManagerConfig.setup.genAggregationSetup) {
         const airoutInfo = await setAiroutInfo(airout, starkStructs);
-        let globalConstraints = airoutInfo.globalConstraints;
+        globalConstraints = airoutInfo.globalConstraints;
         globalInfo = airoutInfo.vadcopInfo;
         
         let recursiveSettings =  { blowupFactor: 3 };
@@ -147,8 +148,9 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
                     verifierCircomTemplate,
                     "utf8"
                 );
-
-                const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks -l node_modules/pil2-stark-js/circuits.gl ${tmpCircomFilename} -o ${folder}`;
+                
+                const circuitsGLPath = path.resolve(__dirname, '../../', 'node_modules/pil2-stark-js/circuits.gl');
+                const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks -l ${circuitsGLPath} ${tmpCircomFilename} -o ${folder}`;
                 console.log(compileRecursiveCommand);
                 await exec(compileRecursiveCommand);
 
@@ -255,10 +257,6 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             if(hashPilRecursive1 !== hashPilRecursive2) throw new Error("Recursive1 and recursive2 pil must be the same");
         }
   
-        await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalInfo.json`, JSON.stringify(globalInfo, null, 1), "utf8");
-
-        await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalConstraints.json`, JSON.stringify(globalConstraints, null, 1), "utf8");
-
         let finalSettings = { blowupFactor: 3};
         if(proofManagerConfig.setup && proofManagerConfig.setup.settings && proofManagerConfig.setup.settings.final) {
             finalSettings = proofManagerConfig.setup.settings.final;
@@ -267,11 +265,14 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         await genFinalSetup(buildDir, finalSettings, 18);
         
         // TODO: GENERATE COMPRESSOR / RECURSIVE1 / RECURSIVE2 / RECURSIVEF / FINAL
-    }
-
-    if(!globalInfo) {
+    } else {
         const airoutInfo = await setAiroutInfo(airout, starkStructs);
         globalInfo = airoutInfo.vadcopInfo;
+        globalConstraints = airoutInfo.globalConstraints;
     }
+
+    await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalInfo.json`, JSON.stringify(globalInfo, null, 1), "utf8");
+    await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalConstraints.json`, JSON.stringify(globalConstraints, null, 1), "utf8");
+
     return { setup, airoutInfo: globalInfo, config: proofManagerConfig };
 }

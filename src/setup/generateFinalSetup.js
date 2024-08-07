@@ -13,6 +13,7 @@ const { compressorSetup } = require('stark-recurser/src/circom2pil/compressor_se
 const { genCircom } = require('stark-recurser/src/gencircom.js');
 const { writeCHelpersFile } = require('pil2-stark-js/src/stark/chelpers/binFile');
 const { generateStarkStruct } = require("./utils");
+const path = require("path");
 
 
 module.exports.genFinalSetup = async function genFinalSetup(buildDir, finalSettings, compressorCols) {
@@ -45,16 +46,19 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, finalSetti
     const filesDir = `${buildDir}/provingKey/${globalInfo.name}/final`;
     await fs.promises.mkdir(filesDir, { recursive: true });
 
-    let templateFilename = `node_modules/stark-recurser/src/vadcop/templates/final.circom.ejs`;
+    let templateFilename = path.resolve(__dirname, "../..", `node_modules/stark-recurser/src/vadcop/templates/final.circom.ejs`);
 
     // Generate final circom
     const finalVerifier = await genCircom(templateFilename, starkInfos, {...globalInfo, globalConstraints }, verifierNames, basicKeysRecursive1, aggregatedKeysRecursive2);
     await fs.promises.writeFile(finalFilename, finalVerifier, "utf8");
 
 
+    const circuitsGLPath = path.resolve(__dirname, '../../', 'node_modules/pil2-stark-js/circuits.gl');
+    const starkRecurserCircuits = path.resolve(__dirname, '../../', 'node_modules/stark-recurser/src/vadcop/helpers/circuits');
+
     // Compile circom
     console.log("Compiling " + finalFilename + "...");
-    const compileFinalCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --c --verbose -l node_modules/stark-recurser/src/vadcop/helpers/circuits -l node_modules/pil2-stark-js/circuits.gl ${finalFilename} -o ${buildDir}/build`;
+    const compileFinalCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --c --verbose -l ${starkRecurserCircuits} -l ${circuitsGLPath} ${finalFilename} -o ${buildDir}/build`;
     const execCompile = await exec(compileFinalCommand);
     console.log(execCompile.stdout);
     

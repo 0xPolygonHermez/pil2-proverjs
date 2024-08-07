@@ -13,6 +13,7 @@ const F3g = require('pil2-stark-js/src/helpers/f3g');
 const { writeCHelpersFile } = require("pil2-stark-js/src/stark/chelpers/binFile.js");
 const buildMerkleHashGL = require("pil2-stark-js/src/helpers/hash/merklehash/merklehash_p.js");
 const { starkSetup } = require('pil2-stark-js');
+const path = require('path');
 
 module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, template, subproofName, subproofId, airId, globalInfo, constRoot, verificationKeys = [], starkInfo, verifierInfo, starkStruct, compressorCols, hasCompressor) {
 
@@ -29,18 +30,18 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, te
     if((template === "recursive1" && !hasCompressor) || template === "compressor") {
         inputChallenges = true;
         verifierName = `${subproofName}_${airId}.verifier.circom`;
-        nameFilename = `${subproofName}_${airId}_${template}`;
-        templateFilename = `node_modules/stark-recurser/src/vadcop/templates/${template}.circom.ejs`;
+        nameFilename = `${subproofName}_${airId}_${template}`;    
+        templateFilename = path.resolve(__dirname,"../../", `node_modules/stark-recurser/src/vadcop/templates/${template}.circom.ejs`);
         filesDir = `${buildDir}/provingKey/${globalInfo.name}/${subproofName}/airs/${subproofName}_${airId}/${template}`;
     } else if(template === "recursive1") {
         verifierName = `${subproofName}_${airId}_compressor.verifier.circom`;
         nameFilename = `${subproofName}_${airId}_${template}`;
-        templateFilename = `node_modules/stark-recurser/src/vadcop/templates/recursive1.circom.ejs`;
+        templateFilename = path.resolve(__dirname,"../../", `node_modules/stark-recurser/src/vadcop/templates/recursive1.circom.ejs`);
         filesDir = `${buildDir}/provingKey/${globalInfo.name}/${subproofName}/airs/${subproofName}_${airId}/recursive1/`;
     } else if (template === "recursive2") {
         verifierName = `${subproofName}_recursive2.verifier.circom`;
         nameFilename = `${subproofName}_${template}`;
-        templateFilename = `node_modules/stark-recurser/src/vadcop/templates/recursive2.circom.ejs`;
+        templateFilename =  path.resolve(__dirname,"../../", `node_modules/stark-recurser/src/vadcop/templates/recursive2.circom.ejs`);
         filesDir = `${buildDir}/provingKey/${globalInfo.name}/${subproofName}/${template}`;
         enableInput = globalInfo.aggTypes.length > 1 ? true : false;
         verkeyInput = true;
@@ -60,8 +61,11 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, te
     const recursiveVerifier = await genCircom(templateFilename, [starkInfo], globalInfo, [verifierName], verificationKeys, [], [], options);
     await fs.promises.writeFile(`${buildDir}/circom/${nameFilename}.circom`, recursiveVerifier, "utf8");
 
+    const circuitsGLPath = path.resolve(__dirname, '../../', 'node_modules/pil2-stark-js/circuits.gl');
+    const starkRecurserCircuits = path.resolve(__dirname, '../../', 'node_modules/stark-recurser/src/vadcop/helpers/circuits');
+
     // Compile circom
-    const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --c --verbose -l node_modules/stark-recurser/src/vadcop/helpers/circuits -l node_modules/stark-recurser/src/pil2circom/circuits.gl ${buildDir}/circom/${nameFilename}.circom -o ${buildDir}/build`;
+    const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --c --verbose -l ${starkRecurserCircuits} -l ${circuitsGLPath} ${buildDir}/circom/${nameFilename}.circom -o ${buildDir}/build`;
     await exec(compileRecursiveCommand);
 
     fs.copyFile(`${buildDir}/build/${nameFilename}_cpp/${nameFilename}.dat`, `${filesDir}/${nameFilename}.dat`, (err) => { if(err) throw err; });
