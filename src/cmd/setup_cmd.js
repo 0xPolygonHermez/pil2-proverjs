@@ -34,7 +34,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
     const setupOptions = {
         F: new F3g("0xFFFFFFFF00000001"),
         pil2: true,
-        optImPols: proofManagerConfig.setup.optImPols || false,
+        optImPols: (proofManagerConfig.setup && proofManagerConfig.setup.optImPols) || false,
     };
 
     let setup = [];
@@ -44,7 +44,10 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
     let minFinalDegree = 5;
     for(const subproof of airout.subproofs) {
         for(const air of subproof.airs) {
-            let settings = proofManagerConfig.setup.settings[air.name + "_" + air.airId] || proofManagerConfig.setup.settings.default || {};
+            let settings = {};
+            if(proofManagerConfig.setup && proofManagerConfig.setup.settings) {
+                settings = proofManagerConfig.setup && proofManagerConfig.setup.settings[air.name + "_" + air.airId] || proofManagerConfig.setup.settings.default || {};
+            }
             if(settings.starkStruct) {
                 minFinalDegree = Math.min(minFinalDegree, settings.starkStruct.steps[settings.starkStruct.steps.length - 1].nBits);
             } else {
@@ -58,7 +61,10 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         for(const air of subproof.airs) {
             log.info("[Setup  Cmd]", `··· Computing setup for air '${air.name}'`);
 
-            let settings = proofManagerConfig.setup.settings[air.name + "_" + air.airId] || proofManagerConfig.setup.settings.default || { finalDegree: minFinalDegree };
+            let settings = {};
+            if(proofManagerConfig.setup && proofManagerConfig.setup.settings) {
+                settings = proofManagerConfig.setup && proofManagerConfig.setup.settings[air.name + "_" + air.airId] || proofManagerConfig.setup.settings.default || { finalDegree: minFinalDegree };
+            }
             
             if (!settings) {
                 log.error(`[${this.name}]`, `No settings for air '${air.name}'${air.numRows ? ` with N=${air.numRows}` : ''}`);
@@ -102,7 +108,10 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         let globalConstraints = airoutInfo.globalConstraints;
         globalInfo = airoutInfo.vadcopInfo;
         
-        const recursiveSettings = proofManagerConfig.setup.settings.recursive || { blowupFactor: 3};
+        let recursiveSettings =  { blowupFactor: 3 };
+        if(proofManagerConfig.setup && proofManagerConfig.setup.settings && proofManagerConfig.setup.settings.recursive) {
+            recursiveSettings = proofManagerConfig.setup.settings.recursive;
+        }
 
         let starkStructRecursive = recursiveSettings.starkStruct || generateStarkStruct(recursiveSettings, 17);
 
@@ -250,7 +259,10 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
 
         await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalConstraints.json`, JSON.stringify(globalConstraints, null, 1), "utf8");
 
-        const finalSettings = proofManagerConfig.setup.settings.final || { blowupFactor: 3 };
+        let finalSettings = { blowupFactor: 3};
+        if(proofManagerConfig.setup && proofManagerConfig.setup.settings && proofManagerConfig.setup.settings.final) {
+            finalSettings = proofManagerConfig.setup.settings.final;
+        }
 
         await genFinalSetup(buildDir, finalSettings, 18);
         
