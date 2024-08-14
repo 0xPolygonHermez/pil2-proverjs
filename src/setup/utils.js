@@ -50,7 +50,7 @@ async function setAiroutInfo(airout, starkStructs) {
     for(let i = 0; i < airout.subproofs.length; ++i) {
         const subproof = airout.subproofs[i];
         const subproofId = subproof.subproofId;
-        vadcopInfo.aggTypes[subproofId] = subproof.subproofvalues;
+        vadcopInfo.aggTypes[subproofId] = subproof.subproofvalues || [];
         vadcopInfo.subproofs.push(subproof.name);
         vadcopInfo.airs[i] = [];
         for(let j = 0; j < subproof.airs.length; ++j) {
@@ -69,7 +69,7 @@ async function setAiroutInfo(airout, starkStructs) {
 
     vadcopInfo.stepsFRI = Array.from(stepsFRI).sort((a, b) => b - a).map(s => { return { nBits: s }});
     vadcopInfo.nPublics = airout.numPublicValues;
-    vadcopInfo.numChallenges = airout.numChallenges;
+    vadcopInfo.numChallenges = airout.numChallenges || [0];
 
 
     let globalConstraints = [];
