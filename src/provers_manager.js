@@ -183,7 +183,11 @@ class ProversManager {
                             `[${this.name}]`,
                             `··· Computing global challenge. Adding constTree. Subproof '${subproof.name}' Air '${air.name}' Instance ${airInstance.instanceId}`
                         );
-    
+                            
+                        log.info(
+                            `[${this.name}]`,
+                            `··· Computing global challenge. Adding constTree. Subproof '${subproof.name}' Air '${air.name}' Instance ${airInstance.instanceId}`
+                        );
                         challenges.push(air.setup.constRoot);
 
                         if(!publicValues) {

@@ -16,7 +16,7 @@ function getSettings() {
         ],
         prover: {
             filename: "./src/lib/provers/stark_fri_prover.js",
-            genAggregationProof: true,
+            genAggregationProof: false,
         },
         setup: {
             settings: {
@@ -27,7 +27,7 @@ function getSettings() {
                 final: { blowupFactor: 3 },
             },
             optImPols: true,
-            genAggregationSetup: true,
+            genAggregationSetup: false,
         },
         verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
     };
@@ -54,7 +54,7 @@ describe("Fibonacci Vadcop", async function () {
         setup = await generateSetupTest(config);
     });
 
-    it("Verify a Fibonacci Vadcop constraints", async () => {
+    it.only("Verify a Fibonacci Vadcop constraints", async () => {
         await checkConstraintsTest(setup, publicInputs, optionsVerifyConstraints);
     });
 

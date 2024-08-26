@@ -25,7 +25,9 @@ const { generateFixedCols } = require("pil2-stark-js/src/witness/witnessCalculat
 const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
 const buildMerkleHashGL = require("pil2-stark-js/src/helpers/hash/merklehash/merklehash_p.js");
 const { starkSetup } = require("pil2-stark-js");
-const { writeCHelpersFile } = require("pil2-stark-js/src/stark/chelpers/binFile.js");
+const { prepareExpressionsBin } = require("pil2-stark-js/src/stark/chelpers/stark_chelpers.js");
+const { writeExpressionsBinFile } = require("pil2-stark-js/src/stark/chelpers/binFile.js");
+const { writeGlobalConstraintsBinFile } = require("pil2-stark-js/src/stark/chelpers/globalConstraints/globalConstraints.js");
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
 module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
@@ -97,7 +99,9 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         
             await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.expressionsinfo.json`, JSON.stringify(setup[subproof.subproofId][air.airId].expressionsInfo, null, 1), "utf8");
         
-            await writeCHelpersFile(`${filesDir}/${subproof.name}_${air.airId}.bin`, setup[subproof.subproofId][air.airId].genericBinFileInfo);
+            const expsBin = await prepareExpressionsBin(setup[subproof.subproofId][air.airId].starkInfo, setup[subproof.subproofId][air.airId].expressionsInfo);
+
+            await writeExpressionsBinFile(`${filesDir}/${subproof.name}_${air.airId}.bin`, expsBin);
         }
     }
 
@@ -273,6 +277,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
 
     await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalInfo.json`, JSON.stringify(globalInfo, null, 1), "utf8");
     await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalConstraints.json`, JSON.stringify(globalConstraints, null, 1), "utf8");
+    await writeGlobalConstraintsBinFile(globalInfo, globalConstraints, `${buildDir}/provingKey/pilout.globalConstraints.bin`);
 
     return { setup, airoutInfo: globalInfo, config: proofManagerConfig };
 }

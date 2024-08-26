@@ -162,24 +162,6 @@ module.exports = class ProofOrchestrator {
 
                 log.info(`[${this.name}]`, `<== ${str} ${stageId}`);
 
-                if(stageId === this.proofCtx.airout.numStages) {
-                    for(let i = 0; i < this.proofCtx.airout.subproofs.length; i++) {
-                        const subproof = this.proofCtx.airout.subproofs[i];
-                        const subproofValues = subproof.subproofvalues;
-                        if(subproofValues === undefined) continue;
-                        const instances = this.proofCtx.getAirInstancesBySubproofId(i);
-                        for(let j = 0; j < subproofValues.length; j++) {
-                            const aggType = subproofValues[j].aggType;
-                            for(const instance of instances) {
-                                const subproofValue = instance.ctx.subproofValues[j];
-                                this.proofCtx.subproofValues[i][j] = aggType === 0 
-                                    ? this.proofCtx.F.add(this.proofCtx.subproofValues[i][j], subproofValue) 
-                                    : this.proofCtx.F.mul(this.proofCtx.subproofValues[i][j], subproofValue);
-                            }
-                        }
-                    }
-                }
-
                 // If onlyCheck is true, we check the constraints stage by stage from stage1 to stageQ - 1 and do not generate the proof
                 if(this.options.onlyCheck) {
                     log.info(`[${this.name}]`, `==> CHECKING CONSTRAINTS STAGE ${stageId}`);
@@ -194,6 +176,22 @@ module.exports = class ProofOrchestrator {
 
                     if(stageId === this.proofCtx.airout.numStages) {
                         log.info(`[${this.name}]`, `==> CHECKING GLOBAL CONSTRAINTS.`);
+                        
+                        for(let i = 0; i < this.proofCtx.airout.subproofs.length; i++) {
+                            const subproof = this.proofCtx.airout.subproofs[i];
+                            const subproofValues = subproof.subproofvalues;
+                            if(subproofValues === undefined) continue;
+                            const instances = this.proofCtx.getAirInstancesBySubproofId(i);
+                            for(let j = 0; j < subproofValues.length; j++) {
+                                const aggType = subproofValues[j].aggType;
+                                for(const instance of instances) {
+                                    const subproofValue = instance.ctx.subproofValues[j];
+                                    this.proofCtx.subproofValues[i][j] = aggType === 0 
+                                        ? this.proofCtx.F.add(this.proofCtx.subproofValues[i][j], subproofValue) 
+                                        : this.proofCtx.F.mul(this.proofCtx.subproofValues[i][j], subproofValue);
+                                }
+                            }
+                        }
 
                         const validG = await this.proversManager.verifyGlobalConstraints();
 
