@@ -9,7 +9,7 @@ const F3g = require("pil2-stark-js/src/helpers/f3g.js");
 
 module.exports = async function verifyCmd(setup, proofs, challenges, publics, options) {
     log.info("[VerifyCmd ]", "==> PROOF VERIFICATION")
-    const verifierFilename =  path.join(__dirname, "../..", setup.config.verifier.filename);
+    const verifierFilename = path.isAbsolute(setup.config.verifier.filename) ? setup.config.verifier.filename : path.join(__dirname, "..", setup.config.verifier.filename);
 
     if (!await fileExists(verifierFilename)) {
         log.error(`[${this.name}]`, `Verifier ${verifierFilename} does not exist.`);
