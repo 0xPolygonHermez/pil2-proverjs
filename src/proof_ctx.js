@@ -48,6 +48,8 @@ class ProofCtx {
 
         for(let i = 0; i< this.challenges[stageId].length; i++) {
             this.challenges[stageId][i] = getChallengeStark(this.transcript);
+            log.info(`[${this.name}]`, ` Global challenge stage ${stageId} index ${i}: [${this.challenges[stageId][i]}] `);
+
         }
     }
 

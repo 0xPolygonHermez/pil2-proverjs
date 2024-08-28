@@ -86,7 +86,7 @@ class StarkFriProver extends ProverComponent {
             for(let i =  0; i < this.proofCtx.constraintsCode.length; i++) {
                 const constraint = this.proofCtx.constraintsCode[i];
                 log.info(`[${this.name}]`, `··· Checking global constraint ${i + 1}/${this.proofCtx.constraintsCode.length}: ${constraint.line} `);
-                await callCalculateExps("global", constraint, "n", this.proofCtx, this.options.parallelExec, this.options.useThreads, true, true);
+                await callCalculateExps("global", constraint, "n", this.proofCtx, false, false, true, true);
             }
         }
 
@@ -143,6 +143,7 @@ class StarkFriProver extends ProverComponent {
 
         if(!this.options.debug) {
             let commits = stageId === airout.numStages + 1 ? await computeQStark(ctx, log) : await extendAndMerkelize(stageId, ctx, log);
+            log.info(`[${this.name}]`, ` Root for subproofId ${airInstance.subproofId}, airId ${airInstance.airId} and instance ${airInstance.instanceId}: [${commits}] `);
             ctx.challengeValue = commits;
         } else {
             ctx.challengeValue = ctx.F.randomValue();
@@ -188,6 +189,8 @@ class StarkFriProver extends ProverComponent {
 
         const evalCommits = await computeEvalsStark(ctx, this.options);
         
+        log.info(`[${this.name}]`, ` Root for subproofId ${airInstance.subproofId}, airId ${airInstance.airId} and instance ${airInstance.instanceId}: [${evalCommits}] `);
+
         ctx.challengeValue = evalCommits;
     }
 
@@ -219,6 +222,8 @@ class StarkFriProver extends ProverComponent {
         );
 
         const friCommits = await computeFRIFolding(params.step, ctx, challenge, this.options);
+
+        log.info(`[${this.name}]`, ` Root for subproofId ${airInstance.subproofId}, airId ${airInstance.airId} and instance ${airInstance.instanceId}: [${friCommits}] `);
 
         ctx.challengeValue = friCommits;
     }

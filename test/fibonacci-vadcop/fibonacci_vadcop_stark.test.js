@@ -54,7 +54,7 @@ describe("Fibonacci Vadcop", async function () {
         setup = await generateSetupTest(config);
     });
 
-    it.only("Verify a Fibonacci Vadcop constraints", async () => {
+    it("Verify a Fibonacci Vadcop constraints", async () => {
         await checkConstraintsTest(setup, publicInputs, optionsVerifyConstraints);
     });
 

@@ -81,7 +81,7 @@ class ProversManager {
         }
 
         if(this.proofCtx.airout.constraints !== undefined) {
-            this.proofCtx.constraintsCode = setup.globalConstraints;
+            this.proofCtx.constraintsCode = setup.airoutInfo.globalConstraints;
         }
     }
 
