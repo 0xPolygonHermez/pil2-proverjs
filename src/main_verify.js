@@ -64,7 +64,7 @@ async function run() {
 
     const config = {
         name: globalInfo.name + "-" + Date.now(),
-        verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },
+        verifier: { filename:  path.join(__dirname, "/lib/provers/stark_fri_verifier.js") }
     }
 
     const setup = {

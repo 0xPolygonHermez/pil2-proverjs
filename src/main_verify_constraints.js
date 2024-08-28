@@ -27,20 +27,31 @@ async function run() {
 
     if(!argv.witnesscalculators) throw new Error("Witness Calculators must be provided");
 
-    const witnessCalculators = JSON.parse(await fs.promises.readFile(argv.witnesscalculators));
-
-    const publics = !argv.publics ? [5n, 1n, 1n, undefined] : JSON.parse(await fs.promises.readFile(argv.publics));
+    const witnessCalculators = JSON.parse(await fs.promises.readFile(argv.witnesscalculators), (key, value) => {
+        if (key === 'filename') {
+            return path.resolve(value);
+        }
+        return value;
+    });
 
     const globalInfo = JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, "provingKey", "pilout.globalInfo.json")));
 
-    if(publics.length !== globalInfo.nPublics) throw new Error("Something went wrong when loading publics");
-
     const globalConstraints = JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, "provingKey", "pilout.globalConstraints.json")));
-
+    
     const airoutInfo = {...globalInfo, globalConstraints};
 
     const airout = new AirOut(argv.airout);
 
+    const publicsJSON =  JSON.parse(await fs.promises.readFile(argv.publics));
+    
+    const publics = new Array(globalInfo.nPublics);
+
+    for(let i = 0; i < airout.symbols.length; ++i) {
+        const symbol = airout.symbols[i];
+        if(symbol.type !== 6) continue;
+        const value = publicsJSON[symbol.name];
+        if(value != undefined) publics[symbol.id] = BigInt(value);
+    }
     
     const setups = [];
     
@@ -82,10 +93,10 @@ async function run() {
         name: globalInfo.name + "-" + Date.now(),
         witnessCalculators,
         airout: {
-            airoutFilename: argv.airout,
+            airoutFilename: path.resolve(argv.airout),
         },
         prover: {
-            filename: "./src/lib/provers/stark_fri_prover.js",
+            filename: path.join(__dirname, "/lib/provers/stark_fri_prover.js"),
         },
     }
 
