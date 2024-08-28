@@ -133,7 +133,7 @@ class StarkFriProver extends ProverComponent {
                     }
                 } else {
                     if(stageId === qStage - 1) {
-                        await callCalculateExps(stageId, ctx.expressionsInfo.imPolsCode, dom, ctx, this.settings.parallelExec, this.settings.useThreads);
+                        await callCalculateExps(stageId, ctx.expressionsInfo.imPolsCode[stageId - 1], dom, ctx, this.settings.parallelExec, this.settings.useThreads);
                     }
                 }
             } else {
