@@ -20,13 +20,12 @@ function getSettings() {
         },
         setup: {
             settings: {
-                Fibonacci_0: { starkStruct: { "nBits": 2, "nBitsExt": 5, "nQueries": 8, "hashCommits": true, "verificationHashType": "GL", "steps": [ {"nBits": 5}, {"nBits": 4}, {"nBits": 2} ] } },
-                Module_1: { starkStruct: { "nBits": 4, "nBitsExt": 5, "nQueries": 64, "hashCommits": true, "verificationHashType": "GL", "steps": [ {"nBits": 5}, {"nBits": 4}, {"nBits": 2} ] } },
-                Fibonacci_1: { starkStruct: { "nBits": 4, "nBitsExt": 5, "nQueries": 64, "hashCommits": true, "verificationHashType": "GL", "steps": [ {"nBits": 5}, {"nBits": 4}, {"nBits": 2} ] } },
-                recursive: { blowupFactor: 3 },
-                final: { blowupFactor: 3 },
+                // Fibonacci_0: { starkStruct: { "nBits": 2, "nBitsExt": 5, "nQueries": 8, "hashCommits": true, "verificationHashType": "GL", "steps": [ {"nBits": 5}, {"nBits": 4}, {"nBits": 2} ] } },
+                // Module_1: { starkStruct: { "nBits": 4, "nBitsExt": 5, "nQueries": 64, "hashCommits": true, "verificationHashType": "GL", "steps": [ {"nBits": 5}, {"nBits": 4}, {"nBits": 2} ] } },
+                // Fibonacci_1: { starkStruct: { "nBits": 4, "nBitsExt": 5, "nQueries": 64, "hashCommits": true, "verificationHashType": "GL", "steps": [ {"nBits": 5}, {"nBits": 4}, {"nBits": 2} ] } },
+                // recursive: { blowupFactor: 3 },
+                // final: { blowupFactor: 3 },
             },
-            optImPols: true,
             genAggregationSetup: false,
         },
         verifier: { filename: "./src/lib/provers/stark_fri_verifier.js", settings: {} },

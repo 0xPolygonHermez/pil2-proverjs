@@ -22,17 +22,19 @@ async function generateSetupTest(proofManagerConfig) {
 async function executeFullProveTest(setup, publics, options, genCircomProof) {
     log.info("[FullProve ]", "==> FULL PROVE TEST")
 
-    const { proofs, challenges, challengesFRISteps, subproofValues } = await proveCmd(setup, publics, options);
+    const { proofs, challenges, publics: publicsProof } = await proveCmd(setup, publics, options);
         
     await fs.promises.mkdir("tmp/proofs", { recursive: true });
 
     for(const proof of proofs) {
-        let proofZkinFilename = path.join("tmp/proofs/basic_stark_subproof" + proof.subproofId + "_air" + proof.airId + ".proof.zkin.json");
+        const subproofId = proof.subproofId;
+        const airId = proof.airId;
+        let proofZkinFilename = path.join("tmp/proofs/basic_stark_subproof" + subproofId + "_air" + airId + ".proof.zkin.json");
 
-        const zkin = proof2zkin(proof.proof, setup.setup[proof.subproofId][proof.airId].starkInfo);
-        zkin.publics = proof.publics;
-        zkin.challenges = challenges.flat();
-        zkin.challengesFRISteps = challengesFRISteps;
+        const zkin = proof2zkin(proof, setup.setup[subproofId][airId].starkInfo);
+        zkin.publics = publicsProof;
+        zkin.challenges = challenges.challenges.flat();
+        zkin.challengesFRISteps = challenges.challengesFRISteps;
 
         await fs.promises.writeFile(proofZkinFilename, JSONbig.stringify(zkin, (k, v) => {
             if (typeof(v) === "bigint") {
@@ -43,11 +45,11 @@ async function executeFullProveTest(setup, publics, options, genCircomProof) {
         }, 1), "utf8");
     }
     
-    const isValid = await verifyCmd(setup, proofs, challenges, challengesFRISteps, subproofValues, options);
+    const isValid = await verifyCmd(setup, proofs, challenges, publicsProof, options);
 
     assert(isValid == true, "PROOF NOT VALID");
 
-    if(genCircomProof) await verifyCircomCmd(proofs, challenges, challengesFRISteps);
+    if(genCircomProof) await verifyCircomCmd(proofs, challenges);
 
     log.info("[FullProve ]", "<== FULL PROVE TEST")
 }

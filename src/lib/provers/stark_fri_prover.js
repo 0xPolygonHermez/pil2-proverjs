@@ -79,23 +79,23 @@ class StarkFriProver extends ProverComponent {
         return isValid;
     }
 
-    async verifyGlobalConstraints() {
-        this.proofCtx.errors = [];
+    async verifyGlobalConstraints(subproofValues) {
+        let errors = [];
 
         if(this.proofCtx.constraintsCode !== undefined) {
             for(let i =  0; i < this.proofCtx.constraintsCode.length; i++) {
                 const constraint = this.proofCtx.constraintsCode[i];
                 log.info(`[${this.name}]`, `··· Checking global constraint ${i + 1}/${this.proofCtx.constraintsCode.length}: ${constraint.line} `);
-                await callCalculateExps("global", constraint, "n", this.proofCtx, false, false, true, true);
+                await callCalculateExps("global", constraint, "n", {F: this.proofCtx.F, errors, subproofValues}, false, false, true, true);
             }
         }
 
 
-        const isValid = this.proofCtx.errors.length === 0;
+        const isValid = errors.length === 0;
 
         if (!isValid) {
             log.error(`[${this.name}]`, `Constraints have not been fulfilled!`);
-            for (let i = 0; i < this.proofCtx.errors.length; i++) log.error(`[${this.name}]`, this.proofCtx.errors[i]);
+            for (let i = 0; i < errors.length; i++) log.error(`[${this.name}]`, errors[i]);
         }
 
         return isValid;

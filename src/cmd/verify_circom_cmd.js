@@ -7,7 +7,7 @@ const { joinzkinFinal } = require("stark-recurser/src/pil2circom/joinzkinFinal.j
 const { proof2zkin } = require("stark-recurser/src/pil2circom/proof2zkin.js");
 const { nullpublics2zkin, publics2zkin } = require("stark-recurser/src/pil2circom/publics2zkin.js");
 
-module.exports = async function verifyCircomCmd(proofs, challenges, challengesFRISteps) {
+module.exports = async function verifyCircomCmd(proofs, challenges) {
     log.info("[CircomVrfr]", "==> CIRCOM PROOF VERIFICATION")
     
     const globalInfo = JSON.parse(await fs.promises.readFile(`tmp/provingKey/pilout.globalInfo.json`, "utf8"));
@@ -31,8 +31,8 @@ module.exports = async function verifyCircomCmd(proofs, challenges, challengesFR
             const hasCompressor = globalInfo.airs[subproofId][airId].hasCompressor;
 
             let inputs = proof2zkin(proof.proof, starkInfo, "sv");
-            inputs.challenges = challenges.flat();
-            inputs.challengesFRISteps = challengesFRISteps;
+            inputs.challenges = challenges.challenges.flat();
+            inputs.challengesFRISteps = challenges.challengesFRISteps;
             inputs.publics = proof.publics;
 
             if(hasCompressor) {

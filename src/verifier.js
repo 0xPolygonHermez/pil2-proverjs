@@ -16,6 +16,8 @@ class VerifierComponent {
         this.settings = settings;
         this.options = options;
         this.initialized = true;
+
+        this.options.logger = log;        
     }
 
     checkInitialized() {

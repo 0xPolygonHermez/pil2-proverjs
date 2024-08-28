@@ -114,9 +114,9 @@ class ProversManager {
         return result;        
     }
 
-    async verifyGlobalConstraints() {
+    async verifyGlobalConstraints(subproofValues) {
         const proverId = this.getProverIdFromInstance(this.proofCtx.getAirInstancesBySubproofId(0)[0]);
-        const validGlobalConstraints = await this.provers[proverId].verifyGlobalConstraints();
+        const validGlobalConstraints = await this.provers[proverId].verifyGlobalConstraints(subproofValues);
         
         if(!validGlobalConstraints) log.error(`[${this.name}]`, `Global constraints verification failed.`);
         

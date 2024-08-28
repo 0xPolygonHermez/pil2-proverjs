@@ -1,10 +1,10 @@
 const fs = require("fs");
-const version = require("../../package").version;
+const version = require("../package").version;
 
 const path = require("path");
 
 const compilePil2 = require("pil2-compiler/src/compiler.js");
-const setupCmd = require("../cmd/setup_cmd");
+const setupCmd = require("./cmd/setup_cmd");
 const F3g = require("pil2-stark-js/src/helpers/f3g");
 
 const argv = require("yargs")

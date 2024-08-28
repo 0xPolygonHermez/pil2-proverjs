@@ -177,6 +177,15 @@ module.exports = class ProofOrchestrator {
                     if(stageId === this.proofCtx.airout.numStages) {
                         log.info(`[${this.name}]`, `==> CHECKING GLOBAL CONSTRAINTS.`);
                         
+                        let subproofValuesProof = [];
+                        for(let i = 0; i < this.proofCtx.airout.subproofs.length; i++) {
+                            subproofValuesProof[i] = [];
+                            for(let j = 0; j < this.proofCtx.airout.subproofs[i].subproofvalues?.length; j++) {
+                                const aggType = this.proofCtx.airout.subproofs[i].subproofvalues[j].aggType;
+                                subproofValuesProof[i][j] = aggType === 0 ? [0n, 0n, 0n] : [1n, 0n, 0n];
+                            }
+                        }
+
                         for(let i = 0; i < this.proofCtx.airout.subproofs.length; i++) {
                             const subproof = this.proofCtx.airout.subproofs[i];
                             const subproofValues = subproof.subproofvalues;
@@ -186,14 +195,14 @@ module.exports = class ProofOrchestrator {
                                 const aggType = subproofValues[j].aggType;
                                 for(const instance of instances) {
                                     const subproofValue = instance.ctx.subproofValues[j];
-                                    this.proofCtx.subproofValues[i][j] = aggType === 0 
-                                        ? this.proofCtx.F.add(this.proofCtx.subproofValues[i][j], subproofValue) 
-                                        : this.proofCtx.F.mul(this.proofCtx.subproofValues[i][j], subproofValue);
+                                    subproofValuesProof[i][j] = aggType === 0 
+                                        ? this.proofCtx.F.add(subproofValuesProof[i][j], subproofValue) 
+                                        : this.proofCtx.F.mul(subproofValuesProof[i][j], subproofValue);
                                 }
                             }
                         }
 
-                        const validG = await this.proversManager.verifyGlobalConstraints();
+                        const validG = await this.proversManager.verifyGlobalConstraints(subproofValuesProof);
 
                         if(!validG) {
                             log.error(`[${this.name}]`, `Global constraints verification failed.`);
@@ -211,16 +220,21 @@ module.exports = class ProofOrchestrator {
             let proofs = [];
     
             for(const airInstance of this.proofCtx.getAirInstances()) {
-                airInstance.proof.subproofId = airInstance.subproofId;
-                airInstance.proof.airId = airInstance.airId;
-                proofs.push(airInstance.proof);
+                const proof = airInstance.proof.proof;
+                proof.subproofId = airInstance.subproofId;
+                proof.airId = airInstance.airId;
+                proofs.push(proof);
             }
-    
-            return {
-                proofs,
+            
+            const challenges = {
                 challenges: this.proofCtx.challenges.slice(0, this.proofCtx.airout.numStages + 3),
                 challengesFRISteps: this.proofCtx.challenges.slice(this.proofCtx.airout.numStages + 3).map(c => c[0]),
-                subproofValues: this.proofCtx.subproofValues,
+            };
+
+            return {
+                publics: this.proofCtx.publics,
+                proofs,
+                challenges
             };
 
         } catch (error) {
