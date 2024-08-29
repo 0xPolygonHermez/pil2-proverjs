@@ -37,6 +37,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         F: new F3g("0xFFFFFFFF00000001"),
         pil2: true,
         optImPols: (proofManagerConfig.setup && proofManagerConfig.setup.optImPols) || false,
+        skipConstTree: proofManagerConfig.setup && proofManagerConfig.setup.constTree !== undefined ? true : false,
     };
 
     let setup = [];
@@ -85,15 +86,20 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             const filesDir = `${buildDir}/provingKey/${airout.name}/${subproof.name}/airs/${subproof.name}_${air.airId}/air`;
             await fs.promises.mkdir(filesDir, { recursive: true });
 
-            const MH = await buildMerkleHashGL(starkStruct.splitLinearHash);
-
             await fixedPols.saveToFile(`${filesDir}/${subproof.name}_${air.airId}.const`);
-
-            await MH.writeToFile(setup[subproof.subproofId][air.airId].constTree, `${filesDir}/${subproof.name}_${air.airId}.consttree`);
-
-            await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.verkey.json`, JSONbig.stringify(setup[subproof.subproofId][air.airId].constRoot, null, 1), "utf8");
-
+            
             await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.starkinfo.json`, JSON.stringify(setup[subproof.subproofId][air.airId].starkInfo, null, 1), "utf8");
+
+            if(!setupOptions.skipConstTree) {
+                const MH = await buildMerkleHashGL(starkStruct.splitLinearHash);
+                await MH.writeToFile(setup[subproof.subproofId][air.airId].constTree, `${filesDir}/${subproof.name}_${air.airId}.consttree`);
+                await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.verkey.json`, JSONbig.stringify(setup[subproof.subproofId][air.airId].constRoot, null, 1), "utf8");
+            } else {
+                console.log("Computing Constant Tree...");
+                const {stdout} = await exec(`${proofManagerConfig.setup.constTree} -c ${filesDir}/${subproof.name}_${air.airId}.const -s ${filesDir}/${subproof.name}_${air.airId}.starkinfo.json -v ${filesDir}/${subproof.name}_${air.airId}.verkey.json`);
+                console.log(stdout);
+            }    
+
         
             await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.verifierinfo.json`, JSON.stringify(setup[subproof.subproofId][air.airId].verifierInfo, null, 1), "utf8");
         

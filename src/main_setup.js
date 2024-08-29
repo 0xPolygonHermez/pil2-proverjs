@@ -14,6 +14,7 @@ const argv = require("yargs")
     .alias("p", "pil")
     .alias("b", "builddir")
     .alias("s", "starkstructs")
+    .alias("t", "consttree")
     .alias("r", "recursive")
         .argv;
 
@@ -46,6 +47,10 @@ async function run() {
             settings: starkStructsInfo,
             genAggregationSetup: argv.recursive || false,
         }
+    }
+
+    if(argv.consttree) {
+        config.setup.constTree = argv.consttree;
     }
 
     await setupCmd(config, buildDir);

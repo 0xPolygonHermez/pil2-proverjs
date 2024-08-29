@@ -61,6 +61,11 @@ class AirOut {
                 air.hints = this.getHintsBySubproofIdAirId(subproof.subproofId, air.airId);
                 air.numChallenges = this.numChallenges;
                 air.aggregationTypes = subproof.subproofvalues;
+                
+                if(!air.constraints) {
+                    log.error(`[Airout    ]`, `Air ${air.airId} of subproof ${air.subproofId} does not have any constraint!`);
+                    throw new Error(`Air ${air.airId} of subproof ${air.subproofId} does not have any constraint!`);
+                }
             }
         }
     }
