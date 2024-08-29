@@ -21,8 +21,8 @@ async function run() {
     if(!argv.proofsdir) throw new Error("Proofs directory must be provided");
 
 
-    const publics = JSONbig.parse(await fs.promises.readFile(path.join(argv.proofsdir, "publics.json")));
-    const challenges = JSONbig.parse(await fs.promises.readFile(path.join(argv.proofsdir, "challenges.json")));
+    const publics = str2bigInt(JSONbig.parse(await fs.promises.readFile(path.join(argv.proofsdir, "publics.json"))));
+    const challenges = str2bigInt(JSONbig.parse(await fs.promises.readFile(path.join(argv.proofsdir, "challenges.json"))));
 
     const proofsFiles = await fs.promises.readdir(path.join(argv.proofsdir, "proofs"));
 
@@ -30,7 +30,7 @@ async function run() {
 
     for(let i = 0; i < proofsFiles.length; ++i) {
         const proof = JSONbig.parse(await fs.promises.readFile(path.join(argv.proofsdir, "proofs", proofsFiles[i])));
-        proofs.push(proof);
+        proofs.push(str2bigInt(proof));
     }
 
     const globalInfo = JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, "provingKey", "pilout.globalInfo.json")));
@@ -93,3 +93,20 @@ run().then(()=> {
     process.exit(1);
 });
 
+function str2bigInt(obj) {
+    if (typeof obj === "object") {
+        for (k in obj) {
+            obj[k] = str2bigInt(obj[k]);
+        }
+        return obj;
+    } else if (Array.isArray(obj)) {
+        for (let i=0; i<obj.length; i++) {
+            obj[i] = str2bigInt(obj[i]);
+        }
+        return obj;
+    } else if (typeof obj == "string") {
+        return BigInt(obj);
+    } else {
+        return obj;
+    }
+}

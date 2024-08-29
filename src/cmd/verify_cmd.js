@@ -46,7 +46,7 @@ module.exports = async function verifyCmd(setup, proofs, challenges, publics, op
             const subproofValues = proof.subproofValues;
             for(let j = 0; j < subproofValues.length; ++j) {
                 const aggType = setup.airoutInfo.aggTypes[subproofId][j].aggType;
-                subproofValuesProof[subproofId][j] = aggType === 0
+                                subproofValuesProof[subproofId][j] = aggType === 0
                     ? F.add(subproofValuesProof[subproofId][j], subproofValues[j])
                     : F.mul(subproofValuesProof[subproofId][j], subproofValues[j]);
             }
@@ -54,6 +54,7 @@ module.exports = async function verifyCmd(setup, proofs, challenges, publics, op
 
         for(let i = 0; i < globalConstraints.length; i++) {
             log.info("[VerifyCmd ]", "··· Verifying Global Constraint", i + 1, "/", globalConstraints.length);
+            log.info(globalConstraints[i].line);
             const res = executeCode(F, {subproofValues: subproofValuesProof}, globalConstraints[i].code, true);
             isValid = isValid && F.isZero(res);
 
