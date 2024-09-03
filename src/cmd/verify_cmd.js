@@ -21,7 +21,7 @@ module.exports = async function verifyCmd(setup, proofs, challenges, publics, op
 
     let isValid = true;
 
-    if(setup.airoutInfo.globalConstraints !== undefined) {
+    if(setup.airoutInfo.globalConstraints !== undefined && setup.airoutInfo.globalConstraints.length > 0) {
         const globalConstraints = setup.airoutInfo.globalConstraints;
         
         const F = new F3g();

@@ -33,9 +33,9 @@ async function run() {
         proofs.push(str2bigInt(proof));
     }
 
-    const globalInfo = JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, "provingKey", "pilout.globalInfo.json")));
+    const globalInfo = JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, "pilout.globalInfo.json")));
 
-    const globalConstraints = JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, "provingKey", "pilout.globalConstraints.json")));
+    const globalConstraints = JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, "pilout.globalConstraints.json")));
 
     const airoutInfo = {...globalInfo, globalConstraints};
     
@@ -45,7 +45,7 @@ async function run() {
         const setupsAir = [];
         for(let j = 0; j < globalInfo.airs[i].length; ++j) {
             const airName = globalInfo.airs[i][j].name;
-            const pathAir = path.join(argv.provingkey, "provingKey", globalInfo.name, globalInfo.subproofs[i], "airs", globalInfo.airs[i][j].name, "air");
+            const pathAir = path.join(argv.provingkey, globalInfo.name, globalInfo.subproofs[i], "airs", globalInfo.airs[i][j].name, "air");
             
             const starkInfo = JSON.parse(await fs.promises.readFile(path.join(pathAir, `${airName}.starkinfo.json`), "utf8"));
         
