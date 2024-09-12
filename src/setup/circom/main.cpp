@@ -252,7 +252,9 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
     // Verifier stark proof
     //-------------------------------------------
     TimerStart(CIRCOM_LOAD_CIRCUIT);
+    cout << "LOADING CIRCUIT " << endl;
     Circom_Circuit *circuit = loadCircuit(datFile);
+    cout << "CIRCUIT LOADED " << endl;
     TimerStopAndLog(CIRCOM_LOAD_CIRCUIT);
     TimerStart(CIRCOM_LOAD_JSON);
     Circom_CalcWit *ctx = new Circom_CalcWit(circuit);

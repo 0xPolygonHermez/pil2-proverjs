@@ -45,7 +45,7 @@
         global Fr_rawq
         global Fr_rawR3
 
-        extern Fr_fail
+        global Fr_fail
         DEFAULT REL
 
         section .text
@@ -276,6 +276,19 @@ Fr_longErr:
         pop rsi
         pop rbp
         ret
+
+Fr_fail:
+
+        cmp eax, 0   ; Compare EAX with 0 (false)
+        je error     ; Jump to the error label if EAX is 0
+
+        jmp exit     ; Jump to the exit label
+
+        error:
+                ; Code to handle the assertion failure (e.g., print an error message)
+
+        exit:
+                ; Exit the program (e.g., using the `ret` instruction)
 
 
 
