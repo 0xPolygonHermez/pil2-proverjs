@@ -10,10 +10,11 @@ const {genCircom} = require('stark-recurser/src/gencircom.js');
 const { genNullProof } = require('stark-recurser/src/pil2circom/proof2zkin');
 
 const F3g = require('pil2-stark-js/src/helpers/f3g');
-const { writeCHelpersFile } = require("pil2-stark-js/src/stark/chelpers/binFile.js");
+const { writeExpressionsBinFile } = require("pil2-stark-js/src/stark/chelpers/binFile.js");
 const buildMerkleHashGL = require("pil2-stark-js/src/helpers/hash/merklehash/merklehash_p.js");
 const { starkSetup } = require('pil2-stark-js');
 const path = require('path');
+const { prepareExpressionsBin } = require('pil2-stark-js/src/stark/chelpers/stark_chelpers');
 
 module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, template, subproofName, subproofId, airId, globalInfo, constRoot, verificationKeys = [], starkInfo, verifierInfo, starkStruct, compressorCols, hasCompressor) {
 
@@ -70,6 +71,8 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, te
 
     fs.copyFile(`${buildDir}/build/${nameFilename}_cpp/${nameFilename}.dat`, `${filesDir}/${nameFilename}.dat`, (err) => { if(err) throw err; });
 
+    // TODO
+
     // Generate setup
     const {exec: execBuff, pilStr, constPols} = await compressorSetup(F, `${buildDir}/build/${nameFilename}.r1cs`, compressorCols);
 
@@ -94,8 +97,10 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, te
 
     await fs.promises.writeFile(`${filesDir}/${template}.expressionsinfo.json`, JSON.stringify(setup.expressionsInfo, null, 1), "utf8");
 
-    await writeCHelpersFile(`${filesDir}/${template}.bin`, setup.genericBinFileInfo);
+    const expsBin = await prepareExpressionsBin(setup.starkInfo, setup.expressionsInfo);
 
+    await writeExpressionsBinFile(`${filesDir}/${template}.bin`, expsBin);
+    
     const MH = await buildMerkleHashGL();
     await MH.writeToFile(setup.constTree, `${filesDir}/${template}.consttree`);
 
