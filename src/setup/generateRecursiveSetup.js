@@ -16,7 +16,7 @@ const { starkSetup } = require('pil2-stark-js');
 const path = require('path');
 const { prepareExpressionsBin } = require('pil2-stark-js/src/stark/chelpers/stark_chelpers');
 
-module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, template, subproofName, subproofId, airId, globalInfo, constRoot, verificationKeys = [], starkInfo, verifierInfo, starkStruct, compressorCols, hasCompressor) {
+module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, setupOptions, template, subproofName, subproofId, airId, globalInfo, constRoot, verificationKeys = [], starkInfo, verifierInfo, starkStruct, compressorCols, hasCompressor) {
 
     const F = new F3g();
 
@@ -46,6 +46,8 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, te
         filesDir = `${buildDir}/provingKey/${globalInfo.name}/${subproofName}/${template}`;
         enableInput = globalInfo.aggTypes.length > 1 ? true : false;
         verkeyInput = true;
+    } else {
+        throw new Error("Unknown template" + template);
     }
 
     const options = { skipMain: true, verkeyInput, enableInput, inputChallenges, subproofId, hasCompressor }
@@ -66,12 +68,16 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, te
     const starkRecurserCircuits = path.resolve(__dirname, '../../', 'node_modules/stark-recurser/src/vadcop/helpers/circuits');
 
     // Compile circom
+    console.log("Compiling " + nameFilename + "...");
     const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --c --verbose -l ${starkRecurserCircuits} -l ${circuitsGLPath} ${buildDir}/circom/${nameFilename}.circom -o ${buildDir}/build`;
     await exec(compileRecursiveCommand);
 
+    console.log("Copying circom files...");
     fs.copyFile(`${buildDir}/build/${nameFilename}_cpp/${nameFilename}.dat`, `${filesDir}/${nameFilename}.dat`, (err) => { if(err) throw err; });
-
-    // TODO
+    fs.copyFile(`${buildDir}/build/${nameFilename}_cpp/${nameFilename}.cpp`, "./src/setup/circom/verifier.cpp", () => {});
+    
+    console.log(`Generating witness library for ${nameFilename}...`);
+    await exec(`make -C src/setup/circom -j witness WITNESS_DIR=../../../${filesDir} WITNESS_FILE=${nameFilename}.so`);
 
     // Generate setup
     const {exec: execBuff, pilStr, constPols} = await compressorSetup(F, `${buildDir}/build/${nameFilename}.r1cs`, compressorCols);
@@ -87,9 +93,7 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, te
     // Build stark info
     const pilRecursive = await compile(F, `${buildDir}/pil/${nameFilename}.pil`);
 
-    const setup = await starkSetup(constPols, pilRecursive, starkStruct, {F, pil2: false, subproofId, airId});
-
-    await fs.promises.writeFile(`${filesDir}/${template}.verkey.json`, JSONbig.stringify(setup.constRoot, null, 1), "utf8");
+    const setup = await starkSetup(constPols, pilRecursive, starkStruct, {...setupOptions, F, pil2: false, subproofId, airId, recursion: true});
 
     await fs.promises.writeFile(`${filesDir}/${template}.starkinfo.json`, JSON.stringify(setup.starkInfo, null, 1), "utf8");
 
@@ -97,12 +101,22 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, te
 
     await fs.promises.writeFile(`${filesDir}/${template}.expressionsinfo.json`, JSON.stringify(setup.expressionsInfo, null, 1), "utf8");
 
+    if(!setupOptions.constTree) {
+        const MH = await buildMerkleHashGL();
+        await MH.writeToFile(setup.constTree, `${filesDir}/${template}.consttree`);
+        await fs.promises.writeFile(`${filesDir}/${template}.verkey.json`, JSONbig.stringify(setup.constRoot, null, 1), "utf8");
+    } else {
+        console.log("Computing Constant Tree...");
+        const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/${template}.const -s ${filesDir}/${template}.starkinfo.json -v ${filesDir}/${template}.verkey.json`);
+        console.log(stdout);
+        setup.constRoot = JSON.parse(await fs.promises.readFile(`${filesDir}/${template}.verkey.json`, "utf8"));
+    }
+   
     const expsBin = await prepareExpressionsBin(setup.starkInfo, setup.expressionsInfo);
 
     await writeExpressionsBinFile(`${filesDir}/${template}.bin`, expsBin);
     
-    const MH = await buildMerkleHashGL();
-    await MH.writeToFile(setup.constTree, `${filesDir}/${template}.consttree`);
+    
 
     if(template === "recursive2") {
         const vks = {

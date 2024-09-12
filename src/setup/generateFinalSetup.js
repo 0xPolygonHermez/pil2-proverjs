@@ -11,12 +11,11 @@ const { starkSetup } = require('pil2-stark-js');
 
 const { compressorSetup } = require('stark-recurser/src/circom2pil/compressor_setup.js');
 const { genCircom } = require('stark-recurser/src/gencircom.js');
-const { writeCHelpersFile } = require('pil2-stark-js/src/stark/chelpers/binFile');
 const { generateStarkStruct } = require("./utils");
 const path = require("path");
 
 
-module.exports.genFinalSetup = async function genFinalSetup(buildDir, finalSettings, compressorCols) {
+module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptions, finalSettings, globalInfo, globalConstraints, compressorCols) {
     const F = new F3g();
 
     const starkInfos = [];
@@ -26,10 +25,6 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, finalSetti
     const verifierNames = [];
 
     const finalFilename = `${buildDir}/circom/final.circom`;
-
-    const globalInfo = JSON.parse(await fs.promises.readFile(`${buildDir}/provingKey/pilout.globalInfo.json`, "utf8"));
-
-    const globalConstraints = JSON.parse(await fs.promises.readFile(`${buildDir}/provingKey/pilout.globalConstraints.json`, "utf8"));
 
     for(let i = 0; i < globalInfo.aggTypes.length; i++) {
         const starkInfo = JSON.parse(await fs.promises.readFile(`${buildDir}/provingKey/${globalInfo.name}/${globalInfo.subproofs[i]}/recursive2/recursive2.starkinfo.json`, "utf8"));
@@ -62,7 +57,12 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, finalSetti
     const execCompile = await exec(compileFinalCommand);
     console.log(execCompile.stdout);
     
+    console.log("Copying circom files...");
     fs.copyFile(`${buildDir}/build/final_cpp/final.dat`, `${buildDir}/provingKey/${globalInfo.name}/final/final.dat`, (err) => { if(err) throw err; });
+    fs.copyFile(`${buildDir}/build/final_cpp/final.cpp`, "./src/setup/circom/verifier.cpp", () => {});
+
+    console.log(`Generating witness library for final.cpp...`);
+    await exec(`make -C src/setup/circom -j witness WITNESS_DIR=../../../${filesDir} WITNESS_FILE=final.so`);
 
     // Generate setup
     const finalR1csFile = `${buildDir}/build/final.r1cs`;
@@ -85,22 +85,31 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, finalSetti
     let starkStructFinal = finalSettings.starkStruct || generateStarkStruct(finalSettings, nBits);
     
     // Build stark info
-    const setup = await starkSetup(constPols, pilFinal, starkStructFinal, {F, pil2: false});
+    const setup = await starkSetup(constPols, pilFinal, starkStructFinal, {...setupOptions, F, pil2: false, recursion: true});
 
     await constPols.saveToFile(`${filesDir}/final.const`);
 
-    await fs.promises.writeFile(`${filesDir}/final.verkey.json`, JSONbig.stringify(setup.constRoot, null, 1), "utf8");
 
     await fs.promises.writeFile(`${filesDir}/final.starkinfo.json`, JSON.stringify(setup.starkInfo, null, 1), "utf8");
 
     await fs.promises.writeFile(`${filesDir}/final.expressionsinfo.json`, JSON.stringify(setup.expressionsInfo, null, 1), "utf8");
 
     await fs.promises.writeFile(`${filesDir}/final.verifierinfo.json`, JSON.stringify(setup.verifierInfo, null, 1), "utf8");
+    
+    if(!setupOptions.constTree) {
+        const MH = await buildMerkleHashGL();
+        await MH.writeToFile(setup.constTree, `${filesDir}/final.consttree`);
+        await fs.promises.writeFile(`${filesDir}/final.verkey.json`, JSONbig.stringify(setup.constRoot, null, 1), "utf8");
+    } else {
+        console.log("Computing Constant Tree...");
+        const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/final.const -s ${filesDir}/final.starkinfo.json -v ${filesDir}/final.verkey.json`);
+        console.log(stdout);
+        setup.constRoot = JSON.parse(await fs.promises.readFile(`${filesDir}/final.verkey.json`, "utf8"));
+    }
 
-    await writeCHelpersFile(`${filesDir}/final.bin`, setup.genericBinFileInfo);
-    
-    const MH = await buildMerkleHashGL();
-    await MH.writeToFile(setup.constTree, `${filesDir}/final.consttree`);
-    
+    const expsBin = await prepareExpressionsBin(setup.starkInfo, setup.expressionsInfo);
+
+    await writeExpressionsBinFile(`${filesDir}/${template}.bin`, expsBin);
+
     return {starkInfoFinal: setup.starkInfo, verifierInfoFinal: setup.verifierInfo, constRootFinal: setup.constRoot};
 }

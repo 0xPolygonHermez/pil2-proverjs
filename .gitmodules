@@ -1,0 +1,4 @@
+[submodule "src/setup/goldilocks"]
+	path = src/setup/goldilocks
+	url = https://github.com/0xPolygonHermez/goldilocks.git
+	branch = origin/avx512_and_pack

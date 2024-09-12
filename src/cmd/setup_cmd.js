@@ -38,6 +38,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         pil2: true,
         optImPols: (proofManagerConfig.setup && proofManagerConfig.setup.optImPols) || false,
         skipConstTree: proofManagerConfig.setup && proofManagerConfig.setup.constTree !== undefined ? true : false,
+        constTree: proofManagerConfig.setup && proofManagerConfig.setup.constTree !== undefined ? proofManagerConfig.setup.constTree : undefined,
     };
 
     let setup = [];
@@ -90,7 +91,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             
             await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.starkinfo.json`, JSON.stringify(setup[subproof.subproofId][air.airId].starkInfo, null, 1), "utf8");
 
-            if(!setupOptions.skipConstTree) {
+            if(!setupOptions.constTree) {
                 const MH = await buildMerkleHashGL(starkStruct.splitLinearHash);
                 await MH.writeToFile(setup[subproof.subproofId][air.airId].constTree, `${filesDir}/${subproof.name}_${air.airId}.consttree`);
                 await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.verkey.json`, JSONbig.stringify(setup[subproof.subproofId][air.airId].constRoot, null, 1), "utf8");
@@ -98,7 +99,8 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
                 console.log("Computing Constant Tree...");
                 const {stdout} = await exec(`${proofManagerConfig.setup.constTree} -c ${filesDir}/${subproof.name}_${air.airId}.const -s ${filesDir}/${subproof.name}_${air.airId}.starkinfo.json -v ${filesDir}/${subproof.name}_${air.airId}.verkey.json`);
                 console.log(stdout);
-            }    
+                setup[subproof.subproofId][air.airId].constRoot = JSON.parse(await fs.promises.readFile(`${filesDir}/${subproof.name}_${air.airId}.verkey.json`, "utf8"));
+            }
 
         
             await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.verifierinfo.json`, JSON.stringify(setup[subproof.subproofId][air.airId].verifierInfo, null, 1), "utf8");
@@ -193,6 +195,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
                     
                     const recursiveSetup = await genRecursiveSetup(
                         buildDir,
+                        setupOptions,
                         "compressor",
                         subproof.name,
                         subproof.subproofId,
@@ -203,7 +206,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
                         setup[subproof.subproofId][air.airId].starkInfo,
                         setup[subproof.subproofId][air.airId].verifierInfo,
                         starkStructCompressor,
-                        18
+                        18,
                     );
                     
                     constRoot = recursiveSetup.constRoot;
@@ -223,6 +226,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
                     pil: pilRecursive1,
                 } = await genRecursiveSetup(
                     buildDir,
+                    setupOptions,
                     "recursive1",
                     subproof.name,
                     subproof.subproofId,
@@ -251,6 +255,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
 
             const { pil: pilRecursive2 } = await genRecursiveSetup(
                 buildDir,
+                setupOptions,
                 "recursive2", 
                 subproof.name,
                 subproof.subproofId,
@@ -272,7 +277,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             finalSettings = proofManagerConfig.setup.settings.final;
         }
 
-        await genFinalSetup(buildDir, finalSettings, 18);
+        await genFinalSetup(buildDir, setupOptions, finalSettings, globalInfo, globalConstraints, 18);
         
         // TODO: GENERATE COMPRESSOR / RECURSIVE1 / RECURSIVE2 / RECURSIVEF / FINAL
     } else {
