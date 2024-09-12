@@ -1,3 +1,0 @@
-[submodule "src/setup/circom/gl"]
-	path = src/setup/circom/gl
-	url = https://github.com/0xPolygonHermez/goldilocks.git

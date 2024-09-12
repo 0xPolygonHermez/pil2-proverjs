@@ -2,7 +2,7 @@
 #define COMMIT_POLS_STARKS_HPP
 
 #include <cstdint>
-#include "./gl/src/goldilocks_base_field.hpp"
+#include "goldilocks_base_field.hpp"
 // #include "zkassert.hpp"
 
 class CommitPolStarks
