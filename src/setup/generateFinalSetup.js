@@ -13,6 +13,8 @@ const { compressorSetup } = require('stark-recurser/src/circom2pil/compressor_se
 const { genCircom } = require('stark-recurser/src/gencircom.js');
 const { generateStarkStruct } = require("./utils");
 const path = require("path");
+const { prepareExpressionsBin } = require("pil2-stark-js/src/stark/chelpers/stark_chelpers");
+const { writeExpressionsBinFile } = require("pil2-stark-js/src/stark/chelpers/binFile");
 
 
 module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptions, finalSettings, globalInfo, globalConstraints, compressorCols) {
