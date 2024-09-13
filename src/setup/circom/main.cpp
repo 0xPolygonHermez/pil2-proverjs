@@ -31,10 +31,10 @@ Circom_Circuit* loadCircuit(std::string const &datFileName) {
     dsize = get_size_of_witness()*sizeof(u64);
     memcpy((void *)(circuit->witness2SignalList), (void *)(bdata+inisize), dsize);
 
-    circuit->circuitConstants = new FrElement[get_size_of_constants()];
+    circuit->circuitConstants = new FrGElement[get_size_of_constants()];
     if (get_size_of_constants()>0) {
       inisize += dsize;
-      dsize = get_size_of_constants()*sizeof(FrElement);
+      dsize = get_size_of_constants()*sizeof(FrGElement);
       memcpy((void *)(circuit->circuitConstants), (void *)(bdata+inisize), dsize);
     }
 
@@ -97,9 +97,9 @@ bool check_valid_number(std::string & s, uint base){
   return is_valid;
 }
 
-void json2FrElements (json val, std::vector<FrElement> & vval){
+void json2FrGElements (json val, std::vector<FrGElement> & vval){
   if (!val.is_array()) {
-    FrElement v;
+    FrGElement v;
     std::string s_aux, s;
     uint base;
     if (val.is_string()) {
@@ -134,11 +134,11 @@ void json2FrElements (json val, std::vector<FrElement> & vval){
         errStrStream << "Invalid JSON type\n";
 	      throw std::runtime_error(errStrStream.str() );
     }
-    Fr_str2element (&v, s.c_str(), base);
+    FrG_str2element (&v, s.c_str(), base);
     vval.push_back(v);
   } else {
     for (uint i = 0; i < val.size(); i++) {
-      json2FrElements (val[i], vval);
+      json2FrGElements (val[i], vval);
     }
   }
 }
@@ -152,8 +152,8 @@ void loadJsonImpl(Circom_CalcWit *ctx, json &j) {
   for (json::iterator it = j.begin(); it != j.end(); ++it) {
     // std::cout << it.key() << " => " << it.value() << '\n';
     u64 h = fnv1a(it.key());
-    std::vector<FrElement> v;
-    json2FrElements(it.value(),v);
+    std::vector<FrGElement> v;
+    json2FrGElements(it.value(),v);
     uint signalSize = ctx->getInputSignalSize(h);
     if (v.size() < signalSize) {
 	std::ostringstream errStrStream;
@@ -167,7 +167,7 @@ void loadJsonImpl(Circom_CalcWit *ctx, json &j) {
     }
     for (uint i = 0; i<v.size(); i++){
       try {
-	// std::cout << it.key() << "," << i << " => " << Fr_element2str(&(v[i])) << '\n';
+	// std::cout << it.key() << "," << i << " => " << FrG_element2str(&(v[i])) << '\n';
 	ctx->setInputSignal(h,i,v[i]);
       } catch (const std::runtime_error &e) {
 	std::ostringstream errStrStream;
@@ -205,14 +205,14 @@ void writeBinWitness(Circom_CalcWit *ctx, std::string wtnsFileName) {
     u32 idSection1 = 1;
     fwrite(&idSection1, 4, 1, write_ptr);
 
-    u32 n8 = Fr_N64*8;
+    u32 n8 = FrG_N64*8;
 
     u64 idSection1length = 8 + n8;
     fwrite(&idSection1length, 8, 1, write_ptr);
 
     fwrite(&n8, 4, 1, write_ptr);
 
-    fwrite(Fr_q.longVal, Fr_N64*8, 1, write_ptr);
+    fwrite(FrG_q.longVal, FrG_N64*8, 1, write_ptr);
 
     uint Nwtns = get_size_of_witness();
     
@@ -226,12 +226,12 @@ void writeBinWitness(Circom_CalcWit *ctx, std::string wtnsFileName) {
     u64 idSection2length = (u64)n8*(u64)Nwtns;
     fwrite(&idSection2length, 8, 1, write_ptr);
 
-    FrElement v;
+    FrGElement v;
 
     for (unsigned int i=0;i<Nwtns;i++) {
         ctx->getWitness(i, &v);
-        Fr_toLongNormal(&v, &v);
-        fwrite(v.longVal, Fr_N64*8, 1, write_ptr);
+        FrG_toLongNormal(&v, &v);
+        fwrite(v.longVal, FrG_N64*8, 1, write_ptr);
     }
     fclose(write_ptr);
 }
@@ -251,42 +251,36 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
     //-------------------------------------------
     // Verifier stark proof
     //-------------------------------------------
-    TimerStart(CIRCOM_LOAD_CIRCUIT);
     Circom_Circuit *circuit = loadCircuit(datFile);
-    TimerStopAndLog(CIRCOM_LOAD_CIRCUIT);
-    TimerStart(CIRCOM_LOAD_JSON);
     Circom_CalcWit *ctx = new Circom_CalcWit(circuit);
 
     loadJsonImpl(ctx, zkin);
     if (ctx->getRemaingInputsToBeSet() != 0)
     {
-      zklog.error("Not all inputs have been set. Only " + to_string(get_main_input_signal_no() - ctx->getRemaingInputsToBeSet()) + " out of " + to_string(get_main_input_signal_no()));
+      cout << "Not all inputs have been set. Only " << to_string(get_main_input_signal_no() - ctx->getRemaingInputsToBeSet()) << " out of " << to_string(get_main_input_signal_no()) << endl;
       exit(-1);
     }
-    TimerStopAndLog(CIRCOM_LOAD_JSON);
 
     //-------------------------------------------
     // Compute witness and commited pols
-    //-------------------------------------------
-    TimerStart(STARK_WITNESS_AND_COMMITED_POLS);
- 
+    //------------------------------------------- 
     ExecFile exec(execFile, nCols);
     uint64_t sizeWitness = get_size_of_witness();
     Goldilocks::Element *tmp = new Goldilocks::Element[exec.nAdds + sizeWitness];
     for (uint64_t i = 0; i < sizeWitness; i++)
     {
-      FrElement aux;
+      FrGElement aux;
       ctx->getWitness(i, &aux);
-      Fr_toLongNormal(&aux, &aux);
+      FrG_toLongNormal(&aux, &aux);
       tmp[i] = Goldilocks::fromU64(aux.longVal[0]);
     }
     delete ctx;
     for (uint64_t i = 0; i < exec.nAdds; i++)
     {
-      Fr_toLongNormal(&exec.p_adds[i * 4], &exec.p_adds[i * 4]);
-      Fr_toLongNormal(&exec.p_adds[i * 4 + 1], &exec.p_adds[i * 4 + 1]);
-      Fr_toLongNormal(&exec.p_adds[i * 4 + 2], &exec.p_adds[i * 4 + 2]);
-      Fr_toLongNormal(&exec.p_adds[i * 4 + 3], &exec.p_adds[i * 4 + 3]);
+      FrG_toLongNormal(&exec.p_adds[i * 4], &exec.p_adds[i * 4]);
+      FrG_toLongNormal(&exec.p_adds[i * 4 + 1], &exec.p_adds[i * 4 + 1]);
+      FrG_toLongNormal(&exec.p_adds[i * 4 + 2], &exec.p_adds[i * 4 + 2]);
+      FrG_toLongNormal(&exec.p_adds[i * 4 + 3], &exec.p_adds[i * 4 + 3]);
 
       uint64_t idx_1 = exec.p_adds[i * 4].longVal[0];
       uint64_t idx_2 = exec.p_adds[i * 4 + 1].longVal[0];
@@ -301,8 +295,8 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
     {
       for (uint j = 0; j < nCols; j++)
       {
-        FrElement aux;
-        Fr_toLongNormal(&aux, &exec.p_sMap[nCols * i + j]);
+        FrGElement aux;
+        FrG_toLongNormal(&aux, &exec.p_sMap[nCols * i + j]);
         uint64_t idx_1 = aux.longVal[0];
         if (idx_1 != 0)
         {
@@ -324,5 +318,4 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
     }
     delete[] tmp;
     freeCircuit(circuit);
-    TimerStopAndLog(STARK_WITNESS_AND_COMMITED_POLS);
   }

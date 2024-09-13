@@ -73,11 +73,12 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
     await exec(compileRecursiveCommand);
 
     console.log("Copying circom files...");
-    fs.copyFile(`${buildDir}/build/${nameFilename}_cpp/${nameFilename}.dat`, `${filesDir}/${nameFilename}.dat`, (err) => { if(err) throw err; });
+    fs.copyFile(`${buildDir}/build/${nameFilename}_cpp/${nameFilename}.dat`, `${filesDir}/${nameFilename}.dat`, (err) => { if(err) throw err; });    
     fs.copyFile(`${buildDir}/build/${nameFilename}_cpp/${nameFilename}.cpp`, "./src/setup/circom/verifier.cpp", () => {});
+    await exec(`sed -i 's/Fr/FrG/g' ./src/setup/circom/verifier.cpp`);
     
     console.log(`Generating witness library for ${nameFilename}...`);
-    await exec(`make -C src/setup/circom -j witness WITNESS_DIR=../../../${filesDir} WITNESS_FILE=${nameFilename}.so`);
+    await exec(`make -j witness WITNESS_DIR=${filesDir} WITNESS_FILE=${nameFilename}.so`);
 
     // Generate setup
     const {exec: execBuff, pilStr, constPols} = await compressorSetup(F, `${buildDir}/build/${nameFilename}.r1cs`, compressorCols);

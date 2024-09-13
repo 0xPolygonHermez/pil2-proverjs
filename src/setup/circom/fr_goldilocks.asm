@@ -1,58 +1,53 @@
 
 
-        global Fr_copy
-        global Fr_copyn
-        global Fr_add
-        global Fr_sub
-        global Fr_neg
-        global Fr_mul
-        global Fr_square
-        global Fr_band
-        global Fr_bor
-        global Fr_bxor
-        global Fr_bnot
-        global Fr_shl
-        global Fr_shr
-        global Fr_eq
-        global Fr_neq
-        global Fr_lt
-        global Fr_gt
-        global Fr_leq
-        global Fr_geq
-        global Fr_land
-        global Fr_lor
-        global Fr_lnot
-        global Fr_toNormal
-        global Fr_toLongNormal
-        global Fr_toMontgomery
-        global Fr_toInt
-        global Fr_isTrue
-        global Fr_q
-        global Fr_R3
+        global FrG_copy
+        global FrG_copyn
+        global FrG_add
+        global FrG_sub
+        global FrG_neg
+        global FrG_mul
+        global FrG_square
+        global FrG_band
+        global FrG_bor
+        global FrG_bxor
+        global FrG_bnot
+        global FrG_shl
+        global FrG_shr
+        global FrG_eq
+        global FrG_neq
+        global FrG_lt
+        global FrG_gt
+        global FrG_leq
+        global FrG_geq
+        global FrG_land
+        global FrG_lor
+        global FrG_lnot
+        global FrG_toNormal
+        global FrG_toLongNormal
+        global FrG_toMontgomery
+        global FrG_toInt
+        global FrG_isTrue
+        global FrG_q
+        global FrG_R3
 
-        global Fr_rawCopy
-        global Fr_rawZero
-        global Fr_rawSwap
-        global Fr_rawAdd
-        global Fr_rawSub
-        global Fr_rawNeg
-        global Fr_rawMMul
-        global Fr_rawMSquare
-        global Fr_rawToMontgomery
-        global Fr_rawFromMontgomery
-        global Fr_rawIsEq
-        global Fr_rawIsZero
-        global Fr_rawq
-        global Fr_rawR3
+        global FrG_rawCopy
+        global FrG_rawZero
+        global FrG_rawSwap
+        global FrG_rawAdd
+        global FrG_rawSub
+        global FrG_rawNeg
+        global FrG_rawMMul
+        global FrG_rawMSquare
+        global FrG_rawToMontgomery
+        global FrG_rawFrGomMontgomery
+        global FrG_rawIsEq
+        global FrG_rawIsZero
+        global FrG_rawq
+        global FrG_rawR3
 
-        global Fr_fail
         DEFAULT REL
 
         section .text
-
-
-
-
 
 
 
@@ -80,7 +75,7 @@
 ; Nidified registers:
 ;   rax
 ;;;;;;;;;;;;;;;;;;;;;;;
-Fr_copy:
+FrG_copy:
 
         mov     rax, [rsi + 0]
         mov     [rdi + 0], rax
@@ -102,7 +97,7 @@ Fr_copy:
 ; Nidified registers:
 ;   rax
 ;;;;;;;;;;;;;;;;;;;;;;;
-Fr_rawCopy:
+FrG_rawCopy:
 
         mov     rax, [rsi + 0]
         mov     [rdi + 0], rax
@@ -120,7 +115,7 @@ Fr_rawCopy:
 ; Nidified registers:
 ;   rax
 ;;;;;;;;;;;;;;;;;;;;;;;
-Fr_rawZero:
+FrG_rawZero:
         xor     rax, rax
 
         mov     [rdi + 0], rax
@@ -138,7 +133,7 @@ Fr_rawZero:
 ; Nidified registers:
 ;   rax
 ;;;;;;;;;;;;;;;;;;;;;;;
-Fr_rawSwap:
+FrG_rawSwap:
 
         mov     rax, [rsi + 0]
         mov     rcx, [rdi + 0]
@@ -160,8 +155,8 @@ Fr_rawSwap:
 ; Nidified registers:
 ;   rax
 ;;;;;;;;;;;;;;;;;;;;;;;
-Fr_copyn:
-Fr_copyn_loop:
+FrG_copyn:
+FrG_copyn_loop:
         mov     r8, rsi
         mov     r9, rdi
         mov     rax, 2
@@ -215,35 +210,38 @@ u64toLong_adjust_neg:
 ; Returs:
 ;   rax <= The value
 ;;;;;;;;;;;;;;;;;;;;;;;
-Fr_toInt:
+FrG_toInt:
         mov     rax, [rdi]
         bt      rax, 63
-        jc      Fr_long
+        jc      FrG_long
         movsx   rax, eax
         ret
 
-Fr_long:
+FrG_long:
         push   rbp
         push   rsi
         push   rdx
         mov    rbp, rsp
         bt      rax, 62
-        jnc     Fr_longNormal
-Fr_longMontgomery:
+        jnc     FrG_longNormal
+FrG_longMontgomery:
 
+        mov  r8, rdi
         sub  rsp, 16
-        push rsi
-        mov  rsi, rdi
         mov  rdi, rsp
-        call Fr_toNormal
-        pop  rsi
+        push rdx
+        push r8
+        call FrG_toNormal
+        mov  rsi, rdi
+        pop  rdi
+        pop  rdx
 
 
-Fr_longNormal:
+FrG_longNormal:
         mov     rax, [rdi + 8]
         mov     rcx, rax
         shr     rcx, 31
-        jnz     Fr_longNeg
+        jnz     FrG_longNeg
 
         mov rsp, rbp
         pop rdx
@@ -251,25 +249,24 @@ Fr_longNormal:
         pop rbp
         ret
 
-Fr_longNeg:
+FrG_longNeg:
         mov     rax, [rdi + 8]
         sub     rax, [q]
-        jnc     Fr_longErr
+        jnc     FrG_longErr
 
         mov     rcx, rax
         sar     rcx, 31
         add     rcx, 1
-        jnz     Fr_longErr
+        jnz     FrG_longErr
         mov rsp, rbp
         pop rdx
         pop rsi
         pop rbp
         ret
 
-Fr_longErr:
+FrG_longErr:
         push    rdi
         mov     rdi, 0
-        call    Fr_fail
         pop     rdi
         mov rsp, rbp
         pop rdx
@@ -277,24 +274,11 @@ Fr_longErr:
         pop rbp
         ret
 
-Fr_fail:
-
-        cmp eax, 0   ; Compare EAX with 0 (false)
-        je error     ; Jump to the error label if EAX is 0
-
-        jmp exit     ; Jump to the exit label
-
-        error:
-                ; Code to handle the assertion failure (e.g., print an error message)
-
-        exit:
-                ; Exit the program (e.g., using the `ret` instruction)
 
 
 
 
-
-Fr_rawMMul:
+FrG_rawMMul:
     push r13
     push r12
     mov rcx,rdx
@@ -322,18 +306,18 @@ Fr_rawMMul:
 
 ;comparison
     test r12,r12
-jnz Fr_rawMMul_sq
+jnz FrG_rawMMul_sq
     cmp r11,[q + 0]
-    jc Fr_rawMMul_done
-    jnz Fr_rawMMul_sq
-Fr_rawMMul_sq:
+    jc FrG_rawMMul_done
+    jnz FrG_rawMMul_sq
+FrG_rawMMul_sq:
     sub r11,[q +0]
-Fr_rawMMul_done:
+FrG_rawMMul_done:
     mov [rdi + 0],r11
     pop r12
     pop r13
     ret
-Fr_rawMSquare:
+FrG_rawMSquare:
     push r13
     push r12
     mov rcx,rdx
@@ -361,18 +345,18 @@ Fr_rawMSquare:
 
 ;comparison
     test r12,r12
-jnz Fr_rawMSquare_sq
+jnz FrG_rawMSquare_sq
     cmp r11,[q + 0]
-    jc Fr_rawMSquare_done
-    jnz Fr_rawMSquare_sq
-Fr_rawMSquare_sq:
+    jc FrG_rawMSquare_done
+    jnz FrG_rawMSquare_sq
+FrG_rawMSquare_sq:
     sub r11,[q +0]
-Fr_rawMSquare_done:
+FrG_rawMSquare_done:
     mov [rdi + 0],r11
     pop r12
     pop r13
     ret
-Fr_rawMMul1:
+FrG_rawMMul1:
     push r13
     push r12
     mov rcx,rdx
@@ -400,18 +384,18 @@ Fr_rawMMul1:
 
 ;comparison
     test r12,r12
-jnz Fr_rawMMul1_sq
+jnz FrG_rawMMul1_sq
     cmp r11,[q + 0]
-    jc Fr_rawMMul1_done
-    jnz Fr_rawMMul1_sq
-Fr_rawMMul1_sq:
+    jc FrG_rawMMul1_done
+    jnz FrG_rawMMul1_sq
+FrG_rawMMul1_sq:
     sub r11,[q +0]
-Fr_rawMMul1_done:
+FrG_rawMMul1_done:
     mov [rdi + 0],r11
     pop r12
     pop r13
     ret
-Fr_rawFromMontgomery:
+FrG_rawFrGomMontgomery:
     push r13
     push r12
     mov rcx,rdx
@@ -436,13 +420,13 @@ Fr_rawFromMontgomery:
 
 ;comparison
     test r12,r12
-jnz Fr_rawFromMontgomery_sq
+jnz FrG_rawFrGomMontgomery_sq
     cmp r11,[q + 0]
-    jc Fr_rawFromMontgomery_done
-    jnz Fr_rawFromMontgomery_sq
-Fr_rawFromMontgomery_sq:
+    jc FrG_rawFrGomMontgomery_done
+    jnz FrG_rawFrGomMontgomery_sq
+FrG_rawFrGomMontgomery_sq:
     sub r11,[q +0]
-Fr_rawFromMontgomery_done:
+FrG_rawFrGomMontgomery_done:
     mov [rdi + 0],r11
     pop r12
     pop r13
@@ -455,10 +439,10 @@ Fr_rawFromMontgomery_done:
 ;   rdi <= Pointer destination element
 ;   rsi <= Pointer to src element
 ;;;;;;;;;;;;;;;;;;;;
-Fr_rawToMontgomery:
+FrG_rawToMontgomery:
     push    rdx
     lea     rdx, [R2]
-    call    Fr_rawMMul
+    call    FrG_rawMMul
     pop     rdx
     ret
 
@@ -471,7 +455,7 @@ Fr_rawToMontgomery:
 ; Modified registers:
 ;    r8, r9, 10, r11, rax, rcx
 ;;;;;;;;;;;;;;;;;;;;
-Fr_toMontgomery:
+FrG_toMontgomery:
     mov     rax, [rsi]
     bt      rax, 62                     ; check if montgomery
     jc      toMontgomery_doNothing
@@ -486,7 +470,7 @@ toMontgomeryShort:
     cmp     rdx, 0
     js      negMontgomeryShort
 posMontgomeryShort:
-    call    Fr_rawMMul1
+    call    FrG_rawMMul1
     sub     rdi, 8
             mov r11b, 0x40
         shl r11d, 24
@@ -495,7 +479,7 @@ posMontgomeryShort:
 
 negMontgomeryShort:
     neg     rdx              ; Do the multiplication positive and then negate the result.
-    call    Fr_rawMMul1
+    call    FrG_rawMMul1
     mov     rsi, rdi
     call    rawNegL
     sub     rdi, 8
@@ -510,7 +494,7 @@ toMontgomeryLong:
     add     rdi, 8
     add     rsi, 8
     lea     rdx, [R2]
-    call    Fr_rawMMul
+    call    FrG_rawMMul
     sub     rsi, 8
     sub     rdi, 8
             mov r11b, 0xC0
@@ -520,7 +504,7 @@ toMontgomeryLong:
 
 
 toMontgomery_doNothing:
-    call   Fr_copy
+    call   FrG_copy
     ret
 
 ;;;;;;;;;;;;;;;;;;;;;;
@@ -532,7 +516,7 @@ toMontgomery_doNothing:
 ; Modified registers:
 ;    r8, r9, 10, r11, rax, rcx
 ;;;;;;;;;;;;;;;;;;;;
-Fr_toNormal:
+FrG_toNormal:
     mov     rax, [rsi]
     bt      rax, 62                     ; check if montgomery
     jnc     toNormal_doNothing
@@ -542,7 +526,7 @@ Fr_toNormal:
 toNormalLong:
     add     rdi, 8
     add     rsi, 8
-    call    Fr_rawFromMontgomery
+    call    FrG_rawFrGomMontgomery
     sub     rsi, 8
     sub     rdi, 8
             mov r11b, 0x80
@@ -551,7 +535,7 @@ toNormalLong:
     ret
 
 toNormal_doNothing:
-    call   Fr_copy
+    call   FrG_copy
     ret
 
 ;;;;;;;;;;;;;;;;;;;;;;
@@ -563,19 +547,19 @@ toNormal_doNothing:
 ; Modified registers:
 ;    r8, r9, 10, r11, rax, rcx
 ;;;;;;;;;;;;;;;;;;;;
-Fr_toLongNormal:
+FrG_toLongNormal:
     mov     rax, [rsi]
     bt      rax, 63                     ; check if long
     jnc     toLongNormal_fromShort
     bt      rax, 62                     ; check if montgomery
     jc      toLongNormal_fromMontgomery
-    call    Fr_copy              ; It is already long
+    call    FrG_copy              ; It is already long
     ret
 
 toLongNormal_fromMontgomery:
     add     rdi, 8
     add     rsi, 8
-    call    Fr_rawFromMontgomery
+    call    FrG_rawFrGomMontgomery
     sub     rsi, 8
     sub     rdi, 8
             mov r11b, 0x80
@@ -615,7 +599,7 @@ toLongNormal_fromShort:
 ; Modified Registers:
 ;    r8, r9, 10, r11, rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_add:
+FrG_add:
         push   rbp
         push   rsi
         push   rdx
@@ -708,7 +692,7 @@ add_l1ms2n:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toMontgomery
+        call FrG_toMontgomery
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -794,7 +778,7 @@ add_s1nl2m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toMontgomery
+        call FrG_toMontgomery
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -866,7 +850,7 @@ add_l1nl2m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toMontgomery
+        call FrG_toMontgomery
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -899,7 +883,7 @@ add_l1ml2n:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toMontgomery
+        call FrG_toMontgomery
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -950,7 +934,7 @@ add_l1ml2m:
 ;    rax
 ;;;;;;;;;;;;;;;;;;;;;;
 rawAddLL:
-Fr_rawAdd:
+FrG_rawAdd:
         ; Add component by component with carry
 
         mov rax, [rsi + 0]
@@ -1034,7 +1018,7 @@ rawAddLS_done:
 ; Modified Registers:
 ;    r8, r9, 10, r11, rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_sub:
+FrG_sub:
         push   rbp
         push   rsi
         push   rdx
@@ -1126,7 +1110,7 @@ sub_l1ms2n:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toMontgomery
+        call FrG_toMontgomery
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -1220,7 +1204,7 @@ sub_s1nl2m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toMontgomery
+        call FrG_toMontgomery
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -1292,7 +1276,7 @@ sub_l1nl2m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toMontgomery
+        call FrG_toMontgomery
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -1325,7 +1309,7 @@ sub_l1ml2n:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toMontgomery
+        call FrG_toMontgomery
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -1439,7 +1423,7 @@ rawSubSL_done:
 ;    rax
 ;;;;;;;;;;;;;;;;;;;;;;
 rawSubLL:
-Fr_rawSub:
+FrG_rawSub:
         ; Substract first digit
 
         mov rax, [rsi + 0]
@@ -1511,7 +1495,7 @@ rawNegSL_done:
 ;   rdi <= Pointer to result
 ;   [rdi] = -[rsi]
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_neg:
+FrG_neg:
         mov    rax, [rsi]
         bt     rax, 63          ; Check if is short first operand
         jc     neg_l
@@ -1557,7 +1541,7 @@ neg_l:
 ;   [rdi] = - [rsi]
 ;;;;;;;;;;;;;;;;;;;;;;
 rawNegL:
-Fr_rawNeg:
+FrG_rawNeg:
         ; Compare is zero
 
         xor rax, rax
@@ -1607,7 +1591,7 @@ doNegate:
 ; Modified Registers:
 ;    r8, r9, 10, r11, rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_square:
+FrG_square:
         mov    r8, [rsi]
         bt     r8, 63          ; Check if is short first operand
         jc     square_l1
@@ -1641,7 +1625,7 @@ square_l1n:
 
         add rdi, 8
         add rsi, 8
-        call Fr_rawMSquare
+        call FrG_rawMSquare
         sub rdi, 8
         sub rsi, 8
 
@@ -1650,7 +1634,7 @@ square_l1n:
         add rdi, 8
         mov rsi, rdi
         lea rdx, [R3]
-        call Fr_rawMMul
+        call FrG_rawMMul
         sub rdi, 8
         pop rsi
 
@@ -1663,7 +1647,7 @@ square_l1m:
 
         add rdi, 8
         add rsi, 8
-        call Fr_rawMSquare
+        call FrG_rawMSquare
         sub rdi, 8
         sub rsi, 8
 
@@ -1683,7 +1667,7 @@ square_l1m:
 ; Modified Registers:
 ;    r8, r9, 10, r11, rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_mul:
+FrG_mul:
         mov    r8, [rsi]
         mov    r9, [rdx]
         bt     r8, 63          ; Check if is short first operand
@@ -1735,7 +1719,7 @@ mul_l1ns2n:
         
         jns tmp_5
         neg rdx
-        call Fr_rawMMul1
+        call FrG_rawMMul1
         mov rsi, rdi
         call rawNegL
         sub rdi, 8
@@ -1743,7 +1727,7 @@ mul_l1ns2n:
         
         jmp tmp_6
 tmp_5:
-        call Fr_rawMMul1
+        call FrG_rawMMul1
         sub rdi, 8
         pop rsi
 tmp_6:
@@ -1754,7 +1738,7 @@ tmp_6:
         add rdi, 8
         mov rsi, rdi
         lea rdx, [R3]
-        call Fr_rawMMul
+        call FrG_rawMMul
         sub rdi, 8
         pop rsi
 
@@ -1769,7 +1753,7 @@ mul_l1ns2m:
         add rdi, 8
         add rsi, 8
         add rdx, 8
-        call Fr_rawMMul
+        call FrG_rawMMul
         sub rdi, 8
         sub rsi, 8
 
@@ -1792,7 +1776,7 @@ mul_l1ms2n:
         
         jns tmp_7
         neg rdx
-        call Fr_rawMMul1
+        call FrG_rawMMul1
         mov rsi, rdi
         call rawNegL
         sub rdi, 8
@@ -1800,7 +1784,7 @@ mul_l1ms2n:
         
         jmp tmp_8
 tmp_7:
-        call Fr_rawMMul1
+        call FrG_rawMMul1
         sub rdi, 8
         pop rsi
 tmp_8:
@@ -1816,7 +1800,7 @@ mul_l1ms2m:
         add rdi, 8
         add rsi, 8
         add rdx, 8
-        call Fr_rawMMul
+        call FrG_rawMMul
         sub rdi, 8
         sub rsi, 8
 
@@ -1843,7 +1827,7 @@ mul_s1nl2n:
         
         jns tmp_9
         neg rdx
-        call Fr_rawMMul1
+        call FrG_rawMMul1
         mov rsi, rdi
         call rawNegL
         sub rdi, 8
@@ -1851,7 +1835,7 @@ mul_s1nl2n:
         
         jmp tmp_10
 tmp_9:
-        call Fr_rawMMul1
+        call FrG_rawMMul1
         sub rdi, 8
         pop rsi
 tmp_10:
@@ -1862,7 +1846,7 @@ tmp_10:
         add rdi, 8
         mov rsi, rdi
         lea rdx, [R3]
-        call Fr_rawMMul
+        call FrG_rawMMul
         sub rdi, 8
         pop rsi
 
@@ -1881,7 +1865,7 @@ mul_s1nl2m:
         
         jns tmp_11
         neg rdx
-        call Fr_rawMMul1
+        call FrG_rawMMul1
         mov rsi, rdi
         call rawNegL
         sub rdi, 8
@@ -1889,7 +1873,7 @@ mul_s1nl2m:
         
         jmp tmp_12
 tmp_11:
-        call Fr_rawMMul1
+        call FrG_rawMMul1
         sub rdi, 8
         pop rsi
 tmp_12:
@@ -1908,7 +1892,7 @@ mul_s1ml2n:
         add rdi, 8
         add rsi, 8
         add rdx, 8
-        call Fr_rawMMul
+        call FrG_rawMMul
         sub rdi, 8
         sub rsi, 8
 
@@ -1922,7 +1906,7 @@ mul_s1ml2m:
         add rdi, 8
         add rsi, 8
         add rdx, 8
-        call Fr_rawMMul
+        call FrG_rawMMul
         sub rdi, 8
         sub rsi, 8
 
@@ -1943,7 +1927,7 @@ mul_l1nl2n:
         add rdi, 8
         add rsi, 8
         add rdx, 8
-        call Fr_rawMMul
+        call FrG_rawMMul
         sub rdi, 8
         sub rsi, 8
 
@@ -1952,7 +1936,7 @@ mul_l1nl2n:
         add rdi, 8
         mov rsi, rdi
         lea rdx, [R3]
-        call Fr_rawMMul
+        call FrG_rawMMul
         sub rdi, 8
         pop rsi
 
@@ -1966,7 +1950,7 @@ mul_l1nl2m:
         add rdi, 8
         add rsi, 8
         add rdx, 8
-        call Fr_rawMMul
+        call FrG_rawMMul
         sub rdi, 8
         sub rsi, 8
 
@@ -1983,7 +1967,7 @@ mul_l1ml2n:
         add rdi, 8
         add rsi, 8
         add rdx, 8
-        call Fr_rawMMul
+        call FrG_rawMMul
         sub rdi, 8
         sub rsi, 8
 
@@ -1997,7 +1981,7 @@ mul_l1ml2m:
         add rdi, 8
         add rsi, 8
         add rdx, 8
-        call Fr_rawMMul
+        call FrG_rawMMul
         sub rdi, 8
         sub rsi, 8
 
@@ -2032,7 +2016,7 @@ mul_l1ml2m:
 ; Modified Registers:
 ;    r8, r9, 10, r11, rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_band:
+FrG_band:
         push   rbp
         push   rsi
         push   rdx
@@ -2073,7 +2057,7 @@ tmp_13:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -2084,7 +2068,7 @@ tmp_13:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -2182,7 +2166,7 @@ tmp_16:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -2237,7 +2221,7 @@ and_l1ms2:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -2284,7 +2268,7 @@ tmp_21:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -2377,7 +2361,7 @@ tmp_26:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -2433,7 +2417,7 @@ and_s1l2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -2478,7 +2462,7 @@ tmp_31:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -2579,7 +2563,7 @@ and_l1nl2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -2632,7 +2616,7 @@ and_l1ml2n:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -2682,7 +2666,7 @@ and_l1ml2m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -2694,7 +2678,7 @@ and_l1ml2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -2746,7 +2730,7 @@ tmp_43:
 ; Modified Registers:
 ;    r8, r9, 10, r11, rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_bor:
+FrG_bor:
         push   rbp
         push   rsi
         push   rdx
@@ -2787,7 +2771,7 @@ tmp_44:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -2798,7 +2782,7 @@ tmp_44:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -2896,7 +2880,7 @@ tmp_47:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -2951,7 +2935,7 @@ or_l1ms2:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -2998,7 +2982,7 @@ tmp_52:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -3091,7 +3075,7 @@ tmp_57:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -3147,7 +3131,7 @@ or_s1l2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -3192,7 +3176,7 @@ tmp_62:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -3293,7 +3277,7 @@ or_l1nl2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -3346,7 +3330,7 @@ or_l1ml2n:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -3396,7 +3380,7 @@ or_l1ml2m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -3408,7 +3392,7 @@ or_l1ml2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -3460,7 +3444,7 @@ tmp_74:
 ; Modified Registers:
 ;    r8, r9, 10, r11, rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_bxor:
+FrG_bxor:
         push   rbp
         push   rsi
         push   rdx
@@ -3501,7 +3485,7 @@ tmp_75:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -3512,7 +3496,7 @@ tmp_75:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -3610,7 +3594,7 @@ tmp_78:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -3665,7 +3649,7 @@ xor_l1ms2:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -3712,7 +3696,7 @@ tmp_83:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -3805,7 +3789,7 @@ tmp_88:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -3861,7 +3845,7 @@ xor_s1l2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -3906,7 +3890,7 @@ tmp_93:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4007,7 +3991,7 @@ xor_l1nl2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -4060,7 +4044,7 @@ xor_l1ml2n:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4110,7 +4094,7 @@ xor_l1ml2m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4122,7 +4106,7 @@ xor_l1ml2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -4174,7 +4158,7 @@ tmp_105:
 ; Modified Registers:
 ;    r8, r9, 10, r11, rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_bnot:
+FrG_bnot:
         push   rbp
         push   rsi
         push   rdx
@@ -4193,7 +4177,7 @@ bnot_s:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4211,7 +4195,7 @@ bnot_l1m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4267,10 +4251,10 @@ tmp_107:
 ;;;;;;;;;;;;;;;;;;;;;;
 rawShr:
         cmp rdx, 0
-        je Fr_rawCopy
+        je FrG_rawCopy
 
         cmp rdx, 64
-        jae Fr_rawZero
+        jae FrG_rawZero
 
 rawShr_nz:
         mov r8, rdx
@@ -4350,10 +4334,10 @@ rawShr_endif3_0:
 ;;;;;;;;;;;;;;;;;;;;;;
 rawShl:
         cmp rdx, 0
-        je Fr_rawCopy
+        je FrG_rawCopy
         
         cmp rdx, 64
-        jae Fr_rawZero
+        jae FrG_rawZero
 
         mov r8, rdx
         shr r8,6
@@ -4492,7 +4476,7 @@ tmp_111:
 ; Modified Registers:
 ;    r8, r9, 10, r11, rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_shr:
+FrG_shr:
         push   rbp
         push   rsi
         push   rdi
@@ -4518,7 +4502,7 @@ Fr_shr:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -4571,7 +4555,7 @@ tmp_115:
 ; Modified Registers:
 ;    r8, r9, 10, r11, rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_shl:
+FrG_shl:
         push   rbp
         push   rsi
         push   rdi
@@ -4596,7 +4580,7 @@ Fr_shl:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -4674,7 +4658,7 @@ do_shlcl:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4690,7 +4674,7 @@ do_shll:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4743,7 +4727,7 @@ do_shrcl:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4758,7 +4742,7 @@ do_shrl:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4802,7 +4786,7 @@ setzero:
 ; Modified Registers:
 ;    r8, r9, rax
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_rgt:
+FrG_rgt:
         push   rbp
         push   rsi
         push   rdx
@@ -4836,7 +4820,7 @@ rgt_l1ns2:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -4851,7 +4835,7 @@ rgt_l1ms2:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -4862,7 +4846,7 @@ rgt_l1ms2:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4881,7 +4865,7 @@ rgt_s1l2n:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4895,7 +4879,7 @@ rgt_s1l2m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4907,7 +4891,7 @@ rgt_s1l2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -4932,7 +4916,7 @@ rgt_l1nl2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -4949,7 +4933,7 @@ rgt_l1ml2n:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4963,7 +4947,7 @@ rgt_l1ml2m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -4975,7 +4959,7 @@ rgt_l1ml2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -5059,7 +5043,7 @@ rgt_ret1:
 ; Modified Registers:
 ;    r8, r9, rax
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_rlt:
+FrG_rlt:
         push   rbp
         push   rsi
         push   rdx
@@ -5093,7 +5077,7 @@ rlt_l1ns2:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -5108,7 +5092,7 @@ rlt_l1ms2:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -5119,7 +5103,7 @@ rlt_l1ms2:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -5138,7 +5122,7 @@ rlt_s1l2n:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -5152,7 +5136,7 @@ rlt_s1l2m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -5164,7 +5148,7 @@ rlt_s1l2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -5189,7 +5173,7 @@ rlt_l1nl2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -5206,7 +5190,7 @@ rlt_l1ml2n:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -5220,7 +5204,7 @@ rlt_l1ml2m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -5232,7 +5216,7 @@ rlt_l1ml2m:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toNormal
+        call FrG_toNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -5316,7 +5300,7 @@ rlt_ret1:
 ; Modified Registers:
 ;    r8, r9, rax
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_req:
+FrG_req:
         push   rbp
         push   rsi
         push   rdx
@@ -5350,7 +5334,7 @@ req_l1ns2:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -5365,7 +5349,7 @@ req_l1ms2:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toMontgomery
+        call FrG_toMontgomery
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -5384,7 +5368,7 @@ req_s1l2n:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toLongNormal
+        call FrG_toLongNormal
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -5398,7 +5382,7 @@ req_s1l2m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toMontgomery
+        call FrG_toMontgomery
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -5422,7 +5406,7 @@ req_l1nl2m:
         mov  rdi, rsp
         push rdx
         push r8
-        call Fr_toMontgomery
+        call FrG_toMontgomery
         mov  rsi, rdi
         pop  rdi
         pop  rdx
@@ -5440,7 +5424,7 @@ req_l1ml2n:
         push rsi
         mov  rsi, rdx
         push r8
-        call Fr_toMontgomery
+        call FrG_toMontgomery
         mov  rdx, rdi
         pop  rdi
         pop  rsi
@@ -5490,8 +5474,8 @@ req_ret0:
 ; Modified Registers:
 ;    rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_gt:
-        call Fr_rgt
+FrG_gt:
+        call FrG_rgt
         mov [rdi], rax
         ret
 
@@ -5506,8 +5490,8 @@ Fr_gt:
 ; Modified Registers:
 ;    rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_lt:
-        call Fr_rlt
+FrG_lt:
+        call FrG_rlt
         mov [rdi], rax
         ret
 
@@ -5522,8 +5506,8 @@ Fr_lt:
 ; Modified Registers:
 ;    rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_eq:
-        call Fr_req
+FrG_eq:
+        call FrG_req
         mov [rdi], rax
         ret
 
@@ -5538,8 +5522,8 @@ Fr_eq:
 ; Modified Registers:
 ;    rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_neq:
-        call Fr_req
+FrG_neq:
+        call FrG_req
         xor rax, 1
         mov [rdi], rax
         ret
@@ -5555,8 +5539,8 @@ Fr_neq:
 ; Modified Registers:
 ;    rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_geq:
-        call Fr_rlt
+FrG_geq:
+        call FrG_rlt
         xor rax, 1
         mov [rdi], rax
         ret
@@ -5572,8 +5556,8 @@ Fr_geq:
 ; Modified Registers:
 ;    rax, rcx
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_leq:
-        call Fr_rgt
+FrG_leq:
+        call FrG_rgt
         xor rax, 1
         mov [rdi], rax
         ret
@@ -5592,7 +5576,7 @@ Fr_leq:
 ; Modified Registers:
 ;   rax
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_rawIsEq:
+FrG_rawIsEq:
 
         mov     rax, [rsi + 0]
         cmp     [rdi + 0], rax
@@ -5617,7 +5601,7 @@ rawIsEq_ret0:
 ; Modified Registers:
 ;   rax
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_rawIsZero:
+FrG_rawIsZero:
 
         cmp     qword [rdi + 0], $0
         jne     rawIsZero_ret0
@@ -5652,7 +5636,7 @@ rawIsZero_ret0:
 ; Modified Registers:
 ;    rax, rcx, r8
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_land:
+FrG_land:
 
 
 
@@ -5729,7 +5713,7 @@ done_127:
 ; Modified Registers:
 ;    rax, rcx, r8
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_lor:
+FrG_lor:
 
 
 
@@ -5805,7 +5789,7 @@ done_135:
 ; Modified Registers:
 ;    rax, rax, r8
 ;;;;;;;;;;;;;;;;;;;;;;
-Fr_lnot:
+FrG_lnot:
 
 
 
@@ -5856,7 +5840,7 @@ lnot_retOne:
 ; Returs:
 ;   rax <= 1 if true 0 if false
 ;;;;;;;;;;;;;;;;;;;;;;;
-Fr_isTrue:
+FrG_isTrue:
         
 
 
@@ -5894,17 +5878,17 @@ done_143:
 
 
         section .data
-Fr_q:
+FrG_q:
         dd      0
         dd      0x80000000
-Fr_rawq:
+FrG_rawq:
 q       dq      0xffffffff00000001
 half    dq      0x7fffffff80000000
 R2      dq      0xfffffffe00000001
-Fr_R3:
+FrG_R3:
         dd      0
         dd      0x80000000
-Fr_rawR3:
+FrG_rawR3:
 R3      dq      0x0000000000000001
 lboMask dq      0xffffffffffffffff
 np      dq      0xfffffffeffffffff

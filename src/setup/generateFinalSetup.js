@@ -60,9 +60,10 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     console.log("Copying circom files...");
     fs.copyFile(`${buildDir}/build/final_cpp/final.dat`, `${buildDir}/provingKey/${globalInfo.name}/final/final.dat`, (err) => { if(err) throw err; });
     fs.copyFile(`${buildDir}/build/final_cpp/final.cpp`, "./src/setup/circom/verifier.cpp", () => {});
-
+    await exec(`sed -i 's/Fr/FrG/g' ./src/setup/circom/verifier.cpp`);
+    
     console.log(`Generating witness library for final.cpp...`);
-    await exec(`make -C src/setup/circom -j witness WITNESS_DIR=../../../${filesDir} WITNESS_FILE=final.so`);
+    await exec(`make -j witness WITNESS_DIR=${filesDir} WITNESS_FILE=final.so`);
 
     // Generate setup
     const finalR1csFile = `${buildDir}/build/final.r1cs`;

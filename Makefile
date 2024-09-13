@@ -19,7 +19,7 @@ witness: $(WITNESS_DIR)/$(WITNESS_FILE)
 clean:
 	$(RM) -r $(BUILD_DIR)
 
-SRCS_WITNESS_LIB := $(shell find ./src/setup/circom -name *.cpp)
+SRCS_WITNESS_LIB := $(shell find ./src/setup/circom -name *.asm -or -name *.cpp)
 OBJS_WITNESS_LIB := $(SRCS_WITNESS_LIB:%=$(BUILD_DIR)/%.o)
 DEPS_WITNESS_LIB := $(OBJS_WITNESS_LIB:.o=.d)
 

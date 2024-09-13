@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include "goldilocks_base_field.hpp"
-// #include "zkassert.hpp"
 
 class CommitPolStarks
 {
