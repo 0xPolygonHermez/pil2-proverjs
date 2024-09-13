@@ -114,7 +114,7 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
 
     const expsBin = await prepareExpressionsBin(setup.starkInfo, setup.expressionsInfo);
 
-    await writeExpressionsBinFile(`${filesDir}/${template}.bin`, expsBin);
+    await writeExpressionsBinFile(`${filesDir}/final.bin`, expsBin);
 
     return {starkInfoFinal: setup.starkInfo, verifierInfoFinal: setup.verifierInfo, constRootFinal: setup.constRoot};
 }
