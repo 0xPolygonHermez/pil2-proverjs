@@ -1,5 +1,5 @@
 WITNESS_DIR ?= ./tmp
-WITNESS_FILE ?= witness.so
+WITNESS_FILE ?= libwitness.so
 
 BUILD_DIR := ./build
 
@@ -25,7 +25,7 @@ DEPS_WITNESS_LIB := $(OBJS_WITNESS_LIB:.o=.d)
 
 $(WITNESS_DIR)/$(WITNESS_FILE): $(OBJS_WITNESS_LIB)
 	$(MKDIR_P) $(WITNESS_DIR)
-	$(CXX) -shared -o $@ $^
+	$(CXX) -shared -o $@ $^ -lgmp -lgmpxx
 
 # Assembly compilation rule
 $(BUILD_DIR)/%.asm.o: %.asm

@@ -244,17 +244,20 @@ void freeCircuit(Circom_Circuit *circuit)
   delete circuit;
 }
 
-extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAddress, uint64_t N, uint64_t nCols, const std::string datFile, const std::string execFile, nlohmann::json &zkin)
+extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAddress, uint64_t N, uint64_t nCols, char* datFile, char* execFile, char* zkinFile)
   {
     CommitPolsStarks commitPols(pAddress, N, nCols);
 
     //-------------------------------------------
     // Verifier stark proof
     //-------------------------------------------
-    Circom_Circuit *circuit = loadCircuit(datFile);
+    Circom_Circuit *circuit = loadCircuit(string(datFile));
+
     Circom_CalcWit *ctx = new Circom_CalcWit(circuit);
 
-    loadJsonImpl(ctx, zkin);
+    // loadJsonImpl(ctx, zkin);
+    loadJson(ctx, string(zkinFile));
+
     if (ctx->getRemaingInputsToBeSet() != 0)
     {
       cout << "Not all inputs have been set. Only " << to_string(get_main_input_signal_no() - ctx->getRemaingInputsToBeSet()) << " out of " << to_string(get_main_input_signal_no()) << endl;
@@ -264,7 +267,7 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
     //-------------------------------------------
     // Compute witness and commited pols
     //------------------------------------------- 
-    ExecFile exec(execFile, nCols);
+    ExecFile exec(string(execFile), nCols);
     uint64_t sizeWitness = get_size_of_witness();
     Goldilocks::Element *tmp = new Goldilocks::Element[exec.nAdds + sizeWitness];
     for (uint64_t i = 0; i < sizeWitness; i++)
