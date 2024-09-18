@@ -107,7 +107,7 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
         await fs.promises.writeFile(`${filesDir}/final.verkey.json`, JSONbig.stringify(setup.constRoot, null, 1), "utf8");
     } else {
         console.log("Computing Constant Tree...");
-        const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/final.const -s ${filesDir}/final.starkinfo.json -v ${filesDir}/final.verkey.json`);
+        const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/final.const -s ${filesDir}/final.starkinfo.json -t ${filesDir}/final.consttree -v ${filesDir}/final.verkey.json`);
         console.log(stdout);
         setup.constRoot = JSON.parse(await fs.promises.readFile(`${filesDir}/final.verkey.json`, "utf8"));
     }

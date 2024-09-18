@@ -99,7 +99,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
                 console.log("Computing Constant Tree...");
                 const {stdout} = await exec(`${proofManagerConfig.setup.constTree} -c ${filesDir}/${subproof.name}_${air.airId}.const -s ${filesDir}/${subproof.name}_${air.airId}.starkinfo.json -v ${filesDir}/${subproof.name}_${air.airId}.verkey.json`);
                 console.log(stdout);
-                setup[subproof.subproofId][air.airId].constRoot = JSON.parse(await fs.promises.readFile(`${filesDir}/${subproof.name}_${air.airId}.verkey.json`, "utf8"));
+                setup[subproof.subproofId][air.airId].constRoot = JSONbig.parse(await fs.promises.readFile(`${filesDir}/${subproof.name}_${air.airId}.verkey.json`, "utf8"));
             }
 
         

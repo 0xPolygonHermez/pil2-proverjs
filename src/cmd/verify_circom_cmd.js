@@ -7,7 +7,7 @@ const { joinzkinFinal } = require("stark-recurser/src/pil2circom/joinzkinFinal.j
 const { proof2zkin } = require("stark-recurser/src/pil2circom/proof2zkin.js");
 const { nullpublics2zkin, publics2zkin } = require("stark-recurser/src/pil2circom/publics2zkin.js");
 
-module.exports = async function verifyCircomCmd(proofs, challenges) {
+module.exports = async function verifyCircomCmd(proofs, publics, challenges) {
     log.info("[CircomVrfr]", "==> CIRCOM PROOF VERIFICATION")
     
     const globalInfo = JSON.parse(await fs.promises.readFile(`tmp/provingKey/pilout.globalInfo.json`, "utf8"));
@@ -15,8 +15,6 @@ module.exports = async function verifyCircomCmd(proofs, challenges) {
     await fs.promises.mkdir(`tmp/proofs/`, { recursive: true });
     
     const proofsBySubproofId = [];
-
-    const publics = proofs[0].publics;
 
     for(let p = 0; p < proofs.length; ++p) {
         const proof = proofs[p];
@@ -30,10 +28,10 @@ module.exports = async function verifyCircomCmd(proofs, challenges) {
             const starkInfo = JSON.parse(await fs.promises.readFile(`tmp/provingKey/${globalInfo.name}/${globalInfo.subproofs[subproofId]}/airs/${globalInfo.subproofs[subproofId]}_${airId}/air/${globalInfo.subproofs[subproofId]}_${airId}.starkinfo.json`, "utf8"));
             const hasCompressor = globalInfo.airs[subproofId][airId].hasCompressor;
 
-            let inputs = proof2zkin(proof.proof, starkInfo, "sv");
+            let inputs = proof2zkin(proof, starkInfo, "sv");
             inputs.challenges = challenges.challenges.flat();
             inputs.challengesFRISteps = challenges.challengesFRISteps;
-            inputs.publics = proof.publics;
+            inputs.publics = publics;
 
             if(hasCompressor) {
                 const {zkin: zkinCompressor, publics: publicsCompressor } = await generateProof("compressor", inputs, globalInfo, subproofId, airId);

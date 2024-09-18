@@ -97,7 +97,7 @@ bool check_valid_number(std::string & s, uint base){
   return is_valid;
 }
 
-void json2FrGElements (json val, std::vector<FrGElement> & vval){
+void json2FrGElements (ordered_json val, std::vector<FrGElement> & vval){
   if (!val.is_array()) {
     FrGElement v;
     std::string s_aux, s;
@@ -143,13 +143,13 @@ void json2FrGElements (json val, std::vector<FrGElement> & vval){
   }
 }
 
-void loadJsonImpl(Circom_CalcWit *ctx, json &j) {
+void loadJsonImpl(Circom_CalcWit *ctx, ordered_json &j) {
   u64 nItems = j.size();
   // printf("Items : %llu\n",nItems);
   if (nItems == 0){
     ctx->tryRunCircuit();
   }
-  for (json::iterator it = j.begin(); it != j.end(); ++it) {
+  for (ordered_json::iterator it = j.begin(); it != j.end(); ++it) {
     // std::cout << it.key() << " => " << it.value() << '\n';
     u64 h = fnv1a(it.key());
     std::vector<FrGElement> v;
@@ -181,7 +181,7 @@ void loadJsonImpl(Circom_CalcWit *ctx, json &j) {
 void loadJson(Circom_CalcWit *ctx, std::string filename)
 {
   std::ifstream inStream(filename);
-  json j;
+  ordered_json j;
   inStream >> j;
   inStream.close();
   loadJsonImpl(ctx, j);
@@ -244,9 +244,11 @@ void freeCircuit(Circom_Circuit *circuit)
   delete circuit;
 }
 
-extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAddress, uint64_t N, uint64_t nCols, char* datFile, char* execFile, char* zkinFile)
-  {
-    CommitPolsStarks commitPols(pAddress, N, nCols);
+extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAddress, void* pPublics, void *zkin, uint64_t N, uint64_t nPublics, uint64_t offsetCm1, char* datFile, char* execFile)  {
+
+    uint64_t nCols = 18;
+
+    CommitPolsStarks commitPols((uint8_t *)pAddress + offsetCm1 * sizeof(Goldilocks::Element), N, nCols);
 
     //-------------------------------------------
     // Verifier stark proof
@@ -255,8 +257,7 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
 
     Circom_CalcWit *ctx = new Circom_CalcWit(circuit);
 
-    // loadJsonImpl(ctx, zkin);
-    loadJson(ctx, string(zkinFile));
+    loadJsonImpl(ctx, *(ordered_json*) zkin);
 
     if (ctx->getRemaingInputsToBeSet() != 0)
     {
@@ -277,6 +278,14 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
       FrG_toLongNormal(&aux, &aux);
       tmp[i] = Goldilocks::fromU64(aux.longVal[0]);
     }
+    
+
+    Goldilocks::Element *publics = (Goldilocks::Element *)pPublics;
+
+    for(uint64_t i = 0; i < nPublics; ++i) {
+      publics[i] = tmp[1 + i];
+    }
+    
     delete ctx;
     for (uint64_t i = 0; i < exec.nAdds; i++)
     {

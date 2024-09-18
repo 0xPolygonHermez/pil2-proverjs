@@ -49,7 +49,7 @@ async function executeFullProveTest(setup, publics, options, genCircomProof) {
 
     assert(isValid == true, "PROOF NOT VALID");
 
-    if(genCircomProof) await verifyCircomCmd(proofs, challenges);
+    if(genCircomProof) await verifyCircomCmd(proofs, publics, challenges);
 
     log.info("[FullProve ]", "<== FULL PROVE TEST")
 }
