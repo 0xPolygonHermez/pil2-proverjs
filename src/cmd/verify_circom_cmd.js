@@ -100,7 +100,7 @@ module.exports = async function verifyCircomCmd(proofs, publics, challenges) {
         } 
     }
     
-    const zkinFinal = joinzkinFinal(proofsBySubproofId, globalInfo, publics, challenges, challengesFRISteps);
+    const zkinFinal = joinzkinFinal(proofsBySubproofId, globalInfo, publics, challenges, challenges.challengesFRISteps);
 
     await fs.promises.writeFile(`tmp/proofs/final.proof.zkin.json`, JSONbig.stringify(zkinFinal, (k, v) => {
         if (typeof(v) === "bigint") {
