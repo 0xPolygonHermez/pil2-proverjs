@@ -112,7 +112,7 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
         console.log("Computing Constant Tree...");
         const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/${template}.const -s ${filesDir}/${template}.starkinfo.json -t ${filesDir}/${template}.consttree -v ${filesDir}/${template}.verkey.json`);
         console.log(stdout);
-        setup.constRoot = JSON.parse(await fs.promises.readFile(`${filesDir}/${template}.verkey.json`, "utf8"));
+        setup.constRoot = JSONbig.parse(await fs.promises.readFile(`${filesDir}/${template}.verkey.json`, "utf8"));
     }
    
     const expsBin = await prepareExpressionsBin(setup.starkInfo, setup.expressionsInfo);
