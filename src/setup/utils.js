@@ -54,7 +54,7 @@ async function setAiroutInfo(airout, starkStructs) {
         vadcopInfo.subproofs.push(subproof.name);
         vadcopInfo.airs[i] = [];
         for(let j = 0; j < subproof.airs.length; ++j) {
-            vadcopInfo.airs[subproofId][j] = {name: `${subproof.name}_${j}`};
+            vadcopInfo.airs[subproofId][j] = {name: `${subproof.name}_${j}`, num_rows: subproof.airs[j].numRows};
         }
     }
 
