@@ -60,13 +60,14 @@ module.exports = async function verifyCmd(setup, proofs, challenges, publics, op
 
             if(!isValid) {
                 log.error("[VerifyCmd ]", "Global Constraint", i + 1, "failed.");
-                return isValid;
+                // return isValid;
             }
         }
 
         log.info("[VerifyCmd ]", "<== VERIFYING GLOBAL CONSTRAINTS")
     }
 
+    let index = 0;
     for(const proof of proofs) {    
         const constRoot = setup.setup[proof.subproofId][proof.airId].constRoot;
         const starkInfo = setup.setup[proof.subproofId][proof.airId].starkInfo;
@@ -74,7 +75,9 @@ module.exports = async function verifyCmd(setup, proofs, challenges, publics, op
 
         isValid = isValid && await verifier.checkProof(proof, constRoot, starkInfo, verifierInfo, setup.airoutInfo, challenges, publics, options);
         
-        if(!isValid) break;
+        if(!isValid) log.error("[VerifyCmd ]", "Proof verification ", index, " failed.");
+        // if(!isValid) break;
+        ++index;
     }
 
     const logX = isValid ? log.info : log.error;
