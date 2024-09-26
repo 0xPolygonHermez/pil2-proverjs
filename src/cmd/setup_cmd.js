@@ -16,7 +16,6 @@ const { genFinalSetup } = require("../setup/generateFinalSetup.js");
 const {genRecursiveSetup} = require("../setup/generateRecursiveSetup.js");
 const { generateStarkStruct, setAiroutInfo } = require("../setup/utils.js");
 
-const pil2circom = require("stark-recurser/src/pil2circom/pil2circom.js");
 const { isCompressorNeeded } = require("stark-recurser/src/vadcop/is_compressor_needed.js");
 const { log2 } = require("stark-recurser/src/utils/utils.js");
 
@@ -90,6 +89,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             await fixedPols.saveToFile(`${filesDir}/${subproof.name}_${air.airId}.const`);
             
             await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.starkinfo.json`, JSON.stringify(setup[subproof.subproofId][air.airId].starkInfo, null, 1), "utf8");
+            setup[subproof.subproofId][air.airId].starkInfoFile = `${filesDir}/${subproof.name}_${air.airId}.starkinfo.json`;
 
             if(!setupOptions.constTree) {
                 const MH = await buildMerkleHashGL(starkStruct.splitLinearHash);
@@ -137,45 +137,17 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             for(const air of subproof.airs) {
                 log.info(
                     "[Setup  Cmd]",
-                    `··· Computing setup for air '${air.name}'`
-                );
-                
-                let verifierCircomTemplate = await pil2circom(
-                    setup[subproof.subproofId][air.airId].constRoot,
-                    setup[subproof.subproofId][air.airId].starkInfo,
-                    setup[subproof.subproofId][air.airId].verifierInfo,
-                    { skipMain: true }
-                );
-
-                verifierCircomTemplate +=
-                    `\n\ncomponent main = StarkVerifier${subproof.subproofId}();\n\n`;
-
-                const nameTmp = await tmpName();
-                const folder = path.dirname(nameTmp);
-                const tmpCircomFilename = nameTmp + ".circom";
-                const tmpR1csFilename = nameTmp + ".r1cs";
-
-                await fs.promises.writeFile(
-                    tmpCircomFilename,
-                    verifierCircomTemplate,
-                    "utf8"
-                );
-                
-                const circuitsGLPath = path.resolve(__dirname, '../../', 'node_modules/pil2-stark-js/circuits.gl');
-                const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks -l ${circuitsGLPath} ${tmpCircomFilename} -o ${folder}`;
-                console.log(compileRecursiveCommand);
-                await exec(compileRecursiveCommand);
-
-                log.info(
-                    "[Setup  Cmd]",
                     `······ Checking if air '${air.name}' needs a compressor`
                 );
 
-                const compressorNeeded = await isCompressorNeeded(tmpR1csFilename, {})
+                const compressorNeeded = await isCompressorNeeded(
+                    setup[subproof.subproofId][air.airId].constRoot,
+                    setup[subproof.subproofId][air.airId].starkInfo,
+                    setup[subproof.subproofId][air.airId].verifierInfo,
+                    setup[subproof.subproofId][air.airId].starkInfoFile
+                    
+                );
               
-                await fs.promises.unlink(tmpR1csFilename);
-                await fs.promises.unlink(tmpCircomFilename);
-
                 let constRoot;
                 let starkInfo;
                 let verifierInfo;

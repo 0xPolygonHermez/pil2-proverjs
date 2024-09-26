@@ -15,7 +15,7 @@ const { generateStarkStruct } = require("./utils");
 const path = require("path");
 const { prepareExpressionsBin } = require("pil2-stark-js/src/stark/chelpers/stark_chelpers");
 const { writeExpressionsBinFile } = require("pil2-stark-js/src/stark/chelpers/binFile");
-
+const { runWitnessLibraryGeneration, runFinalWitnessLibraryGeneration } = require("./generateWitness");
 
 module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptions, finalSettings, globalInfo, globalConstraints, compressorCols) {
     const F = new F3g();
@@ -62,12 +62,7 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     console.log("Copying circom files...");
     fs.copyFile(`${buildDir}/build/final_cpp/final.dat`, `${buildDir}/provingKey/${globalInfo.name}/final/final.dat`, (err) => { if(err) throw err; });
     
-    const verifierFilename = path.join(__dirname, "circom/verifier.cpp");
-    fs.copyFile(`${buildDir}/build/final_cpp/final.cpp`, verifierFilename, () => {});
-    await exec(`sed -i 's/Fr/FrG/g' ${verifierFilename}`);
-    
-    console.log(`Generating witness library for final.cpp...`);
-    await exec(`make -C ${path.join(__dirname, "../..")} -j witness WITNESS_DIR=${path.resolve(filesDir)} WITNESS_FILE=final.so`);
+    await runFinalWitnessLibraryGeneration(buildDir, filesDir);
 
     // Generate setup
     const finalR1csFile = `${buildDir}/build/final.r1cs`;
@@ -108,7 +103,6 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     } else {
         console.log("Computing Constant Tree...");
         const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/final.const -s ${filesDir}/final.starkinfo.json -t ${filesDir}/final.consttree -v ${filesDir}/final.verkey.json`);
-        console.log(stdout);
         setup.constRoot = JSON.parse(await fs.promises.readFile(`${filesDir}/final.verkey.json`, "utf8"));
     }
 

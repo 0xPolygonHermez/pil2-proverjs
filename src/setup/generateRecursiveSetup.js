@@ -15,6 +15,7 @@ const buildMerkleHashGL = require("pil2-stark-js/src/helpers/hash/merklehash/mer
 const { starkSetup } = require('pil2-stark-js');
 const path = require('path');
 const { prepareExpressionsBin } = require('pil2-stark-js/src/stark/chelpers/stark_chelpers');
+const { runWitnessLibraryGeneration } = require('./generateWitness');
 
 module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, setupOptions, template, subproofName, subproofId, airId, globalInfo, constRoot, verificationKeys = [], starkInfo, verifierInfo, starkStruct, compressorCols, hasCompressor) {
 
@@ -75,12 +76,8 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
     console.log("Copying circom files...");
     fs.copyFile(`${buildDir}/build/${nameFilename}_cpp/${nameFilename}.dat`, `${filesDir}/${template}.dat`, (err) => { if(err) throw err; });
     
-    const verifierFilename = path.join(__dirname, "circom/verifier.cpp");
-    fs.copyFile(`${buildDir}/build/${nameFilename}_cpp/${nameFilename}.cpp`, verifierFilename, () => {});
-    await exec(`sed -i 's/Fr/FrG/g' ${verifierFilename}`);
-    
-    console.log(`Generating witness library for ${nameFilename}...`);
-    await exec(`make -C ${path.join(__dirname, "../..")} -j witness WITNESS_DIR=${path.resolve(filesDir)} WITNESS_FILE=${template}.so`);
+    // Generate witness library
+    runWitnessLibraryGeneration(buildDir, filesDir, nameFilename, template);
 
     // Generate setup
     const {exec: execBuff, pilStr, constPols} = await compressorSetup(F, `${buildDir}/build/${nameFilename}.r1cs`, compressorCols);
@@ -110,8 +107,7 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
         await fs.promises.writeFile(`${filesDir}/${template}.verkey.json`, JSONbig.stringify(setup.constRoot, null, 1), "utf8");
     } else {
         console.log("Computing Constant Tree...");
-        const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/${template}.const -s ${filesDir}/${template}.starkinfo.json -t ${filesDir}/${template}.consttree -v ${filesDir}/${template}.verkey.json`);
-        console.log(stdout);
+        await exec(`${setupOptions.constTree} -c ${filesDir}/${template}.const -s ${filesDir}/${template}.starkinfo.json -t ${filesDir}/${template}.consttree -v ${filesDir}/${template}.verkey.json`);
         setup.constRoot = JSONbig.parse(await fs.promises.readFile(`${filesDir}/${template}.verkey.json`, "utf8"));
     }
    

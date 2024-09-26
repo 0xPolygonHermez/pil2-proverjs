@@ -11,7 +11,6 @@ TMP
 tmp/*
 
 build/*
-src/setup/circom/build/*
 src/setup/circom/tmp/*
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
