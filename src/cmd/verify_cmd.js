@@ -73,10 +73,12 @@ module.exports = async function verifyCmd(setup, proofs, challenges, publics, op
         const starkInfo = setup.setup[proof.subproofId][proof.airId].starkInfo;
         const verifierInfo = setup.setup[proof.subproofId][proof.airId].verifierInfo;
 
-        isValid = isValid && await verifier.checkProof(proof, constRoot, starkInfo, verifierInfo, setup.airoutInfo, challenges, publics, options);
+        let isValidProof = await verifier.checkProof(proof, constRoot, starkInfo, verifierInfo, setup.airoutInfo, challenges, publics, options);
         
-        if(!isValid) log.error("[VerifyCmd ]", "Proof verification ", index, " failed.");
-        // if(!isValid) break;
+        if(!isValidProof) log.error("[VerifyCmd ]", "Proof verification ", index, " failed.");
+        
+        isValid = isValid && isValidProof;
+
         ++index;
     }
 
