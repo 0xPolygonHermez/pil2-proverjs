@@ -287,6 +287,8 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
     }
     
     delete ctx;
+  
+    // #pragma omp parallel for
     for (uint64_t i = 0; i < exec.nAdds; i++)
     {
       FrG_toLongNormal(&exec.p_adds[i * 4], &exec.p_adds[i * 4]);
@@ -321,6 +323,7 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
         }
       }
     }
+    // #pragma omp parallel for
     for (uint i = exec.nSMap; i < N; i++)
     {
       for (uint j = 0; j < nCols; j++)
