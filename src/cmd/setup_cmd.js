@@ -160,8 +160,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
 
                     // TODO: THIS SHOULD BE IMPROVED
                     const starkStructSettings = {};
-                    starkStructSettings.blowupFactor = 4;
-                    starkStructSettings.nQueries = 64;
+                    starkStructSettings.blowupFactor = 2;
 
                     const starkStructCompressor = generateStarkStruct(starkStructSettings, compressorNeeded.nBits);
                     
