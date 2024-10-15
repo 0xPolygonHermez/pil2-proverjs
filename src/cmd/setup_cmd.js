@@ -24,8 +24,8 @@ const { generateFixedCols } = require("pil2-stark-js/src/witness/witnessCalculat
 const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
 const buildMerkleHashGL = require("pil2-stark-js/src/helpers/hash/merklehash/merklehash_p.js");
 const { starkSetup } = require("pil2-stark-js");
-const { prepareExpressionsBin } = require("pil2-stark-js/src/stark/chelpers/stark_chelpers.js");
-const { writeExpressionsBinFile } = require("pil2-stark-js/src/stark/chelpers/binFile.js");
+const { prepareExpressionsBin, prepareVerifierExpressionsBin } = require("pil2-stark-js/src/stark/chelpers/stark_chelpers.js");
+const { writeExpressionsBinFile, writeVerifierExpressionsBinFile } = require("pil2-stark-js/src/stark/chelpers/binFile.js");
 const { writeGlobalConstraintsBinFile } = require("pil2-stark-js/src/stark/chelpers/globalConstraints/globalConstraints.js");
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
@@ -108,8 +108,10 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.expressionsinfo.json`, JSON.stringify(setup[subproof.subproofId][air.airId].expressionsInfo, null, 1), "utf8");
         
             const expsBin = await prepareExpressionsBin(setup[subproof.subproofId][air.airId].starkInfo, setup[subproof.subproofId][air.airId].expressionsInfo);
-
             await writeExpressionsBinFile(`${filesDir}/${subproof.name}_${air.airId}.bin`, expsBin);
+
+            const verifierExpsBin = await prepareVerifierExpressionsBin(setup[subproof.subproofId][air.airId].starkInfo, setup[subproof.subproofId][air.airId].verifierInfo);
+            await writeVerifierExpressionsBinFile(`${filesDir}/${subproof.name}_${air.airId}.verifier.bin`, verifierExpsBin);
         }
     }
 
