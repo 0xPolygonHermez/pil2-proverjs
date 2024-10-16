@@ -46,7 +46,7 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     let templateFilename = path.resolve(__dirname, "../..", `node_modules/stark-recurser/src/vadcop/templates/final.circom.ejs`);
 
     // Generate final circom
-    const finalVerifier = await genCircom(templateFilename, starkInfos, {...globalInfo, globalConstraints }, verifierNames, basicKeysRecursive1, aggregatedKeysRecursive2);
+    const finalVerifier = await genCircom(templateFilename, starkInfos, {...globalInfo, globalConstraints: globalConstraints.constraints }, verifierNames, basicKeysRecursive1, aggregatedKeysRecursive2);
     await fs.promises.writeFile(finalFilename, finalVerifier, "utf8");
 
 

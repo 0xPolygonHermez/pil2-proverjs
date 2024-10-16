@@ -26,7 +26,8 @@ public:
   FrGElement *signalValues;
   Circom_Component* componentMemory;
   FrGElement* circuitConstants; 
-  std::map<u32,IODefPair> templateInsId2IOSignalInfo; 
+  std::map<u32,IOFieldDefPair> templateInsId2IOSignalInfo; 
+  IOFieldDefPair* busInsId2FieldInfo;
   std::string* listOfTemplateMessages; 
 
   // parallelism

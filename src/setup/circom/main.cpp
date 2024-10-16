@@ -38,7 +38,8 @@ Circom_Circuit* loadCircuit(std::string const &datFileName) {
       memcpy((void *)(circuit->circuitConstants), (void *)(bdata+inisize), dsize);
     }
 
-    std::map<u32,IODefPair> templateInsId2IOSignalInfo1;
+    std::map<u32,IOFieldDefPair> templateInsId2IOSignalInfo1;
+    IOFieldDefPair* busInsId2FieldInfo1;
     if (get_size_of_io_map()>0) {
       u32 index[get_size_of_io_map()];
       inisize += dsize;
@@ -50,12 +51,11 @@ Circom_Circuit* loadCircuit(std::string const &datFileName) {
       u32 dataiomap[(sb.st_size-inisize)/sizeof(u32)];
       memcpy((void *)dataiomap, (void *)(bdata+inisize), sb.st_size-inisize);
       u32* pu32 = dataiomap;
-
-      for (unsigned  int i = 0; i < get_size_of_io_map(); i++) {
+      for (int i = 0; i < get_size_of_io_map(); i++) {
 	u32 n = *pu32;
-	IODefPair p;
+	IOFieldDefPair p;
 	p.len = n;
-	IODef defs[n];
+	IOFieldDef defs[n];
 	pu32 += 1;
 	for (u32 j = 0; j <n; j++){
 	  defs[j].offset=*pu32;
@@ -64,16 +64,44 @@ Circom_Circuit* loadCircuit(std::string const &datFileName) {
 	  defs[j].lengths = new u32[len];
 	  memcpy((void *)defs[j].lengths,(void *)(pu32+2),len*sizeof(u32));
 	  pu32 += len + 2;
+	  defs[j].size=*pu32;
+	  defs[j].busId=*(pu32+1);	  
+	  pu32 += 2;
 	}
-	p.defs = (IODef*)calloc(10, sizeof(IODef));
+	p.defs = (IOFieldDef*)calloc(p.len, sizeof(IOFieldDef));
 	for (u32 j = 0; j < p.len; j++){
 	  p.defs[j] = defs[j];
 	}
 	templateInsId2IOSignalInfo1[index[i]] = p;
       }
+      busInsId2FieldInfo1 = (IOFieldDefPair*)calloc(get_size_of_bus_field_map(), sizeof(IOFieldDefPair));
+      for (int i = 0; i < get_size_of_bus_field_map(); i++) {
+	u32 n = *pu32;
+	IOFieldDefPair p;
+	p.len = n;
+	IOFieldDef defs[n];
+	pu32 += 1;
+	for (u32 j = 0; j <n; j++){
+	  defs[j].offset=*pu32;
+	  u32 len = *(pu32+1);
+	  defs[j].len = len;
+	  defs[j].lengths = new u32[len];
+	  memcpy((void *)defs[j].lengths,(void *)(pu32+2),len*sizeof(u32));
+	  pu32 += len + 2;
+	  defs[j].size=*pu32;
+	  defs[j].busId=*(pu32+1);	  
+	  pu32 += 2;
+	}
+	p.defs = (IOFieldDef*)calloc(10, sizeof(IOFieldDef));
+	for (u32 j = 0; j < p.len; j++){
+	  p.defs[j] = defs[j];
+	}
+	busInsId2FieldInfo1[i] = p;
+      }
     }
     circuit->templateInsId2IOSignalInfo = move(templateInsId2IOSignalInfo1);
-    
+    circuit->busInsId2FieldInfo = busInsId2FieldInfo1;
+
     munmap(bdata, sb.st_size);
     
     return circuit;
@@ -143,6 +171,57 @@ void json2FrGElements (ordered_json val, std::vector<FrGElement> & vval){
   }
 }
 
+ordered_json::value_t check_type(std::string prefix, ordered_json in){
+  if (not in.is_array()) {
+      return in.type();
+    } else {
+    if (in.size() == 0) return ordered_json::value_t::null;
+    ordered_json::value_t t = check_type(prefix, in[0]);
+    for (uint i = 1; i < in.size(); i++) {
+      if (t != check_type(prefix, in[i])) {
+	fprintf(stderr, "Types are not the same in the the key %s\n",prefix.c_str());
+	assert(false);
+      }
+    }
+    return t;
+  }
+}
+
+void qualify_input(std::string prefix, ordered_json &in, ordered_json &in1);
+
+void qualify_input_list(std::string prefix, ordered_json &in, ordered_json &in1){
+    if (in.is_array()) {
+      for (uint i = 0; i<in.size(); i++) {
+	  std::string new_prefix = prefix + "[" + std::to_string(i) + "]";
+	  qualify_input_list(new_prefix,in[i],in1);
+	}
+    } else {
+	qualify_input(prefix,in,in1);
+    }
+}
+
+void qualify_input(std::string prefix, ordered_json &in, ordered_json &in1) {
+  if (in.is_array()) {
+    if (in.size() > 0) {
+      ordered_json::value_t t = check_type(prefix,in);
+      if (t == ordered_json::value_t::object) {
+	qualify_input_list(prefix,in,in1);
+      } else {
+	in1[prefix] = in;
+      }
+    } else {
+      in1[prefix] = in;
+    }
+  } else if (in.is_object()) {
+    for (ordered_json::iterator it = in.begin(); it != in.end(); ++it) {
+      std::string new_prefix = prefix.length() == 0 ? it.key() : prefix + "." + it.key();
+      qualify_input(new_prefix,it.value(),in1);
+    }
+  } else {
+    in1[prefix] = in;
+  }
+}
+
 void loadJsonImpl(Circom_CalcWit *ctx, ordered_json &j) {
   u64 nItems = j.size();
   // printf("Items : %llu\n",nItems);
@@ -181,8 +260,11 @@ void loadJsonImpl(Circom_CalcWit *ctx, ordered_json &j) {
 void loadJson(Circom_CalcWit *ctx, std::string filename)
 {
   std::ifstream inStream(filename);
+  ordered_json jin;
+  inStream >> jin;
   ordered_json j;
-  inStream >> j;
+  std::string prefix = "";
+  qualify_input(prefix, jin, j);
   inStream.close();
   loadJsonImpl(ctx, j);
 }
