@@ -107,10 +107,10 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         
             await fs.promises.writeFile(`${filesDir}/${subproof.name}_${air.airId}.expressionsinfo.json`, JSON.stringify(setup[subproof.subproofId][air.airId].expressionsInfo, null, 1), "utf8");
         
-            const expsBin = await prepareExpressionsBin(setup[subproof.subproofId][air.airId].starkInfo, setup[subproof.subproofId][air.airId].expressionsInfo);
+            const expsBin = await prepareExpressionsBin(setup[subproof.subproofId][air.airId].starkInfo, JSON.parse(JSON.stringify(setup[subproof.subproofId][air.airId].expressionsInfo)));
             await writeExpressionsBinFile(`${filesDir}/${subproof.name}_${air.airId}.bin`, expsBin);
 
-            const verifierExpsBin = await prepareVerifierExpressionsBin(setup[subproof.subproofId][air.airId].starkInfo, setup[subproof.subproofId][air.airId].verifierInfo);
+            const verifierExpsBin = await prepareVerifierExpressionsBin(setup[subproof.subproofId][air.airId].starkInfo, JSON.parse(JSON.stringify(setup[subproof.subproofId][air.airId].verifierInfo)));
             await writeVerifierExpressionsBinFile(`${filesDir}/${subproof.name}_${air.airId}.verifier.bin`, verifierExpsBin);
         }
     }
