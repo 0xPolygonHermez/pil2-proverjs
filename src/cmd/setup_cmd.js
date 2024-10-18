@@ -36,7 +36,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         F: new F3g("0xFFFFFFFF00000001"),
         pil2: true,
         optImPols: (proofManagerConfig.setup && proofManagerConfig.setup.optImPols) || false,
-        skipConstTree: proofManagerConfig.setup && proofManagerConfig.setup.constTree !== undefined ? true : false,
+        skipConstTree: (proofManagerConfig.setup && proofManagerConfig.setup.constTree !== undefined) ? true : false,
         constTree: proofManagerConfig.setup && proofManagerConfig.setup.constTree !== undefined ? proofManagerConfig.setup.constTree : undefined,
     };
 
