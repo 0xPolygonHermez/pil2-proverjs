@@ -37,8 +37,8 @@
   "dependencies": {
     "json-bigint": "^1.0.0",
     "npmlog": "^7.0.1",
-    "pil2-stark-js": "https://github.com/0xPolygonHermez/pil2-stark-js.git#develop",
-    "stark-recurser":  "https://github.com/0xPolygonHermez/stark-recurser#develop",
+    "pil2-stark-js": "https://github.com/0xPolygonHermez/pil2-stark-js.git#9201a875933e65e0292b7bccf71d1df5d3bb87dc",
+    "stark-recurser":  "https://github.com/0xPolygonHermez/stark-recurser#72a4716f76b887eef18034561857d6c2048ffda5",
     "pilcom": "https://github.com/0xPolygonHermez/pilcom.git#polsArrayGeneric",
     "pil2-compiler": "https://github.com/0xPolygonHermez/pil2-compiler.git#develop",
     "protobufjs": "^7.2.4",
