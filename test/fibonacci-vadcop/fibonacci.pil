@@ -16,7 +16,7 @@ function final_function() {
 
 air aggregate Fibonacci(int N = 2**4) {
 
-    subproofval aggregate(sum) gsum_fibonacci;
+    airgroupval aggregate(sum) gsum_fibonacci;
 
     col fixed L1 = [1,0...];
     col witness a,b;
@@ -31,7 +31,7 @@ air aggregate Fibonacci(int N = 2**4) {
 
     @gsum { reference: gsum, numerator: 5, denominator: ((((L1'2*out + (1 - L1'2)*a') * std_alpha + a * a + b * b) * std_alpha) + MODULE_ID + std_beta)}
 
-    @subproofValue { reference: gsum_fibonacci, expression: gsum, row_index: N - 1 }
+    @airgroupValue { reference: gsum_fibonacci, expression: gsum, row_index: N - 1 }
 
     (gsum - 'gsum * (1 - L1)) * ((((L1'2*out + (1 - L1'2)*a') * std_alpha + a * a + b * b) * std_alpha) + MODULE_ID + std_beta) + 1 === 0;
     L1' * (gsum - gsum_fibonacci) === 0;

@@ -11,7 +11,7 @@ public mod;
 
 air Module(int N = 2**4) {
 
-    subproofval aggregate(sum) gsum_module;
+    airgroupval aggregate(sum) gsum_module;
 
     col fixed L1 = [1,0...];
     col witness x, q, x_mod;
@@ -23,7 +23,7 @@ air Module(int N = 2**4) {
 
     @gsum { reference: gsum, numerator: 1, denominator: (((x_mod * std_alpha + x) * std_alpha) + MODULE_ID + std_beta)}
 
-    @subproofValue { reference: gsum_module, expression: gsum, row_index: N - 1 }
+    @airgroupValue { reference: gsum_module, expression: gsum, row_index: N - 1 }
 
     (gsum - 'gsum * (1 - L1)) * (((x_mod * std_alpha + x) * std_alpha) + MODULE_ID + std_beta) - 1 === 0;
 

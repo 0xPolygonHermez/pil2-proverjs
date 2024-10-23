@@ -7,7 +7,7 @@ class ExecutorSimple4 extends WitnessCalculatorComponent {
         super("Simple4 Ex", wcManager, proofCtx);
     }
 
-    async witnessComputation(stageId, subproofId, airInstance) {
+    async witnessComputation(stageId, airgroupId, airInstance) {
         if(stageId !== 1) return;
 
         if(airInstance.instanceId !== -1) {
@@ -17,9 +17,9 @@ class ExecutorSimple4 extends WitnessCalculatorComponent {
 
         // For tests purposes we only use airId === 0
         airInstance.airId = 0;
-        const air = this.proofCtx.airout.subproofs[subproofId].airs[airInstance.airId];
+        const air = this.proofCtx.airout.airgroups[airgroupId].airs[airInstance.airId];
 
-        let result = this.proofCtx.addAirInstance(subproofId, airInstance, air.numRows);
+        let result = this.proofCtx.addAirInstance(airgroupId, airInstance, air.numRows);
 
         if (result === false) {
             log.error(`[${this.name}]`, `New air instance for air '${air.name}' with N=${air.numRows} rows failed.`);

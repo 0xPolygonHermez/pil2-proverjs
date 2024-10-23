@@ -7,7 +7,7 @@ module.exports = class Executor2 extends WitnessCalculatorComponent {
         super("Executor2", wcManager, proofCtx);
     }
 
-    async witnessComputation(stageId, subproofId, airId, instanceId) {
+    async witnessComputation(stageId, airgroupId, airId, instanceId) {
         const payloads = this.wcManager.airBus.getPendingPayloadsByRecipient(this.name);
 
         for(const payload of payloads) {

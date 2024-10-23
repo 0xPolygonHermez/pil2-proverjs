@@ -28,34 +28,34 @@ module.exports = async function verifyCmd(setup, proofs, challenges, publics, op
 
         log.info("[VerifyCmd ]", "==> VERIFYING GLOBAL CONSTRAINTS")
 
-        const subproofValuesProof = [];
+        const airgroupValuesProof = [];
         
-        for(let i = 0; i < setup.airoutInfo.subproofs.length; ++i) {
+        for(let i = 0; i < setup.airoutInfo.air_groups.length; ++i) {
             const spValues = [];
             for(let j = 0; j < setup.airoutInfo.aggTypes[i].length; ++j) {
                 const aggType = setup.airoutInfo.aggTypes[i][j].aggType;
                 const value = aggType === 0 ? [0n, 0n, 0n] : [1n, 0n, 0n];
                 spValues.push(value);
             }
-            subproofValuesProof.push(spValues)
+            airgroupValuesProof.push(spValues)
         }
 
         for(let i = 0; i < proofs.length; i++) {
             const proof = proofs[i];
-            const subproofId = proof.subproofId;
-            const subproofValues = proof.subproofValues;
-            for(let j = 0; j < subproofValues.length; ++j) {
-                const aggType = setup.airoutInfo.aggTypes[subproofId][j].aggType;
-                                subproofValuesProof[subproofId][j] = aggType === 0
-                    ? F.add(subproofValuesProof[subproofId][j], subproofValues[j])
-                    : F.mul(subproofValuesProof[subproofId][j], subproofValues[j]);
+            const airgroupId = proof.airgroupId;
+            const airgroupValues = proof.airgroupValues;
+            for(let j = 0; j < airgroupValues.length; ++j) {
+                const aggType = setup.airoutInfo.aggTypes[airgroupId][j].aggType;
+                    airgroupValuesProof[airgroupId][j] = aggType === 0
+                    ? F.add(airgroupValuesProof[airgroupId][j], airgroupValues[j])
+                    : F.mul(airgroupValuesProof[airgroupId][j], airgroupValues[j]);
             }
         }
 
         for(let i = 0; i < globalConstraints.length; i++) {
             log.info("[VerifyCmd ]", "··· Verifying Global Constraint", i + 1, "/", globalConstraints.length);
             log.info(globalConstraints[i].line);
-            const res = executeCode(F, {subproofValues: subproofValuesProof}, globalConstraints[i].code, true);
+            const res = executeCode(F, {airgroupValues: airgroupValuesProof}, globalConstraints[i].code, true);
             isValid = isValid && F.isZero(res);
 
             if(!isValid) {
@@ -68,9 +68,9 @@ module.exports = async function verifyCmd(setup, proofs, challenges, publics, op
 
     let index = 0;
     for(const proof of proofs) {    
-        const constRoot = setup.setup[proof.subproofId][proof.airId].constRoot;
-        const starkInfo = setup.setup[proof.subproofId][proof.airId].starkInfo;
-        const verifierInfo = setup.setup[proof.subproofId][proof.airId].verifierInfo;
+        const constRoot = setup.setup[proof.airgroupId][proof.airId].constRoot;
+        const starkInfo = setup.setup[proof.airgroupId][proof.airId].starkInfo;
+        const verifierInfo = setup.setup[proof.airgroupId][proof.airId].verifierInfo;
 
         let isValidProof = await verifier.checkProof(proof, constRoot, starkInfo, verifierInfo, setup.airoutInfo, challenges, publics, options);
         

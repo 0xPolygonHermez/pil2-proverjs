@@ -1,6 +1,6 @@
 const { WitnessCalculatorComponent } = require("../../witness_calculator_component.js");
 
-const { setPol, setSubproofValue } = require("pil2-stark-js/src/prover/prover_helpers.js");
+const { setPol, setAirgroupValue } = require("pil2-stark-js/src/prover/prover_helpers.js");
 
 const log = require("../../../logger.js");
 
@@ -9,10 +9,10 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
         super("LogUp", wcManager, proofCtx);
     }
 
-    async witnessComputation(stageId, subproofId, airInstance, publics) {
+    async witnessComputation(stageId, airgroupId, airInstance, publics) {
         if(stageId === 2) {
-            const subproof = this.proofCtx.airout.subproofs[subproofId];
-            const gsumPolName = subproof.name + ".gsum";
+            const airgroup = this.proofCtx.airout.airgroups[airgroupId];
+            const gsumPolName = airgroup.name + ".gsum";
             const polIdx = airInstance.ctx.pilInfo.cmPolsMap.findIndex(c => c.name === gsumPolName);
 
             if(polIdx === -1) {
@@ -28,7 +28,7 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
     }
 
     async createGsumTrace(airInstance) {
-        const subproof = this.proofCtx.airout.subproofs[airInstance.subproofId];
+        const airgroup = this.proofCtx.airout.airgroups[airInstance.airgroupId];
         const numRows = airInstance.layout.numRows;
 
         const MODULE_ID = 1n;
@@ -48,17 +48,17 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
 
         const tmpPolIdx = airInstance.tmpPol.push(new Array(airInstance.layout.numRows)) - 1;
 
-        const assumes_or_proves = subproof.name === "Module" ? F.one : F.negone;
+        const assumes_or_proves = airgroup.name === "Module" ? F.one : F.negone;
 
         // TODO: Replace this with evaluate expression
-        if(subproof.name === "Module") {
+        if(airgroup.name === "Module") {
             const polX = airInstance.wtnsPols.Module.x;
             const polX_mod = airInstance.wtnsPols.Module.x_mod;
 
             for (let i = 0; i < numRows; i++) {
                 airInstance.tmpPol[tmpPolIdx][i] = gsumitemModule(polX[i], polX_mod[i], std_alpha, std_beta, MODULE_ID);
             }
-        } else if(subproof.name === "Fibonacci"){    
+        } else if(airgroup.name === "Fibonacci"){    
             const polA = airInstance.wtnsPols.Fibonacci.a;
             const polB = airInstance.wtnsPols.Fibonacci.b;
     
@@ -80,7 +80,7 @@ module.exports = class LogUp extends WitnessCalculatorComponent {
         }
 
 
-        setSubproofValue(airInstance.ctx, 0, result[numRows - 1]);
+        setAirgroupValue(airInstance.ctx, 0, result[numRows - 1]);
         
         return result;
 

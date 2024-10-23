@@ -44,17 +44,17 @@ async function setAiroutInfo(airout, starkStructs) {
     vadcopInfo.name = airout.name;
 
     vadcopInfo.airs = [];
-    vadcopInfo.subproofs = [];
+    vadcopInfo.air_groups = [];
     
     vadcopInfo.aggTypes = [];
-    for(let i = 0; i < airout.subproofs.length; ++i) {
-        const subproof = airout.subproofs[i];
-        const subproofId = subproof.subproofId;
-        vadcopInfo.aggTypes[subproofId] = subproof.subproofvalues || [];
-        vadcopInfo.subproofs.push(subproof.name);
+    for(let i = 0; i < airout.airGroups.length; ++i) {
+        const airgroup = airout.airGroups[i];
+        const airgroupId = airgroup.airgroupId;
+        vadcopInfo.aggTypes[airgroupId] = airgroup.airGroupValues || [];
+        vadcopInfo.air_groups.push(airgroup.name);
         vadcopInfo.airs[i] = [];
-        for(let j = 0; j < subproof.airs.length; ++j) {
-            vadcopInfo.airs[subproofId][j] = {name: `${subproof.name}_${j}`, num_rows: subproof.airs[j].numRows};
+        for(let j = 0; j < airgroup.airs.length; ++j) {
+            vadcopInfo.airs[airgroupId][j] = {name: `${airgroup.name}_${j}`, num_rows: airgroup.airs[j].numRows};
         }
     }
 
@@ -64,7 +64,7 @@ async function setAiroutInfo(airout, starkStructs) {
     for(let i = 0; i < starkStructs.length; i++) {
         const starkStruct = starkStructs[i];
         starkStruct.steps.map(step => step.nBits).forEach(e => stepsFRI.add(e));
-        if(starkStruct.steps[starkStruct.steps.length - 1].nBits !== finalStep) throw new Error("All FRI steps for different subproofs needs to end at the same nBits");
+        if(starkStruct.steps[starkStruct.steps.length - 1].nBits !== finalStep) throw new Error("All FRI steps for different airgroups needs to end at the same nBits");
     }
 
     vadcopInfo.stepsFRI = Array.from(stepsFRI).sort((a, b) => b - a).map(s => { return { nBits: s }});

@@ -6,7 +6,7 @@
 /// manager during the witness computation process for each stage.
 /// Every time the witnessComputation() method is called, it will be passed the following arguments:
 ///     - stageId: the ID of the current stage
-///     - subproofId: the ID of the current subproof
+///     - airgroupId: the ID of the current airgroup
 ///     - airId: the ID of the AIR
 ///     - instanceId: the ID of the instance
 ///     - proofCtx: the proof context object
@@ -59,9 +59,9 @@ class WitnessCalculatorComponent {
   }
 
   calculateExp = function calculateExp(airInstance, expId) {
-    const air = this.proofCtx.airout.getAirBySubproofIdAirId(airInstance.subproofId, airInstance.airId);
+    const air = this.proofCtx.airout.getAirByAirgroupIdAirId(airInstance.airgroupId, airInstance.airId);
 
-    const setup = this.proofCtx.setup.setup[airInstance.subproofId][airInstance.airId];
+    const setup = this.proofCtx.setup.setup[airInstance.airgroupId][airInstance.airId];
 
     const expressionsInfo = setup.expressionsInfo;
     const starkInfo = setup.starkInfo;
@@ -85,9 +85,9 @@ class WitnessCalculatorComponent {
   }
 
   calculateExpAtRow = function calculateExpAtRow(airInstance, expId, row) {
-    const air = this.proofCtx.airout.getAirBySubproofIdAirId(airInstance.subproofId, airInstance.airId);
+    const air = this.proofCtx.airout.getAirByAirgroupIdAirId(airInstance.airgroupId, airInstance.airId);
 
-    const setup = this.proofCtx.setup.setup[airInstance.subproofId][airInstance.airId];
+    const setup = this.proofCtx.setup.setup[airInstance.airgroupId][airInstance.airId];
 
     const expressionsInfo = setup.expressionsInfo;
     const starkInfo = setup.starkInfo;
@@ -123,19 +123,19 @@ class WitnessCalculatorComponent {
     await this.wcManager.sendBroadcastData(this.name, data);
   }
 
-  async _witnessComputation(stageId, subproofId, airInstance, publics) {
+  async _witnessComputation(stageId, airgroupId, airInstance, publics) {
     return new Promise(async (resolve, reject) => {
       try {
         // log.info(`[${this.name}]`, `-> stageId: ${stageId} airId: ${airInstance.airId} instanceId: ${airInstance.instanceId}`);
         
         if(!this.inboxId) this.inboxId = this.wcManager.addInbox(this.name);
         
-        await this.witnessComputation(stageId, subproofId, airInstance, publics);
+        await this.witnessComputation(stageId, airgroupId, airInstance, publics);
 
         this.sendBroadcastData({
           sender: this.name,
           type: "notification",
-          payload: { data: "finished", stageId, subproofId, airId: airInstance.airId, instanceId: airInstance.instanceId },
+          payload: { data: "finished", stageId, airgroupId, airId: airInstance.airId, instanceId: airInstance.instanceId },
         });
 
         this.wcManager.releaseDeferredLock();

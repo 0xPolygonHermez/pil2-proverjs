@@ -14,8 +14,8 @@ module.exports.getFixedPol = function getFixedPol(ctx, idPol) {
     return proverHelpers.getFixedPol(ctx, idPol);
 }
 
-module.exports.setSubproofValue = function setSubproofValue(ctx, id, value, options) {
-    return proverHelpers.setSubproofValue(ctx, id, value, options);
+module.exports.setAirgroupValue = function setAirgroupValue(ctx, id, value, options) {
+    return proverHelpers.setAirgroupValue(ctx, id, value, options);
 }
 
 module.exports.getHintField = function getHintField(ctx, hint, field, dest = false, debug = false) {

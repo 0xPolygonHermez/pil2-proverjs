@@ -97,14 +97,14 @@ describe("Witnes Computation Manager tests", async function () {
         return await wcManager.witnessComputation(1);
     }
 
-    function createFakeAirout(subproofs) {
-        const fakeSubproofs = [];
+    function createFakeAirout(airgroups) {
+        const fakeAirgroups = [];
 
-        for (let i = 0; i < subproofs.length; i++) {
-            fakeSubproofs[i] = {};
-            fakeSubproofs[i].subproofId = i;
+        for (let i = 0; i < airgroups.length; i++) {
+            fakeAirgroups[i] = {};
+            fakeAirgroups[i].airgroupId = i;
         }
 
-        return { airout: { subproofs: fakeSubproofs } };
+        return { airout: { airgroups: fakeAirgroups } };
     }
 });

@@ -15,7 +15,7 @@ const { generateStarkStruct } = require("./utils");
 const path = require("path");
 const { prepareExpressionsBin } = require("pil2-stark-js/src/stark/chelpers/stark_chelpers");
 const { writeExpressionsBinFile } = require("pil2-stark-js/src/stark/chelpers/binFile");
-const { runWitnessLibraryGeneration, runFinalWitnessLibraryGeneration } = require("./generateWitness");
+const { runFinalWitnessLibraryGeneration } = require("./generateWitness");
 
 module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptions, finalSettings, globalInfo, globalConstraints, compressorCols) {
     const F = new F3g();
@@ -29,15 +29,15 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     const finalFilename = `${buildDir}/circom/final.circom`;
 
     for(let i = 0; i < globalInfo.aggTypes.length; i++) {
-        const starkInfo = JSON.parse(await fs.promises.readFile(`${buildDir}/provingKey/${globalInfo.name}/${globalInfo.subproofs[i]}/recursive2/recursive2.starkinfo.json`, "utf8"));
-        const verifierInfo = JSON.parse(await fs.promises.readFile(`${buildDir}/provingKey/${globalInfo.name}/${globalInfo.subproofs[i]}/recursive2/recursive2.verifierinfo.json`, "utf8"));
-        const verificationKeys = JSONbig.parse(await fs.promises.readFile(`${buildDir}/provingKey/${globalInfo.name}/${globalInfo.subproofs[i]}/recursive2/recursive2.vks.json`, "utf8"));
+        const starkInfo = JSON.parse(await fs.promises.readFile(`${buildDir}/provingKey/${globalInfo.name}/${globalInfo.air_groups[i]}/recursive2/recursive2.starkinfo.json`, "utf8"));
+        const verifierInfo = JSON.parse(await fs.promises.readFile(`${buildDir}/provingKey/${globalInfo.name}/${globalInfo.air_groups[i]}/recursive2/recursive2.verifierinfo.json`, "utf8"));
+        const verificationKeys = JSONbig.parse(await fs.promises.readFile(`${buildDir}/provingKey/${globalInfo.name}/${globalInfo.air_groups[i]}/recursive2/recursive2.vks.json`, "utf8"));
 
         starkInfos.push(starkInfo);
         verifierInfos.push(verifierInfo);
         aggregatedKeysRecursive2.push(verificationKeys.rootCRecursive2);
         basicKeysRecursive1.push(verificationKeys.rootCRecursives1);
-        verifierNames.push( `${globalInfo.subproofs[i]}_recursive2.verifier.circom`);
+        verifierNames.push( `${globalInfo.air_groups[i]}_recursive2.verifier.circom`);
     }
         
     const filesDir = `${buildDir}/provingKey/${globalInfo.name}/final`;

@@ -15,12 +15,12 @@ class ProversManager {
         this.provers = [];
     }
 
-    getProverId(subproofId, airId, numRows) {
-        return `${subproofId}-${airId}-${numRows}`;
+    getProverId(airgroupId, airId, numRows) {
+        return `${airgroupId}-${airId}-${numRows}`;
     }
 
     getProverIdFromInstance(airInstance) {
-        return this.getProverId(airInstance.subproofId, airInstance.airId, airInstance.layout.numRows);
+        return this.getProverId(airInstance.airgroupId, airInstance.airId, airInstance.layout.numRows);
     }
 
     async initialize(config, proofCtx, options) {
@@ -36,8 +36,8 @@ class ProversManager {
 
         this.initialized = true;
 
-        for(const subproof of proofCtx.airout.subproofs) {
-            for(const air of subproof.airs) {
+        for(const airgroup of proofCtx.airout.airgroups) {
+            for(const air of airgroup.airs) {
                 const prover = await ProverFactory.createProver(config.proverFilename, this.proofCtx);
 
                 const airName = air.name;
@@ -51,7 +51,7 @@ class ProversManager {
 
                 prover.initialize(settings, N, options);
 
-                const proverId = this.getProverId(subproof.subproofId, air.airId, air.numRows);
+                const proverId = this.getProverId(airgroup.airgroupId, air.airId, air.numRows);
                 this.provers[proverId] = prover;
             }
         }
@@ -76,8 +76,8 @@ class ProversManager {
         this.checkInitialized();
 
         for (const airInstance of this.proofCtx.getAirInstances()) {
-            const air = this.proofCtx.airout.getAirBySubproofIdAirId(airInstance.subproofId, airInstance.airId);
-            air.setup = setup.setup[airInstance.subproofId][airInstance.airId];
+            const air = this.proofCtx.airout.getAirByAirgroupIdAirId(airInstance.airgroupId, airInstance.airId);
+            air.setup = setup.setup[airInstance.airgroupId][airInstance.airId];
         }
 
         if(this.proofCtx.airout.constraints !== undefined) {
@@ -88,11 +88,11 @@ class ProversManager {
     async newProof(publics) {
         this.checkInitialized();
 
-        for(const subproof of this.proofCtx.airout.subproofs) {
-            for(const air of subproof.airs) {
-                const proverId = this.getProverId(subproof.subproofId, air.airId, air.numRows);
+        for(const airgroup of this.proofCtx.airout.airgroups) {
+            for(const air of airgroup.airs) {
+                const proverId = this.getProverId(airgroup.airgroupId, air.airId, air.numRows);
 
-                await this.provers[proverId].newProof(subproof.subproofId, air.airId, publics);
+                await this.provers[proverId].newProof(airgroup.airgroupId, air.airId, publics);
             }
         }
     }
@@ -106,7 +106,7 @@ class ProversManager {
             result = result && await this.provers[proverId].verifyConstraints(stageId, airInstance);
 
             if (result === false) {
-                log.error(`[${this.name}]`, `Constraints verification failed for subproof ${airInstance.subproofId} and air ${airInstance.airId} with N=${airInstance.layout.numRows} rows.`);
+                log.error(`[${this.name}]`, `Constraints verification failed for airgroup ${airInstance.airgroupId} and air ${airInstance.airId} with N=${airInstance.layout.numRows} rows.`);
                 break;
             }
         }
@@ -114,9 +114,9 @@ class ProversManager {
         return result;        
     }
 
-    async verifyGlobalConstraints(subproofValues) {
-        const proverId = this.getProverIdFromInstance(this.proofCtx.getAirInstancesBySubproofId(0)[0]);
-        const validGlobalConstraints = await this.provers[proverId].verifyGlobalConstraints(subproofValues);
+    async verifyGlobalConstraints(airgroupValues) {
+        const proverId = this.getProverIdFromInstance(this.proofCtx.getAirInstancesByAirgroupId(0)[0]);
+        const validGlobalConstraints = await this.provers[proverId].verifyGlobalConstraints(airgroupValues);
         
         if(!validGlobalConstraints) log.error(`[${this.name}]`, `Global constraints verification failed.`);
         
@@ -172,21 +172,21 @@ class ProversManager {
 
         if (stageId === 1) {
             let publicValues;
-            for (const subproof of this.proofCtx.airout.subproofs) {
+            for (const airgroup of this.proofCtx.airout.airgroups) {
                 let challenges = [];
 
-                for(const air of subproof.airs) {
-                    const airInstances = this.proofCtx.getAirInstancesBySubproofIdAirId(subproof.subproofId, air.airId);
+                for(const air of airgroup.airs) {
+                    const airInstances = this.proofCtx.getAirInstancesByAirgroupIdAirId(airgroup.airgroupId, air.airId);
 
                     for(const airInstance of airInstances) {
                         log.info(
                             `[${this.name}]`,
-                            `··· Computing global challenge. Adding constTree. Subproof '${subproof.name}' Air '${air.name}' Instance ${airInstance.instanceId}`
+                            `··· Computing global challenge. Adding constTree. Airgroup '${airgroup.name}' Air '${air.name}' Instance ${airInstance.instanceId}`
                         );
                             
                         log.info(
                             `[${this.name}]`,
-                            `··· Computing global challenge. Adding constTree. Subproof '${subproof.name}' Air '${air.name}' Instance ${airInstance.instanceId}`
+                            `··· Computing global challenge. Adding constTree. Airgroup '${airgroup.name}' Air '${air.name}' Instance ${airInstance.instanceId}`
                         );
                         challenges.push(air.setup.constRoot);
 
@@ -209,16 +209,16 @@ class ProversManager {
             this.proofCtx.addChallengeToTranscript(publicValues);
         }
 
-        for(const subproof of this.proofCtx.airout.subproofs) {
+        for(const airgroup of this.proofCtx.airout.airgroups) {
 
             let challenges = [];
-            for(const air of subproof.airs) {
-                const airInstances = this.proofCtx.getAirInstancesBySubproofIdAirId(subproof.subproofId, air.airId);
+            for(const air of airgroup.airs) {
+                const airInstances = this.proofCtx.getAirInstancesByAirgroupIdAirId(airgroup.airgroupId, air.airId);
 
                 for(const airInstance of airInstances) {
                     log.info(
                         `[${this.name}]`,
-                        `··· Computing global challenge. Addings subproof '${subproof.name}' Air '${air.name}' Instance ${airInstance.instanceId} value`);
+                        `··· Computing global challenge. Addings airgroup '${airgroup.name}' Air '${air.name}' Instance ${airInstance.instanceId} value`);
 
                     const value = airInstance.ctx.challengeValue?.length > 0 ? airInstance.ctx.challengeValue : [];
                     challenges.push(...value);

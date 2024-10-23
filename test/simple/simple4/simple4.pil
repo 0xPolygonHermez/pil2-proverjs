@@ -1,7 +1,7 @@
 public in1;
 public in2;
 
-subproof Simple4(2**3) {
+airgroup Simple4(2**3) {
 
     col witness a,b;
 

@@ -5,7 +5,7 @@ module.exports = class Executor1 extends WitnessCalculatorComponent {
         super("Executor1", wcManager, proofCtx);
     }
 
-    async witnessComputation(stageId, subproofId, airId, instanceId) {
+    async witnessComputation(stageId, airgroupId, airId, instanceId) {
         await this.wcManager.addNotification(this.name, "divLib", "div_batch", { data: 2 }, true);
         await this.wcManager.addNotification(this.name, "divLib", "div_batch", { data: 2 }, true);
         await this.wcManager.addNotification(this.name, "divLib", "div_batch", { data: 2 }, true);

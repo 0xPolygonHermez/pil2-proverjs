@@ -17,7 +17,7 @@ const path = require('path');
 const { prepareExpressionsBin } = require('pil2-stark-js/src/stark/chelpers/stark_chelpers');
 const { runWitnessLibraryGeneration } = require('./generateWitness');
 
-module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, setupOptions, template, subproofName, subproofId, airId, globalInfo, constRoot, verificationKeys = [], starkInfo, verifierInfo, starkStruct, compressorCols, hasCompressor) {
+module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, setupOptions, template, airgroupName, airgroupId, airId, globalInfo, constRoot, verificationKeys = [], starkInfo, verifierInfo, starkStruct, compressorCols, hasCompressor) {
 
     const F = new F3g();
 
@@ -31,27 +31,27 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
     let constRootCircuit = constRoot || [];
     if((template === "recursive1" && !hasCompressor) || template === "compressor") {
         inputChallenges = true;
-        verifierName = `${subproofName}_${airId}.verifier.circom`;
-        nameFilename = `${subproofName}_${airId}_${template}`;    
+        verifierName = `${airgroupName}_${airId}.verifier.circom`;
+        nameFilename = `${airgroupName}_${airId}_${template}`;    
         templateFilename = path.resolve(__dirname,"../../", `node_modules/stark-recurser/src/vadcop/templates/${template}.circom.ejs`);
-        filesDir = `${buildDir}/provingKey/${globalInfo.name}/${subproofName}/airs/${subproofName}_${airId}/${template}`;
+        filesDir = `${buildDir}/provingKey/${globalInfo.name}/${airgroupName}/airs/${airgroupName}_${airId}/${template}`;
     } else if(template === "recursive1") {
-        verifierName = `${subproofName}_${airId}_compressor.verifier.circom`;
-        nameFilename = `${subproofName}_${airId}_${template}`;
+        verifierName = `${airgroupName}_${airId}_compressor.verifier.circom`;
+        nameFilename = `${airgroupName}_${airId}_${template}`;
         templateFilename = path.resolve(__dirname,"../../", `node_modules/stark-recurser/src/vadcop/templates/recursive1.circom.ejs`);
-        filesDir = `${buildDir}/provingKey/${globalInfo.name}/${subproofName}/airs/${subproofName}_${airId}/recursive1/`;
+        filesDir = `${buildDir}/provingKey/${globalInfo.name}/${airgroupName}/airs/${airgroupName}_${airId}/recursive1/`;
     } else if (template === "recursive2") {
-        verifierName = `${subproofName}_recursive2.verifier.circom`;
-        nameFilename = `${subproofName}_${template}`;
+        verifierName = `${airgroupName}_recursive2.verifier.circom`;
+        nameFilename = `${airgroupName}_${template}`;
         templateFilename =  path.resolve(__dirname,"../../", `node_modules/stark-recurser/src/vadcop/templates/recursive2.circom.ejs`);
-        filesDir = `${buildDir}/provingKey/${globalInfo.name}/${subproofName}/${template}`;
+        filesDir = `${buildDir}/provingKey/${globalInfo.name}/${airgroupName}/${template}`;
         enableInput = globalInfo.aggTypes.length > 1 ? true : false;
         verkeyInput = true;
     } else {
         throw new Error("Unknown template" + template);
     }
 
-    const options = { skipMain: true, verkeyInput, enableInput, inputChallenges, subproofId, hasCompressor }
+    const options = { skipMain: true, verkeyInput, enableInput, inputChallenges, airgroupId, hasCompressor }
         
     await fs.promises.mkdir(`${buildDir}/circom/`, { recursive: true });
     await fs.promises.mkdir(`${buildDir}/build/`, { recursive: true });
@@ -93,7 +93,7 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
     // Build stark info
     const pilRecursive = await compile(F, `${buildDir}/pil/${nameFilename}.pil`);
 
-    const setup = await starkSetup(constPols, pilRecursive, starkStruct, {...setupOptions, F, pil2: false, subproofId, airId, recursion: true});
+    const setup = await starkSetup(constPols, pilRecursive, starkStruct, {...setupOptions, F, pil2: false, airgroupId, airId, recursion: true});
 
     await fs.promises.writeFile(`${filesDir}/${template}.starkinfo.json`, JSON.stringify(setup.starkInfo, null, 1), "utf8");
 
@@ -126,7 +126,7 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
         
         if(globalInfo.aggTypes.length > 1) {
             const nullProof = genNullProof(setup.starkInfo);
-            await fs.promises.writeFile(`${buildDir}/provingKey/${globalInfo.name}/${subproofName}/recursive2/recursive2.null_zkin.json`, JSON.stringify(nullProof, 0, 1), "utf8");
+            await fs.promises.writeFile(`${buildDir}/provingKey/${globalInfo.name}/${airgroupName}/recursive2/recursive2.null_zkin.json`, JSON.stringify(nullProof, 0, 1), "utf8");
         }
     }
 

@@ -62,9 +62,9 @@ async function run() {
     for(let i = 0; i < globalInfo.airs.length; ++i) {
         const setupsAir = [];
         for(let j = 0; j < globalInfo.airs[i].length; ++j) {
-            const air = airout.subproofs[i].airs[j];
+            const air = airout.airgroups[i].airs[j];
             const airName = globalInfo.airs[i][j].name;
-            const pathAir = path.join(argv.provingkey, "provingKey", globalInfo.name, globalInfo.subproofs[i], "airs", globalInfo.airs[i][j].name, "air");
+            const pathAir = path.join(argv.provingkey, "provingKey", globalInfo.name, globalInfo.airgroups[i], "airs", globalInfo.airs[i][j].name, "air");
             
             const starkInfo = JSON.parse(await fs.promises.readFile(path.join(pathAir, `${airName}.starkinfo.json`), "utf8"));
 

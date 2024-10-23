@@ -12,10 +12,10 @@ const { generateFixedCols } = require('pil2-stark-js/src/witness/witnessCalculat
 const { publics2zkin } = require('stark-recurser/src/pil2circom/publics2zkin.js');
 const { compressorExec, readExecFile } = require('stark-recurser/src/circom2pil/compressor_exec.js');
 
-module.exports.generateProof = async function generateProof(template, inputs, globalInfo, subproofId, airId) {
+module.exports.generateProof = async function generateProof(template, inputs, globalInfo, airgroupId, airId) {
     const F = new F3g();
 
-    let subproofName = globalInfo.subproofs[subproofId];
+    let airgroupName = globalInfo.airgroups[airgroupId];
 
     let recursiveName;
     let filesDir;
@@ -23,11 +23,11 @@ module.exports.generateProof = async function generateProof(template, inputs, gl
         recursiveName = "final";
         filesDir = `tmp/provingKey/${globalInfo.name}/final`;
     } else if(template === "recursive2") {
-        recursiveName = `${subproofName}_recursive2`;
-        filesDir = `tmp/provingKey/${globalInfo.name}/${subproofName}/recursive2`;
+        recursiveName = `${airgroupName}_recursive2`;
+        filesDir = `tmp/provingKey/${globalInfo.name}/${airgroupName}/recursive2`;
     } else if(["recursive1", "compressor"].includes(template)) {
-        recursiveName = `${subproofName}_${airId}_${template}`;
-        filesDir = `tmp/provingKey/${globalInfo.name}/${subproofName}/airs/${subproofName}_${airId}/${template}`;
+        recursiveName = `${airgroupName}_${airId}_${template}`;
+        filesDir = `tmp/provingKey/${globalInfo.name}/${airgroupName}/airs/${airgroupName}_${airId}/${template}`;
     } else {
         throw new Error("Unknown template");
     }
@@ -77,7 +77,7 @@ module.exports.generateProof = async function generateProof(template, inputs, gl
 
     if(template === "compressor") {
         const globalInfo =  JSON.parse(await fs.promises.readFile(`tmp/provingKey/pilout.globalInfo.json`, "utf8"));
-        zkin = publics2zkin(subproofId, zkin, globalInfo, resP.publics);
+        zkin = publics2zkin(airgroupId, zkin, globalInfo, resP.publics);
     }    
 
     return {proof: resP.proof, publics: resP.publics, zkin };

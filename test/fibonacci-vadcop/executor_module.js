@@ -8,7 +8,7 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
     this.terminate = false;
   }
 
-  async witnessComputation(stageId, subproofId, airInstance, publics) {
+  async witnessComputation(stageId, airgroupId, airInstance, publics) {
     if (stageId === 1) {
       if (airInstance.instanceId !== -1) {
         log.error(`[${this.name}]`, `Air instance id already existing in stageId 1.`);
@@ -18,7 +18,7 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
       while (!this.terminate) {
         let instanceData = await this.receiveData();
         for (let i = 0; i < instanceData.length; i++) {
-          this.processMessage(stageId, subproofId, airInstance, publics, instanceData[i]);
+          this.processMessage(stageId, airgroupId, airInstance, publics, instanceData[i]);
         }
       }
     }
@@ -26,16 +26,16 @@ class FibonacciVadcopModule extends WitnessCalculatorComponent {
     return;
   }
 
-  processMessage(stageId, subproofId, airInstance, publics, instanceData) {
+  processMessage(stageId, airgroupId, airInstance, publics, instanceData) {
     if (instanceData.command && instanceData.command === "createInstances") {
-      const air = this.proofCtx.airout.subproofs[subproofId].airs[instanceData.airId];
+      const air = this.proofCtx.airout.airgroups[airgroupId].airs[instanceData.airId];
 
       log.info(
         `[${this.name}]`,
         `Creating air instance for air '${air.name}' with N=${air.numRows} rows.`
       );
       airInstance.airId = instanceData.airId;
-      let result = this.proofCtx.addAirInstance(subproofId, airInstance, air.numRows);
+      let result = this.proofCtx.addAirInstance(airgroupId, airInstance, air.numRows);
 
       if (result === false) {
         log.error(

@@ -18,7 +18,7 @@ class ProofCtx {
 
     resetProofCtx() {
         this.publics = [];
-        this.subproofValues = [];
+        this.airgroupvalues = [];
         this.challenges = [];
         this.stepsFRI = [];
         this.airInstances = [];
@@ -36,7 +36,7 @@ class ProofCtx {
 
     async initializeAirInstances() {
         // Initialize the airInstances array
-        this.airInstances = this.airout.subproofs.map((subproof) => subproof.airs.map(() => []));
+        this.airInstances = this.airout.airgroups.map((airgroup) => airgroup.airs.map(() => []));
     }
 
     addChallengeToTranscript(challenge) {
@@ -66,19 +66,19 @@ class ProofCtx {
         return this.airout;
     }
 
-    addAirInstance(subproofId, airInstance, numRows) {
+    addAirInstance(airgroupId, airInstance, numRows) {
         const airId = airInstance.airId;
-        const air = this.airout.getAirBySubproofIdAirId(subproofId, airId);
+        const air = this.airout.getAirByAirgroupIdAirId(airgroupId, airId);
 
         if (air === undefined) return { result: false, data: undefined };
 
-        const instanceId = this.airInstances[subproofId][airId].length;
+        const instanceId = this.airInstances[airgroupId][airId].length;
         const layout = { numRows };
 
         airInstance.instanceId = instanceId;
         airInstance.layout = layout;
 
-        this.airInstances[subproofId][airId][instanceId] = airInstance;
+        this.airInstances[airgroupId][airId][instanceId] = airInstance;
 
         airInstance.wtnsPols = generateWtnsCols(air.symbols, air.numRows);
 
@@ -90,17 +90,17 @@ class ProofCtx {
         return this.airInstances.flat(2);
     }
 
-    getAirInstancesBySubproofId(subproofId) {
-        return this.airInstances[subproofId].flat();
+    getAirInstancesByAirgroupId(airgroupId) {
+        return this.airInstances[airgroupId].flat();
     }
 
-    getAirInstancesBySubproofIdAirId(subproofId, airId) {
-        const airInstances = this.airInstances[subproofId][airId];
+    getAirInstancesByAirgroupIdAirId(airgroupId, airId) {
+        const airInstances = this.airInstances[airgroupId][airId];
 
         return airInstances;
     }
 
-    // getAirCols(subproofId, airId)
+    // getAirCols(airgroupId, airId)
     //
 
     static createProofCtxFromAirout(name, airout, airoutInfo, finiteField) {
@@ -133,8 +133,8 @@ class ProofCtx {
 }
 
 class AirInstance {
-    constructor(subproofId, airId, instanceId, layout = {}) {
-        this.subproofId = subproofId;
+    constructor(airgroupId, airId, instanceId, layout = {}) {
+        this.airgroupId = airgroupId;
         this.airId = airId;
         this.instanceId = instanceId;
         this.proof = {};

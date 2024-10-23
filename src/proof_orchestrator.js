@@ -177,32 +177,32 @@ module.exports = class ProofOrchestrator {
                     if(stageId === this.proofCtx.airout.numStages) {
                         log.info(`[${this.name}]`, `==> CHECKING GLOBAL CONSTRAINTS.`);
                         
-                        let subproofValuesProof = [];
-                        for(let i = 0; i < this.proofCtx.airout.subproofs.length; i++) {
-                            subproofValuesProof[i] = [];
-                            for(let j = 0; j < this.proofCtx.airout.subproofs[i].subproofvalues?.length; j++) {
-                                const aggType = this.proofCtx.airout.subproofs[i].subproofvalues[j].aggType;
-                                subproofValuesProof[i][j] = aggType === 0 ? [0n, 0n, 0n] : [1n, 0n, 0n];
+                        let airgroupValuesProof = [];
+                        for(let i = 0; i < this.proofCtx.airout.airgroups.length; i++) {
+                            airgroupValuesProof[i] = [];
+                            for(let j = 0; j < this.proofCtx.airout.airgroups[i].airgroupvalues?.length; j++) {
+                                const aggType = this.proofCtx.airout.airgroups[i].airgroupvalues[j].aggType;
+                                airgroupValuesProof[i][j] = aggType === 0 ? [0n, 0n, 0n] : [1n, 0n, 0n];
                             }
                         }
 
-                        for(let i = 0; i < this.proofCtx.airout.subproofs.length; i++) {
-                            const subproof = this.proofCtx.airout.subproofs[i];
-                            const subproofValues = subproof.subproofvalues;
-                            if(subproofValues === undefined) continue;
-                            const instances = this.proofCtx.getAirInstancesBySubproofId(i);
-                            for(let j = 0; j < subproofValues.length; j++) {
-                                const aggType = subproofValues[j].aggType;
+                        for(let i = 0; i < this.proofCtx.airout.airgroups.length; i++) {
+                            const airgroup = this.proofCtx.airout.airgroups[i];
+                            const airgroupValues = airgroup.airgroupvalues;
+                            if(airgroupValues === undefined) continue;
+                            const instances = this.proofCtx.getAirInstancesByAirgroupId(i);
+                            for(let j = 0; j < airgroupValues.length; j++) {
+                                const aggType = airgroupValues[j].aggType;
                                 for(const instance of instances) {
-                                    const subproofValue = instance.ctx.subproofValues[j];
-                                    subproofValuesProof[i][j] = aggType === 0 
-                                        ? this.proofCtx.F.add(subproofValuesProof[i][j], subproofValue) 
-                                        : this.proofCtx.F.mul(subproofValuesProof[i][j], subproofValue);
+                                    const airgroupValue = instance.ctx.airgroupValues[j];
+                                    airgroupValuesProof[i][j] = aggType === 0 
+                                        ? this.proofCtx.F.add(airgroupValuesProof[i][j], airgroupValue) 
+                                        : this.proofCtx.F.mul(airgroupValuesProof[i][j], airgroupValue);
                                 }
                             }
                         }
 
-                        const validG = await this.proversManager.verifyGlobalConstraints(subproofValuesProof);
+                        const validG = await this.proversManager.verifyGlobalConstraints(airgroupValuesProof);
 
                         if(!validG) {
                             log.error(`[${this.name}]`, `Global constraints verification failed.`);
@@ -221,7 +221,7 @@ module.exports = class ProofOrchestrator {
     
             for(const airInstance of this.proofCtx.getAirInstances()) {
                 const proof = airInstance.proof.proof;
-                proof.subproofId = airInstance.subproofId;
+                proof.airgroupId = airInstance.airgroupId;
                 proof.airId = airInstance.airId;
                 proofs.push(proof);
             }

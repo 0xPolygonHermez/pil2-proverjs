@@ -10,7 +10,7 @@ class StarkFriVerifier extends VerifierComponent {
     async checkProof(proof, constRoot, starkInfo, verifierInfo, airoutInfo, challenges, publics, options) {
         this.checkInitialized();
 
-        log.info(`[${this.name}]`, `--> STARK verification (subproofId ${proof.subproofId} airId ${proof.airId})`);
+        log.info(`[${this.name}]`, `--> STARK verification (airgroupId ${proof.airgroupId} airId ${proof.airId})`);
 
         const challengesFRIStepsProof = [];
         for(let i = 0; i < starkInfo.starkStruct.steps.length; i++) {
@@ -30,7 +30,7 @@ class StarkFriVerifier extends VerifierComponent {
         }
 
         const logX = isValid ? log.info : log.error;
-        logX(`[${this.name}]`, `<-- STARK verification (subproofId ${proof.subproofId} airId ${proof.airId})`);
+        logX(`[${this.name}]`, `<-- STARK verification (airgroupId ${proof.airgroupId} airId ${proof.airId})`);
 
         return isValid;
     }

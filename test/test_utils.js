@@ -27,11 +27,11 @@ async function executeFullProveTest(setup, publics, options, genCircomProof) {
     await fs.promises.mkdir("tmp/proofs", { recursive: true });
 
     for(const proof of proofs) {
-        const subproofId = proof.subproofId;
+        const airgroupId = proof.airgroupId;
         const airId = proof.airId;
-        let proofZkinFilename = path.join("tmp/proofs/basic_stark_subproof" + subproofId + "_air" + airId + ".proof.zkin.json");
+        let proofZkinFilename = path.join("tmp/proofs/basic_stark_airgroup" + airgroupId + "_air" + airId + ".proof.zkin.json");
 
-        const zkin = proof2zkin(proof, setup.setup[subproofId][airId].starkInfo);
+        const zkin = proof2zkin(proof, setup.setup[airgroupId][airId].starkInfo);
         zkin.publics = publicsProof;
         zkin.challenges = challenges.challenges.flat();
         zkin.challengesFRISteps = challenges.challengesFRISteps;

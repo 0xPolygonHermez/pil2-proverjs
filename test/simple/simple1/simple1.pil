@@ -1,4 +1,4 @@
-subproof Simple1(2**3) {
+airgroup Simple1(2**3) {
 
     col witness a,b;
 

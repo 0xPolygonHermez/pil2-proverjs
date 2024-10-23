@@ -29,9 +29,9 @@ class StarkFriProver extends ProverComponent {
     }
 
     // TODO instances has to be here or to be called from provers manager?
-    async newProof(subproofId, airId, publics) {
-        const airInstances = this.proofCtx.getAirInstancesBySubproofIdAirId(subproofId, airId);
-        const air = this.proofCtx.airout.getAirBySubproofIdAirId(subproofId, airId);
+    async newProof(airgroupId, airId, publics) {
+        const airInstances = this.proofCtx.getAirInstancesByAirgroupIdAirId(airgroupId, airId);
+        const air = this.proofCtx.airout.getAirByAirgroupIdAirId(airgroupId, airId);
 
         for (const airInstance of airInstances) {  
             log.info(`[${this.name}]`, `Initializing new proof for air '${air.name}'`);
@@ -79,14 +79,14 @@ class StarkFriProver extends ProverComponent {
         return isValid;
     }
 
-    async verifyGlobalConstraints(subproofValues) {
+    async verifyGlobalConstraints(airgroupvalues) {
         let errors = [];
 
         if(this.proofCtx.constraintsCode !== undefined) {
             for(let i =  0; i < this.proofCtx.constraintsCode.length; i++) {
                 const constraint = this.proofCtx.constraintsCode[i];
                 log.info(`[${this.name}]`, `··· Checking global constraint ${i + 1}/${this.proofCtx.constraintsCode.length}: ${constraint.line} `);
-                await callCalculateExps("global", constraint, "n", {F: this.proofCtx.F, errors, subproofValues}, false, false, true, true);
+                await callCalculateExps("global", constraint, "n", {F: this.proofCtx.F, errors, airgroupvalues}, false, false, true, true);
             }
         }
 
@@ -143,7 +143,7 @@ class StarkFriProver extends ProverComponent {
 
         if(!this.options.debug) {
             let commits = stageId === airout.numStages + 1 ? await computeQStark(ctx, log) : await extendAndMerkelize(stageId, ctx, log);
-            log.info(`[${this.name}]`, ` Root for subproofId ${airInstance.subproofId}, airId ${airInstance.airId} and instance ${airInstance.instanceId}: [${commits}] `);
+            log.info(`[${this.name}]`, ` Root for airgroupId ${airInstance.airgroupId}, airId ${airInstance.airId} and instance ${airInstance.instanceId}: [${commits}] `);
             ctx.challengeValue = commits;
         } else {
             ctx.challengeValue = ctx.F.randomValue();
@@ -181,15 +181,15 @@ class StarkFriProver extends ProverComponent {
     async computeOpenings(airInstance) {
         const ctx = airInstance.ctx;
 
-        const subproof = this.proofCtx.airout.subproofs[airInstance.subproofId];
+        const airgroup = this.proofCtx.airout.airgroups[airInstance.airgroupId];
         log.info(
             `[${this.name}]`,
-            `··· Computing Openings for subproof ${subproof.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
+            `··· Computing Openings for airgroup ${airgroup.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
         const evalCommits = await computeEvalsStark(ctx, this.options);
         
-        log.info(`[${this.name}]`, ` Root for subproofId ${airInstance.subproofId}, airId ${airInstance.airId} and instance ${airInstance.instanceId}: [${evalCommits}] `);
+        log.info(`[${this.name}]`, ` Root for airgroupId ${airInstance.airgroupId}, airId ${airInstance.airId} and instance ${airInstance.instanceId}: [${evalCommits}] `);
 
         ctx.challengeValue = evalCommits;
     }
@@ -197,10 +197,10 @@ class StarkFriProver extends ProverComponent {
     async computeFRIStark(airInstance) {
         const ctx = airInstance.ctx;
 
-        const subproof = this.proofCtx.airout.subproofs[airInstance.subproofId];
+        const airgroup = this.proofCtx.airout.airgroups[airInstance.airgroupId];
         log.info(
             `[${this.name}]`,
-            `··· Computing FRI Stark for subproof ${subproof.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
+            `··· Computing FRI Stark for airgroup ${airgroup.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
         await computeFRIStark(ctx, this.options);
@@ -212,18 +212,18 @@ class StarkFriProver extends ProverComponent {
         const challenge = this.proofCtx.getChallenge(stageId - 1)[0];
         const ctx = airInstance.ctx;
 
-        const subproof = this.proofCtx.airout.subproofs[airInstance.subproofId];
+        const airgroup = this.proofCtx.airout.airgroups[airInstance.airgroupId];
         const info = params.step === airInstance.ctx.pilInfo.starkStruct.steps.length - 1 
             ? `for last step ${airInstance.ctx.pilInfo.starkStruct.steps[params.step].nBits}`
             : `from ${airInstance.ctx.pilInfo.starkStruct.steps[params.step].nBits} to ${airInstance.ctx.pilInfo.starkStruct.steps[params.step + 1].nBits}`
         log.info(
             `[${this.name}]`,
-            `··· Computing FRI Folding ${info} for subproof ${subproof.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
+            `··· Computing FRI Folding ${info} for airgroup ${airgroup.name} airId ${airInstance.airId} instanceId ${airInstance.instanceId}`
         );
 
         const friCommits = await computeFRIFolding(params.step, ctx, challenge, this.options);
 
-        log.info(`[${this.name}]`, ` Root for subproofId ${airInstance.subproofId}, airId ${airInstance.airId} and instance ${airInstance.instanceId}: [${friCommits}] `);
+        log.info(`[${this.name}]`, ` Root for airgroupId ${airInstance.airgroupId}, airId ${airInstance.airId} and instance ${airInstance.instanceId}: [${friCommits}] `);
 
         ctx.challengeValue = friCommits;
     }
@@ -239,7 +239,7 @@ class StarkFriProver extends ProverComponent {
 
         computeFRIQueries(ctx, friQueries);
 
-        this.proofCtx.airInstances[airInstance.subproofId][airInstance.airId][airInstance.instanceId].proof = await genProofStark(ctx, this.options);
+        this.proofCtx.airInstances[airInstance.airgroupId][airInstance.airId][airInstance.instanceId].proof = await genProofStark(ctx, this.options);
     }
 
 }
