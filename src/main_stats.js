@@ -39,13 +39,13 @@ async function run() {
     const stats = {};
     let statsFileInfo = [];
     let summary = [];
-    for(const subproof of airout.subproofs) {
-        if(airgroups.length > 0 && !airgroups.includes(subproof.name)) {
-            log.info("[Stats Cmd]", `··· Skipping airgroup '${subproof.name}'`);
+    for(const airgroup of airout.airGroups) {
+        if(airgroups.length > 0 && !airgroups.includes(airgroup.name)) {
+            log.info("[Stats Cmd]", `··· Skipping airgroup '${airgroup.name}'`);
             continue;
         }
-        stats[subproof.name] = [];
-        for(const air of subproof.airs) {
+        stats[airgroup.name] = [];
+        for(const air of airgroup.airs) {
             if(airs.length > 0 && !airs.includes(air.name)) {
                 log.info("[Stats Cmd]", `··· Skipping air '${air.name}'`);
                 continue;
@@ -53,9 +53,9 @@ async function run() {
             let starkStruct = generateStarkStruct({}, log2(air.numRows));
             log.info("[Stats  Cmd]", `··· Computing stats for air '${air.name}'`);
             const setup = await starkSetup(null, air, starkStruct, setupOptions);
-            statsFileInfo.push(`Airgroup: ${subproof.name} Air: ${air.name}`);
+            statsFileInfo.push(`Airgroup: ${airgroup.name} Air: ${air.name}`);
             statsFileInfo.push(`Summary: ${setup.stats.summary}`);
-            setup.stats.summary = `${subproof.name} | ${air.name} | ${setup.stats.summary}`;
+            setup.stats.summary = `${airgroup.name} | ${air.name} | ${setup.stats.summary}`;
             summary.push(setup.stats.summary);
             if(setup.stats.intermediatePolynomials.baseField.length > 0) {
                 statsFileInfo.push(`Intermediate polynomials baseField:`);

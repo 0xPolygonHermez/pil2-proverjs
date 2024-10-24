@@ -50,7 +50,7 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     await fs.promises.writeFile(finalFilename, finalVerifier, "utf8");
 
 
-    const circuitsGLPath = path.resolve(__dirname, '../../', 'node_modules/pil2-stark-js/circuits.gl');
+    const circuitsGLPath = path.resolve(__dirname, '../../', 'node_modules/stark-recurser/src/pil2circom/circuits.gl');
     const starkRecurserCircuits = path.resolve(__dirname, '../../', 'node_modules/stark-recurser/src/vadcop/helpers/circuits');
 
     // Compile circom

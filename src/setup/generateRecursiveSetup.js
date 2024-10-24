@@ -67,7 +67,7 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
     const recursiveVerifier = await genCircom(templateFilename, [starkInfo], globalInfo, [verifierName], verificationKeys, [], [], options);
     await fs.promises.writeFile(`${buildDir}/circom/${nameFilename}.circom`, recursiveVerifier, "utf8");
 
-    const circuitsGLPath = path.resolve(__dirname, '../../', 'node_modules/pil2-stark-js/circuits.gl');
+    const circuitsGLPath = path.resolve(__dirname, '../../', 'node_modules/stark-recurser/src/pil2circom/circuits.gl');
     const starkRecurserCircuits = path.resolve(__dirname, '../../', 'node_modules/stark-recurser/src/vadcop/helpers/circuits');
 
     // Compile circom
