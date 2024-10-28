@@ -11,6 +11,7 @@ const argv = require("yargs")
     .alias("s", "starkstructs")
     .alias("t", "consttree")
     .alias("r", "recursive")
+    .alias("m", "impols")
         .argv;
 
 async function run() {
@@ -29,6 +30,7 @@ async function run() {
         setup: {
             settings: starkStructsInfo,
             genAggregationSetup: argv.recursive || false,
+            optImPols: argv.impols || false
         }
     }
 
