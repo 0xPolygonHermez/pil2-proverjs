@@ -93,6 +93,10 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             
             setup[airgroup.airgroupId][air.airId].starkInfoFile = path.join(filesDir, `${airgroup.name}_${air.airId}.starkinfo.json`);
 
+            await fs.promises.writeFile(path.join(filesDir, `${airgroup.name}_${air.airId}.starkinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].starkInfo, null, 1), "utf8");
+            await fs.promises.writeFile(path.join(filesDir, `${airgroup.name}_${air.airId}.verifierinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].verifierInfo, null, 1), "utf8");
+            await fs.promises.writeFile(path.join(filesDir, `${airgroup.name}_${air.airId}.expressionsinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].expressionsInfo, null, 1), "utf8");
+
             if (!setupOptions.constTree) {
                 const MH = await buildMerkleHashGL(starkStruct.splitLinearHash);
                 await MH.writeToFile(setup[airgroup.airgroupId][air.airId].constTree, path.join(filesDir, `${airgroup.name}_${air.airId}.consttree`));
@@ -103,10 +107,6 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
                 console.log(stdout);
                 setup[airgroup.airgroupId][air.airId].constRoot = JSONbig.parse(await fs.promises.readFile(path.join(filesDir, `${airgroup.name}_${air.airId}.verkey.json`), "utf8"));
             }
-
-            await fs.promises.writeFile(path.join(filesDir, `${airgroup.name}_${air.airId}.starkinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].starkInfo, null, 1), "utf8");
-            await fs.promises.writeFile(path.join(filesDir, `${airgroup.name}_${air.airId}.verifierinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].verifierInfo, null, 1), "utf8");
-            await fs.promises.writeFile(path.join(filesDir, `${airgroup.name}_${air.airId}.expressionsinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].expressionsInfo, null, 1), "utf8");
 
             const expsBin = await prepareExpressionsBin(setup[airgroup.airgroupId][air.airId].starkInfo, setup[airgroup.airgroupId][air.airId].expressionsInfo);
             await writeExpressionsBinFile(path.join(filesDir, `${airgroup.name}_${air.airId}.bin`), expsBin);

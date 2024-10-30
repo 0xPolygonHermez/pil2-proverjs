@@ -55,7 +55,7 @@ module.exports = async function verifyCmd(setup, proofs, challenges, publics, pr
         for(let i = 0; i < globalConstraints.length; i++) {
             log.info("[VerifyCmd ]", "··· Verifying Global Constraint", i + 1, "/", globalConstraints.length);
             log.info(globalConstraints[i].line);
-            const res = executeCode(F, {airgroupValues: airgroupValuesProof, publics, proofValues}, globalConstraints[i].code, true);
+            const res = executeCode(F, {airgroupValues: airgroupValuesProof, publics, proofValues, challenges: challenges.challenges}, globalConstraints[i].code, true);
             isValid = isValid && F.isZero(res);
 
             if(!isValid) {
