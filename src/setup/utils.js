@@ -71,6 +71,10 @@ async function setAiroutInfo(airout, starkStructs) {
     vadcopInfo.nPublics = airout.numPublicValues;
     vadcopInfo.numChallenges = airout.numChallenges || [0];
 
+    vadcopInfo.numProofValues = airout.numProofValues;
+
+    let proofValues = airout.getProofValues();
+    vadcopInfo.proofValuesMap = proofValues.map(p => { return {name: p.name, id: p.id }})
 
     let globalConstraints = [];
     if(airout.constraints !== undefined) {

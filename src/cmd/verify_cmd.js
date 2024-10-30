@@ -7,7 +7,7 @@ const log = require("../../logger.js");
 const { executeCode } = require("pil2-stark-js/src/stark/stark_verify.js");
 const F3g = require("pil2-stark-js/src/helpers/f3g.js");
 
-module.exports = async function verifyCmd(setup, proofs, challenges, publics, options) {
+module.exports = async function verifyCmd(setup, proofs, challenges, publics, proofValues, options) {
     log.info("[VerifyCmd ]", "==> PROOF VERIFICATION")
     const verifierFilename = path.isAbsolute(setup.config.verifier.filename) ? setup.config.verifier.filename : path.join(__dirname, "../..", setup.config.verifier.filename);
 
@@ -55,7 +55,7 @@ module.exports = async function verifyCmd(setup, proofs, challenges, publics, op
         for(let i = 0; i < globalConstraints.length; i++) {
             log.info("[VerifyCmd ]", "··· Verifying Global Constraint", i + 1, "/", globalConstraints.length);
             log.info(globalConstraints[i].line);
-            const res = executeCode(F, {airgroupValues: airgroupValuesProof}, globalConstraints[i].code, true);
+            const res = executeCode(F, {airgroupValues: airgroupValuesProof, publics, proofValues}, globalConstraints[i].code, true);
             isValid = isValid && F.isZero(res);
 
             if(!isValid) {
@@ -72,7 +72,7 @@ module.exports = async function verifyCmd(setup, proofs, challenges, publics, op
         const starkInfo = setup.setup[proof.airgroupId][proof.airId].starkInfo;
         const verifierInfo = setup.setup[proof.airgroupId][proof.airId].verifierInfo;
 
-        let isValidProof = await verifier.checkProof(proof, constRoot, starkInfo, verifierInfo, setup.airoutInfo, challenges, publics, options);
+        let isValidProof = await verifier.checkProof(proof, constRoot, starkInfo, verifierInfo, setup.airoutInfo, challenges, publics, proofValues, options);
         
         if(!isValidProof) log.error("[VerifyCmd ]", "Proof verification ", index, " failed.");
         

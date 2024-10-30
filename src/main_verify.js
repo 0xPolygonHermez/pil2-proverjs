@@ -20,8 +20,10 @@ async function run() {
 
     if(!argv.proofsdir) throw new Error("Proofs directory must be provided");
 
+    const globalInfo = JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, "pilout.globalInfo.json")));
 
     const publics = str2bigInt(JSONbig.parse(await fs.promises.readFile(path.join(argv.proofsdir, "publics.json"))));
+    const proofValues = str2bigInt(JSONbig.parse(await fs.promises.readFile(path.join(argv.proofsdir, "proof_values.json"))));
     const challenges = str2bigInt(JSONbig.parse(await fs.promises.readFile(path.join(argv.proofsdir, "challenges.json"))));
 
     const proofsFiles = await fs.promises.readdir(path.join(argv.proofsdir, "proofs"));
@@ -33,7 +35,6 @@ async function run() {
         proofs.push(str2bigInt(proof));
     }
 
-    const globalInfo = JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, "pilout.globalInfo.json")));
 
     const globalConstraints = JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, "pilout.globalConstraints.json")));
 
@@ -77,7 +78,7 @@ async function run() {
         vadcop: true,
     }
 
-    const isValid = await verifyCmd(setup, proofs, challenges, publics, options);
+    const isValid = await verifyCmd(setup, proofs, challenges, publics, proofValues, options);
 
     assert(isValid == true, "PROOF NOT VALID");
 
