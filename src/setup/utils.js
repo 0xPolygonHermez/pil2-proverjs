@@ -54,7 +54,7 @@ async function setAiroutInfo(airout, starkStructs) {
         vadcopInfo.air_groups.push(airgroup.name);
         vadcopInfo.airs[i] = [];
         for(let j = 0; j < airgroup.airs.length; ++j) {
-            vadcopInfo.airs[airgroupId][j] = {name: `${airgroup.name}_${j}`, num_rows: airgroup.airs[j].numRows};
+            vadcopInfo.airs[airgroupId][j] = {name: `${airgroup.airs[j].name}`, num_rows: airgroup.airs[j].numRows};
         }
     }
 
