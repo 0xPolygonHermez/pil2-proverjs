@@ -68,7 +68,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
 
             let settings = {};
             if (proofManagerConfig.setup && proofManagerConfig.setup.settings) {
-                settings = proofManagerConfig.setup.settings[`${air.name}_${air.airId}`]
+                settings = proofManagerConfig.setup.settings[`${air.name}`]
                     || proofManagerConfig.setup.settings.default
                     || { finalDegree: minFinalDegree };
             }
@@ -86,30 +86,30 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
 
             setup[airgroup.airgroupId][air.airId] = await starkSetup(fixedPols, air, starkStruct, setupOptions);
 
-            const filesDir = path.join(buildDir, "provingKey", airout.name, airgroup.name, "airs", `${airgroup.name}_${air.airId}`, "air");
+            const filesDir = path.join(buildDir, "provingKey", airout.name, airgroup.name, "airs", `${air.name}`, "air");
             await fs.promises.mkdir(filesDir, { recursive: true });
 
-            await fixedPols.saveToFile(path.join(filesDir, `${airgroup.name}_${air.airId}.const`));
+            await fixedPols.saveToFile(path.join(filesDir, `${air.name}.const`));
             
-            setup[airgroup.airgroupId][air.airId].starkInfoFile = path.join(filesDir, `${airgroup.name}_${air.airId}.starkinfo.json`);
+            setup[airgroup.airgroupId][air.airId].starkInfoFile = path.join(filesDir, `${air.name}.starkinfo.json`);
 
-            await fs.promises.writeFile(path.join(filesDir, `${airgroup.name}_${air.airId}.starkinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].starkInfo, null, 1), "utf8");
-            await fs.promises.writeFile(path.join(filesDir, `${airgroup.name}_${air.airId}.verifierinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].verifierInfo, null, 1), "utf8");
-            await fs.promises.writeFile(path.join(filesDir, `${airgroup.name}_${air.airId}.expressionsinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].expressionsInfo, null, 1), "utf8");
+            await fs.promises.writeFile(path.join(filesDir, `${air.name}.starkinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].starkInfo, null, 1), "utf8");
+            await fs.promises.writeFile(path.join(filesDir, `${air.name}.verifierinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].verifierInfo, null, 1), "utf8");
+            await fs.promises.writeFile(path.join(filesDir, `${air.name}.expressionsinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].expressionsInfo, null, 1), "utf8");
 
             if (!setupOptions.constTree) {
                 const MH = await buildMerkleHashGL(starkStruct.splitLinearHash);
-                await MH.writeToFile(setup[airgroup.airgroupId][air.airId].constTree, path.join(filesDir, `${airgroup.name}_${air.airId}.consttree`));
-                await fs.promises.writeFile(path.join(filesDir, `${airgroup.name}_${air.airId}.verkey.json`), JSONbig.stringify(setup[airgroup.airgroupId][air.airId].constRoot, null, 1), "utf8");
+                await MH.writeToFile(setup[airgroup.airgroupId][air.airId].constTree, path.join(filesDir, `${air.name}.consttree`));
+                await fs.promises.writeFile(path.join(filesDir, `${air.name}.verkey.json`), JSONbig.stringify(setup[airgroup.airgroupId][air.airId].constRoot, null, 1), "utf8");
             } else {
                 console.log("Computing Constant Tree...");
-                const { stdout } = await exec(`${proofManagerConfig.setup.constTree} -c ${path.join(filesDir, `${airgroup.name}_${air.airId}.const`)} -s ${path.join(filesDir, `${airgroup.name}_${air.airId}.starkinfo.json`)} -v ${path.join(filesDir, `${airgroup.name}_${air.airId}.verkey.json`)}`);
+                const { stdout } = await exec(`${proofManagerConfig.setup.constTree} -c ${path.join(filesDir, `${air.name}.const`)} -s ${path.join(filesDir, `${air.name}.starkinfo.json`)} -v ${path.join(filesDir, `${air.name}.verkey.json`)}`);
                 console.log(stdout);
-                setup[airgroup.airgroupId][air.airId].constRoot = JSONbig.parse(await fs.promises.readFile(path.join(filesDir, `${airgroup.name}_${air.airId}.verkey.json`), "utf8"));
+                setup[airgroup.airgroupId][air.airId].constRoot = JSONbig.parse(await fs.promises.readFile(path.join(filesDir, `${air.name}.verkey.json`), "utf8"));
             }
 
             const expsBin = await prepareExpressionsBin(setup[airgroup.airgroupId][air.airId].starkInfo, setup[airgroup.airgroupId][air.airId].expressionsInfo);
-            await writeExpressionsBinFile(path.join(filesDir, `${airgroup.name}_${air.airId}.bin`), expsBin);
+            await writeExpressionsBinFile(path.join(filesDir, `${air.name}.bin`), expsBin);
         }));
     }));
 
