@@ -30,22 +30,24 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
     let filesDir;
     let constRootCircuit = constRoot || [];
     if((template === "recursive1" && !hasCompressor) || template === "compressor") {
+        let airName = globalInfo.airs[airgroupId][airId].name;
         inputChallenges = true;
-        verifierName = `${airgroupName}_${airId}.verifier.circom`;
-        nameFilename = `${airgroupName}_${airId}_${template}`;    
+        verifierName = `${airName}.verifier.circom`;
+        nameFilename = `${airName}_${template}`;    
         templateFilename = path.resolve(__dirname,"../../", `node_modules/stark-recurser/src/vadcop/templates/${template}.circom.ejs`);
-        filesDir = `${buildDir}/provingKey/${globalInfo.name}/${airgroupName}/airs/${airgroupName}_${airId}/${template}`;
+        filesDir = `${buildDir}/provingKey/${globalInfo.name}/${airgroupName}/airs/${airName}/${template}`;
     } else if(template === "recursive1") {
-        verifierName = `${airgroupName}_${airId}_compressor.verifier.circom`;
-        nameFilename = `${airgroupName}_${airId}_${template}`;
+        let airName = globalInfo.airs[airgroupId][airId].name;
+        verifierName = `${airName}_compressor.verifier.circom`;
+        nameFilename = `${airName}_${template}`;
         templateFilename = path.resolve(__dirname,"../../", `node_modules/stark-recurser/src/vadcop/templates/recursive1.circom.ejs`);
-        filesDir = `${buildDir}/provingKey/${globalInfo.name}/${airgroupName}/airs/${airgroupName}_${airId}/recursive1/`;
+        filesDir = `${buildDir}/provingKey/${globalInfo.name}/${airgroupName}/airs/${airName}/recursive1/`;
     } else if (template === "recursive2") {
         verifierName = `${airgroupName}_recursive2.verifier.circom`;
         nameFilename = `${airgroupName}_${template}`;
         templateFilename =  path.resolve(__dirname,"../../", `node_modules/stark-recurser/src/vadcop/templates/recursive2.circom.ejs`);
         filesDir = `${buildDir}/provingKey/${globalInfo.name}/${airgroupName}/${template}`;
-        enableInput = globalInfo.aggTypes.length > 1 ? true : false;
+        enableInput = (globalInfo.air_groups.length > 1 || globalInfo.airs[0].length > 1)  ? true : false;
         verkeyInput = true;
     } else {
         throw new Error("Unknown template" + template);

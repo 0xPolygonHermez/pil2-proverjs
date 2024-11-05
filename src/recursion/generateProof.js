@@ -16,6 +16,7 @@ module.exports.generateProof = async function generateProof(template, inputs, gl
     const F = new F3g();
 
     let airgroupName = globalInfo.airgroups[airgroupId];
+    let airName = globalInfo.airs[airgroupId][airId].airName;
 
     let recursiveName;
     let filesDir;
@@ -26,8 +27,8 @@ module.exports.generateProof = async function generateProof(template, inputs, gl
         recursiveName = `${airgroupName}_recursive2`;
         filesDir = `tmp/provingKey/${globalInfo.name}/${airgroupName}/recursive2`;
     } else if(["recursive1", "compressor"].includes(template)) {
-        recursiveName = `${airgroupName}_${airId}_${template}`;
-        filesDir = `tmp/provingKey/${globalInfo.name}/${airgroupName}/airs/${airgroupName}_${airId}/${template}`;
+        recursiveName = `${airName}_${template}`;
+        filesDir = `tmp/provingKey/${globalInfo.name}/${airgroupName}/airs/${airName}/${template}`;
     } else {
         throw new Error("Unknown template");
     }
