@@ -19,6 +19,8 @@ async function run() {
     const buildDir = argv.builddir || "tmp";
     await fs.promises.mkdir(buildDir, { recursive: true });
 
+    if(!argv.consttree) throw new Error("Bctree path must be provided");
+
     let piloutPath = argv.airout;
 
     let starkStructsInfo = argv.starkstructs ? JSON.parse(await fs.promises.readFile(argv.starkstructs, "utf8")) : {};
@@ -30,12 +32,9 @@ async function run() {
         setup: {
             settings: starkStructsInfo,
             genAggregationSetup: argv.recursive || false,
-            optImPols: argv.impols || false
+            optImPols: argv.impols || false,
+            constTree: argv.consttree,
         }
-    }
-
-    if(argv.consttree) {
-        config.setup.constTree = argv.consttree;
     }
 
     await setupCmd(config, buildDir);

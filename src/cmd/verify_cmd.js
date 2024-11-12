@@ -1,7 +1,6 @@
 const log = require("../../logger.js");
-const { executeCode } = require("pil2-stark-js/src/stark/stark_verify.js");
-const F3g = require("pil2-stark-js/src/helpers/f3g.js");
-const { starkVerify } = require("pil2-stark-js");
+const F3g = require("../pil2-stark/utils/f3g.js");
+const { executeCode, starkVerify } = require("../pil2-stark/stark_verify.js");
 
 module.exports = async function verifyCmd(setup, proofs, challenges, publics, proofValues, options) {
     log.info("[VerifyCmd ]", "==> PROOF VERIFICATION")
@@ -75,7 +74,6 @@ module.exports = async function verifyCmd(setup, proofs, challenges, publics, pr
 }
 
 async function checkProof(proof, constRoot, starkInfo, verifierInfo, airoutInfo, challenges, publics, proofValues, options) {
-    this.checkInitialized();
 
     log.info(`[${this.name}]`, `--> STARK verification (airgroupId ${proof.airgroupId} airId ${proof.airId})`);
 

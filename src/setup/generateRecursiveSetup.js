@@ -9,13 +9,12 @@ const {compressorSetup} = require('stark-recurser/src/circom2pil/compressor_setu
 const {genCircom} = require('stark-recurser/src/gencircom.js');
 const { genNullProof } = require('stark-recurser/src/pil2circom/proof2zkin');
 
-const F3g = require('pil2-stark-js/src/helpers/f3g');
-const { writeExpressionsBinFile } = require("pil2-stark-js/src/stark/chelpers/binFile.js");
-const buildMerkleHashGL = require("pil2-stark-js/src/helpers/hash/merklehash/merklehash_p.js");
-const { starkSetup } = require('pil2-stark-js');
+const { writeExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
+const { prepareExpressionsBin } = require('../pil2-stark/chelpers/stark_chelpers');
+const stark_setup = require('../pil2-stark/stark_setup');
 const path = require('path');
-const { prepareExpressionsBin } = require('pil2-stark-js/src/stark/chelpers/stark_chelpers');
 const { runWitnessLibraryGeneration } = require('./generateWitness');
+const F3g = require('../pil2-stark/utils/f3g.js');
 
 module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, setupOptions, template, airgroupName, airgroupId, airId, globalInfo, constRoot, verificationKeys = [], starkInfo, verifierInfo, starkStruct, compressorCols, hasCompressor) {
 
@@ -95,7 +94,7 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
     // Build stark info
     const pilRecursive = await compile(F, `${buildDir}/pil/${nameFilename}.pil`);
 
-    const setup = await starkSetup(constPols, pilRecursive, starkStruct, {...setupOptions, F, pil2: false, airgroupId, airId, recursion: true});
+    const setup = await stark_setup(constPols, pilRecursive, starkStruct, {...setupOptions, F, pil2: false, airgroupId, airId, recursion: true});
 
     await fs.promises.writeFile(`${filesDir}/${template}.starkinfo.json`, JSON.stringify(setup.starkInfo, null, 1), "utf8");
 
@@ -103,16 +102,10 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
 
     await fs.promises.writeFile(`${filesDir}/${template}.expressionsinfo.json`, JSON.stringify(setup.expressionsInfo, null, 1), "utf8");
 
-    if(!setupOptions.constTree) {
-        const MH = await buildMerkleHashGL();
-        await MH.writeToFile(setup.constTree, `${filesDir}/${template}.consttree`);
-        await fs.promises.writeFile(`${filesDir}/${template}.verkey.json`, JSONbig.stringify(setup.constRoot, null, 1), "utf8");
-    } else {
-        console.log("Computing Constant Tree...");
-        // await exec(`${setupOptions.constTree} -c ${filesDir}/${template}.const -s ${filesDir}/${template}.starkinfo.json -t ${filesDir}/${template}.consttree -v ${filesDir}/${template}.verkey.json`);
-        await exec(`${setupOptions.constTree} -c ${filesDir}/${template}.const -s ${filesDir}/${template}.starkinfo.json -v ${filesDir}/${template}.verkey.json`);
-        setup.constRoot = JSONbig.parse(await fs.promises.readFile(`${filesDir}/${template}.verkey.json`, "utf8"));
-    }
+    console.log("Computing Constant Tree...");
+    // await exec(`${setupOptions.constTree} -c ${filesDir}/${template}.const -s ${filesDir}/${template}.starkinfo.json -t ${filesDir}/${template}.consttree -v ${filesDir}/${template}.verkey.json`);
+    await exec(`${setupOptions.constTree} -c ${filesDir}/${template}.const -s ${filesDir}/${template}.starkinfo.json -v ${filesDir}/${template}.verkey.json`);
+    setup.constRoot = JSONbig.parse(await fs.promises.readFile(`${filesDir}/${template}.verkey.json`, "utf8"));
    
     const expsBin = await prepareExpressionsBin(setup.starkInfo, setup.expressionsInfo);
 

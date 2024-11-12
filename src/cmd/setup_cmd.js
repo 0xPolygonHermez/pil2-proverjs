@@ -2,8 +2,11 @@ const fs = require('fs');
 const crypto = require('crypto');
 const util = require('util');
 const childProcess = require('child_process'); // Split into two lines for clarity
-const pLimit = require("p-limit");
-const limit = pLimit(10);
+const path = require("path");
+const { writeExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
+const { writeGlobalConstraintsBinFile } = require("../pil2-stark/chelpers/globalConstraints/globalConstraints.js");
+const { prepareExpressionsBin } = require("../pil2-stark/chelpers/stark_chelpers.js");
+const stark_setup = require('../pil2-stark/stark_setup.js');
 
 const exec = util.promisify(childProcess.exec);
 
@@ -14,17 +17,12 @@ const { AirOut } = require("../airout.js");
 
 const { genFinalSetup } = require("../setup/generateFinalSetup.js");
 const {genRecursiveSetup} = require("../setup/generateRecursiveSetup.js");
+const { isCompressorNeeded } = require('../setup/is_compressor_needed.js');
 const { generateStarkStruct, setAiroutInfo } = require("../setup/utils.js");
 
-const F3g = require("pil2-stark-js/src/helpers/f3g");
-const { generateFixedCols } = require("pil2-stark-js/src/witness/witnessCalculator.js");
-const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
-const buildMerkleHashGL = require("pil2-stark-js/src/helpers/hash/merklehash/merklehash_p.js");
-const { starkSetup } = require("pil2-stark-js");
-const { prepareExpressionsBin } = require("pil2-stark-js/src/stark/chelpers/stark_chelpers.js");
-const { writeExpressionsBinFile } = require("pil2-stark-js/src/stark/chelpers/binFile.js");
-const { writeGlobalConstraintsBinFile } = require("pil2-stark-js/src/stark/chelpers/globalConstraints/globalConstraints.js");
-const { isCompressorNeeded } = require('../setup/is_compressor_needed.js');
+const { generateFixedCols } = require("../pil2-stark/witness_computation/witness_calculator.js");
+const { getFixedPolsPil2 } = require("../pil2-stark/pil_info/helpers/pil2/piloutInfo.js");
+const F3g = require('../pil2-stark/utils/f3g.js');
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
 module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
@@ -81,7 +79,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             const fixedPols = generateFixedCols(air.symbols.filter(s => s.airGroupId == airgroup.airgroupId), air.numRows);
             await getFixedPolsPil2(air, fixedPols, setupOptions.F);
 
-            setup[airgroup.airgroupId][air.airId] = await starkSetup(fixedPols, air, starkStruct, setupOptions);
+            setup[airgroup.airgroupId][air.airId] = await stark_setup(fixedPols, air, starkStruct, setupOptions);
 
             const filesDir = path.join(buildDir, "provingKey", airout.name, airgroup.name, "airs", `${air.name}`, "air");
             await fs.promises.mkdir(filesDir, { recursive: true });
@@ -94,16 +92,10 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             await fs.promises.writeFile(path.join(filesDir, `${air.name}.verifierinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].verifierInfo, null, 1), "utf8");
             await fs.promises.writeFile(path.join(filesDir, `${air.name}.expressionsinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].expressionsInfo, null, 1), "utf8");
 
-            if (!setupOptions.constTree) {
-                const MH = await buildMerkleHashGL(starkStruct.splitLinearHash);
-                await MH.writeToFile(setup[airgroup.airgroupId][air.airId].constTree, path.join(filesDir, `${air.name}.consttree`));
-                await fs.promises.writeFile(path.join(filesDir, `${air.name}.verkey.json`), JSONbig.stringify(setup[airgroup.airgroupId][air.airId].constRoot, null, 1), "utf8");
-            } else {
-                console.log("Computing Constant Tree...");
-                const { stdout } = await exec(`${proofManagerConfig.setup.constTree} -c ${path.join(filesDir, `${air.name}.const`)} -s ${path.join(filesDir, `${air.name}.starkinfo.json`)} -v ${path.join(filesDir, `${air.name}.verkey.json`)}`);
-                console.log(stdout);
-                setup[airgroup.airgroupId][air.airId].constRoot = JSONbig.parse(await fs.promises.readFile(path.join(filesDir, `${air.name}.verkey.json`), "utf8"));
-            }
+            console.log("Computing Constant Tree...");
+            const { stdout } = await exec(`${proofManagerConfig.setup.constTree} -c ${path.join(filesDir, `${air.name}.const`)} -s ${path.join(filesDir, `${air.name}.starkinfo.json`)} -v ${path.join(filesDir, `${air.name}.verkey.json`)}`);
+            console.log(stdout);
+            setup[airgroup.airgroupId][air.airId].constRoot = JSONbig.parse(await fs.promises.readFile(path.join(filesDir, `${air.name}.verkey.json`), "utf8"));
 
             const expsBin = await prepareExpressionsBin(setup[airgroup.airgroupId][air.airId].starkInfo, setup[airgroup.airgroupId][air.airId].expressionsInfo);
             await writeExpressionsBinFile(path.join(filesDir, `${air.name}.bin`), expsBin);

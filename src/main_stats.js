@@ -1,12 +1,12 @@
 const fs = require("fs");
 const version = require("../package").version;
 
-const F3g = require("pil2-stark-js/src/helpers/f3g");
 const { AirOut } = require("./airout");
 const log = require("../logger.js");
-const { starkSetup } = require("pil2-stark-js");
 const { generateStarkStruct } = require("./setup/utils.js");
 const path = require("path");
+const stark_setup = require("./pil2-stark/stark_setup.js");
+const F3g = require("./pil2-stark/f3g.js");
 
 const argv = require("yargs")
     .version(version)
@@ -51,7 +51,7 @@ async function run() {
             }
             let starkStruct = generateStarkStruct({}, Math.log2(air.numRows));
             log.info("[Stats  Cmd]", `··· Computing stats for air '${air.name}'`);
-            const setup = await starkSetup(null, air, starkStruct, setupOptions);
+            const setup = await stark_setup(null, air, starkStruct, setupOptions);
             statsFileInfo.push(`Airgroup: ${airgroup.name} Air: ${air.name}`);
             statsFileInfo.push(`Summary: ${setup.stats.summary}`);
             setup.stats.summary = `${airgroup.name} | ${air.name} | ${setup.stats.summary}`;
