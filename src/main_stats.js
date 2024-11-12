@@ -6,7 +6,6 @@ const { AirOut } = require("./airout");
 const log = require("../logger.js");
 const { starkSetup } = require("pil2-stark-js");
 const { generateStarkStruct } = require("./setup/utils.js");
-const { log2 } = require("stark-recurser/src/utils/utils.js");
 const path = require("path");
 
 const argv = require("yargs")
@@ -50,7 +49,7 @@ async function run() {
                 log.info("[Stats Cmd]", `··· Skipping air '${air.name}'`);
                 continue;
             }
-            let starkStruct = generateStarkStruct({}, log2(air.numRows));
+            let starkStruct = generateStarkStruct({}, Math.log2(air.numRows));
             log.info("[Stats  Cmd]", `··· Computing stats for air '${air.name}'`);
             const setup = await starkSetup(null, air, starkStruct, setupOptions);
             statsFileInfo.push(`Airgroup: ${airgroup.name} Air: ${air.name}`);

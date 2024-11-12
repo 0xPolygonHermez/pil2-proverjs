@@ -16,9 +16,6 @@ const { genFinalSetup } = require("../setup/generateFinalSetup.js");
 const {genRecursiveSetup} = require("../setup/generateRecursiveSetup.js");
 const { generateStarkStruct, setAiroutInfo } = require("../setup/utils.js");
 
-const { isCompressorNeeded } = require("stark-recurser/src/vadcop/is_compressor_needed.js");
-const { log2 } = require("stark-recurser/src/utils/utils.js");
-
 const F3g = require("pil2-stark-js/src/helpers/f3g");
 const { generateFixedCols } = require("pil2-stark-js/src/witness/witnessCalculator.js");
 const { getFixedPolsPil2 } = require("pil2-stark-js/src/pil_info/helpers/pil2/piloutInfo.js");
@@ -27,6 +24,7 @@ const { starkSetup } = require("pil2-stark-js");
 const { prepareExpressionsBin } = require("pil2-stark-js/src/stark/chelpers/stark_chelpers.js");
 const { writeExpressionsBinFile } = require("pil2-stark-js/src/stark/chelpers/binFile.js");
 const { writeGlobalConstraintsBinFile } = require("pil2-stark-js/src/stark/chelpers/globalConstraints/globalConstraints.js");
+const { isCompressorNeeded } = require('../setup/is_compressor_needed.js');
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
 module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
@@ -54,7 +52,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             if(settings.starkStruct) {
                 minFinalDegree = Math.min(minFinalDegree, settings.starkStruct.steps[settings.starkStruct.steps.length - 1].nBits);
             } else {
-                minFinalDegree = Math.min(minFinalDegree, log2(air.numRows) + 1);
+                minFinalDegree = Math.min(minFinalDegree, Math.log2(air.numRows) + 1);
             }
         }
     }
@@ -77,7 +75,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
                 throw new Error(`[${this.name}] No settings for air '${air.name}'${air.numRows ? ` with N=${air.numRows}` : ''}`);
             }
 
-            let starkStruct = settings.starkStruct || generateStarkStruct(settings, log2(air.numRows));
+            let starkStruct = settings.starkStruct || generateStarkStruct(settings, Math.log2(air.numRows));
             starkStructs.push(starkStruct);
 
             const fixedPols = generateFixedCols(air.symbols.filter(s => s.airGroupId == airgroup.airgroupId), air.numRows);
