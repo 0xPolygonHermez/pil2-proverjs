@@ -76,6 +76,7 @@ async function run() {
 
     const options = {
         vadcop: true,
+        multiFRI: true
     }
 
     const isValid = await verifyCmd(setup, proofs, challenges, publics, proofValues, options);
