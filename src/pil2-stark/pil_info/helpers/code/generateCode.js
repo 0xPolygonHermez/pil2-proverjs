@@ -194,32 +194,3 @@ module.exports.generateConstraintPolynomialVerifierCode = function generateConst
     }
 }
 
-module.exports.generateFRIVerifierCode = function generateFRIVerifierCode(res, verifierInfo, symbols, expressions) {
-    const ctxExt = {
-        stage: res.nStages + 2,
-        calculated: {},
-        symbolsUsed: [],
-        tmpUsed: 0,
-        code: [],
-        dom: "ext",
-        airId: res.airId,
-        airgroupId: res.airgroupId,
-        openingPoints: res.openingPoints,
-        verifierQuery: true,
-        addMul: false,
-        stark: true,
-    };
-
-    for(let k = 0; k < expressions[res.friExpId].symbols.length; k++) {
-        const symbolUsed = expressions[res.friExpId].symbols[k];
-        if(!ctxExt.symbolsUsed.find(s => s.op === symbolUsed.op && s.stage === symbolUsed.stage && s.id === symbolUsed.id)) {
-            ctxExt.symbolsUsed.push(symbolUsed);
-        };
-    }
-
-    ctxExt.verifierQuery = true;
-    ctxExt.addMul = false;
-    pilCodeGen(ctxExt, symbols, expressions, res.friExpId, 0);
-    verifierInfo.queryVerifier = buildCode(ctxExt);
-    verifierInfo.queryVerifier.line = "";
-}

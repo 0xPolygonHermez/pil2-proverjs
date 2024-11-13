@@ -1,5 +1,7 @@
 const ProtoOut = require("pil2-compiler/src/proto_out.js");
 const { formatExpressions, formatConstraints, formatSymbols, formatHints } = require("./utils");
+const { BigBuffer } = require("pilcom");
+const fs = require("fs");
 
 module.exports.getPiloutInfo = function getPiloutInfo(res, pilout, stark) {
     res.airId = pilout.airId;

@@ -9,12 +9,11 @@ const {compressorSetup} = require('stark-recurser/src/circom2pil/compressor_setu
 const {genCircom} = require('stark-recurser/src/gencircom.js');
 const { genNullProof } = require('stark-recurser/src/pil2circom/proof2zkin');
 
-const { writeExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
-const { prepareExpressionsBin } = require('../pil2-stark/chelpers/stark_chelpers');
-const stark_setup = require('../pil2-stark/stark_setup');
 const path = require('path');
 const { runWitnessLibraryGeneration } = require('./generateWitness');
 const F3g = require('../pil2-stark/utils/f3g.js');
+const { writeExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
+const { starkSetup } = require('../pil2-stark/stark_setup');
 
 module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, setupOptions, template, airgroupName, airgroupId, airId, globalInfo, constRoot, verificationKeys = [], starkInfo, verifierInfo, starkStruct, compressorCols, hasCompressor) {
 
@@ -94,7 +93,7 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
     // Build stark info
     const pilRecursive = await compile(F, `${buildDir}/pil/${nameFilename}.pil`);
 
-    const setup = await stark_setup(constPols, pilRecursive, starkStruct, {...setupOptions, F, pil2: false, airgroupId, airId, recursion: true});
+    const setup = await starkSetup(constPols, pilRecursive, starkStruct, {...setupOptions, F, pil2: false, airgroupId, airId, recursion: true});
 
     await fs.promises.writeFile(`${filesDir}/${template}.starkinfo.json`, JSON.stringify(setup.starkInfo, null, 1), "utf8");
 
@@ -107,9 +106,7 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
     await exec(`${setupOptions.constTree} -c ${filesDir}/${template}.const -s ${filesDir}/${template}.starkinfo.json -v ${filesDir}/${template}.verkey.json`);
     setup.constRoot = JSONbig.parse(await fs.promises.readFile(`${filesDir}/${template}.verkey.json`, "utf8"));
    
-    const expsBin = await prepareExpressionsBin(setup.starkInfo, setup.expressionsInfo);
-
-    await writeExpressionsBinFile(`${filesDir}/${template}.bin`, expsBin);
+    await writeExpressionsBinFile(`${filesDir}/${template}.bin`, setup.starkInfo, setup.expressionsInfo);
     
     
 

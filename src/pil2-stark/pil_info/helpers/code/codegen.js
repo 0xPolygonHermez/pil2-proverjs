@@ -16,7 +16,6 @@ function pilCodeGen(ctx, symbols, expressions, expId, prime, evMap) {
             dom: ctx.dom,
             stark: ctx.stark,
             verifierEvaluations: ctx.verifierEvaluations,
-            verifierQuery: ctx.verifierQuery,
             evMap: ctx.evMap,
             airId: ctx.airId,
             airgroupId: ctx.airgroupId,
@@ -261,7 +260,7 @@ function buildCode(ctx) {
         if(ctx.code[i].dest.type === "exp") fixExpression(ctx.code[i].dest, ctx);
     }
 
-    if(ctx.verifierEvaluations || ctx.verifierQuery) fixDimensionsVerifier(ctx);
+    if(ctx.verifierEvaluations) fixDimensionsVerifier(ctx);
 
     let code = { tmpUsed: ctx.tmpUsed, code: ctx.code };
     if(ctx.symbolsUsed) {
