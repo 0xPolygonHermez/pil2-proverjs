@@ -144,15 +144,22 @@ module.exports.generateConstraintPolynomialVerifierCode = function generateConst
             if(!ctx.symbolsUsed.find(s => s.op === symbolUsed.op && s.stage === symbolUsed.stage && s.id === symbolUsed.id)) {
                 ctx.symbolsUsed.push(symbolUsed);
             };
+            if(["cm", "const", "custom"].includes(symbolUsed.op)) {
+                for(let l = 0; l < symbolUsed.rowsOffsets.length; ++l) {
+                    const prime = symbolUsed.rowsOffsets[l];
+                    const openingPos = res.openingPoints.findIndex(p => p === prime);
+                    const rf = { type: symbolUsed.op, id: symbolUsed.id, prime, openingPos };
+                    if(symbolUsed.op === "custom") rf.commitId = symbolUsed.commitId;
+                    ctx.evMap.push(rf);
+                }
+            }
         }
     }
 
-    pilCodeGen(ctx, symbols, expressions, res.cExpId, 0, true);
     let qIndex = res.cmPolsMap.findIndex(p => p.stage === res.nStages + 1 && p.stageId === 0);
     let openingPos = res.openingPoints.findIndex(p => p === 0);
     for (let i = 0; i < res.qDeg; i++) {
-        const rf = { type: "cm", id: qIndex + i, prime: 0, openingPos };
-        ctx.evMap.push(rf);
+        ctx.evMap.push({ type: "cm", id: qIndex + i, prime: 0, openingPos });
     }
 
     const typeOrder = { "cm": 0, "const": 1 };

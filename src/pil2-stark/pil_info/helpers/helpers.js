@@ -47,6 +47,8 @@ module.exports.addInfoExpressions = function addInfoExpressions(expressions, exp
         if("rowOffset" in exp) {
             exp.rowsOffsets = [exp.rowOffset];
         }
+    } else if(exp.op === "xDivXSubXi") {
+        exp.expDeg = 1;
     } else if (["challenge", "eval"].includes(exp.op)) {
         exp.expDeg = 0;
         exp.dim = stark ? 3 : 1;
@@ -109,7 +111,7 @@ module.exports.addInfoExpressionsSymbols = function addInfoExpressionsSymbols(sy
         if(expressions[exp.id].imPol) {
             const expSym = symbols.find(s => s.type === "witness" && s.expId === exp.id);
             if(!exp.symbols.find(s => s.op === "cm" && s.stage === expSym.stage && s.stageId === expSym.stageId && s.id === expSym.polId)) {
-                exp.symbols.push({op: "cm", stage: expSym.stage, stageId: expSym.stageId, id: expSym.polId});
+                exp.symbols.push({op: "cm", stage: expSym.stage, stageId: expSym.stageId, id: expSym.polId, rowsOffsets:[0]});
             }
         }
 
@@ -119,11 +121,11 @@ module.exports.addInfoExpressionsSymbols = function addInfoExpressionsSymbols(sy
                 const sym = symbols.find(s => s.type === "witness" && s.polId === exp.id);
                 exp.stageId = sym.stageId;
             }
-            exp.symbols = [{op: "cm", stage: exp.stage, stageId: exp.stageId, id: exp.id}];
+            exp.symbols = [{op: "cm", stage: exp.stage, stageId: exp.stageId, id: exp.id, rowsOffsets: exp.rowsOffsets}];
         } else if(exp.op === "const") {
-            exp.symbols = [{op: exp.op, stage: exp.stage, id: exp.id}];
+            exp.symbols = [{op: exp.op, stage: exp.stage, id: exp.id, rowsOffsets: exp.rowsOffsets}];
         } else {
-            exp.symbols = [{op: "custom", stage: 0, stageId: exp.stageId, id: exp.id, commitId: exp.commitId}];
+            exp.symbols = [{op: "custom", stage: 0, stageId: exp.stageId, id: exp.id, commitId: exp.commitId, rowsOffsets: exp.rowsOffsets}];
         }      
     } else if(["add", "sub", "mul", "neg"].includes(exp.op)) {
         const lhsValue = exp.values[0];
@@ -139,9 +141,12 @@ module.exports.addInfoExpressionsSymbols = function addInfoExpressionsSymbols(sy
                 lhsValue.stageId = sym.stageId;
             }
             const lSym = {op: lhsValue.op, stage: lhsValue.stage, stageId: lhsValue.stageId, id: lhsValue.id};
+            if(lhsValue.op === "cm") lSym.rowsOffsets = lhsValue.rowsOffsets;
             lhsSymbols.push(lSym);
         } else if(lhsValue.op === "const") {
-            lhsSymbols.push({op: lhsValue.op, stage: lhsValue.stage, id: lhsValue.id});
+            lhsSymbols.push({op: lhsValue.op, stage: lhsValue.stage, id: lhsValue.id, rowsOffsets: lhsValue.rowsOffsets});
+        } else if(lhsValue.op === "custom") {
+            lhsSymbols.push({op: lhsValue.op, stage: lhsValue.stage, id: lhsValue.id, stageId: lhsValue.stageId, commitId: lhsValue.commitId, rowsOffsets: lhsValue.rowsOffsets});
         } else if(["public", "airgroupvalue", "airvalue"].includes(lhsValue.op)) {
             lhsSymbols.push({op: lhsValue.op, stage: lhsValue.stage, id: lhsValue.id});
         } else if(lhsValue.symbols) {
@@ -155,21 +160,39 @@ module.exports.addInfoExpressionsSymbols = function addInfoExpressionsSymbols(sy
                 rhsValue.stageId = sym.stageId;
             }
             const rSym = {op: rhsValue.op, stage: rhsValue.stage, stageId: rhsValue.stageId, id: rhsValue.id};
+            if(rhsValue.op === "cm") rSym.rowsOffsets = rhsValue.rowsOffsets;
             rhsSymbols.push(rSym);
         } else if(rhsValue.op === "const") {
-            rhsSymbols.push({op: rhsValue.op, stage: rhsValue.stage, id: rhsValue.id});
+            rhsSymbols.push({op: rhsValue.op, stage: rhsValue.stage, id: rhsValue.id, rowsOffsets: rhsValue.rowsOffsets});
+        } else if(rhsValue.op === "custom") {
+            rhsSymbols.push({op: rhsValue.op, stage: rhsValue.stage, id: rhsValue.id, stageId: rhsValue.stageId, commitId: rhsValue.commitId, rowsOffsets: rhsValue.rowsOffsets});
         } else if(["public", "airgroupvalue", "airvalue"].includes(rhsValue.op)) {
             rhsSymbols.push({op: rhsValue.op, stage: rhsValue.stage, id: rhsValue.id});
         } else if(rhsValue.symbols) {
             rhsSymbols.push(...rhsValue.symbols);
         }
 
-        const uniqueSymbolsSet = new Set();
+        const uniqueSymbols = [];
+        for(let i = 0; i < lhsSymbols.length; ++i) {
+            const symbolIdx = uniqueSymbols.findIndex(s => s.op === lhsSymbols[i].op && s.id === lhsSymbols[i].id && s.stage === lhsSymbols[i].stage);
+            if(symbolIdx === -1) {
+                uniqueSymbols.push(lhsSymbols[i]);
+            } else if(["cm", "custom", "const"].includes(uniqueSymbols[symbolIdx].op)) {
+                uniqueSymbols[symbolIdx].rowsOffsets = [...new Set(uniqueSymbols[symbolIdx].rowsOffsets.concat(...lhsSymbols[i].rowsOffsets))].sort((a, b) => a - b);
+            }
+        }
 
-        [...lhsSymbols, ...rhsSymbols].forEach((symbol) => { uniqueSymbolsSet.add(JSON.stringify(symbol)); });
-          
-        exp.symbols = Array.from(uniqueSymbolsSet).map((symbol) => JSON.parse(symbol))
-            .sort((a, b) => a.stage !== b.stage ? a.stage - b.stage : a.op !== b.op ? b.op.localeCompare(a.op) : ["const", "airgroupvalue", "airvalue", "public"].includes(a.op) ? a.id - b.id : a.stageId - b.stageId);
+        for(let i = 0; i < rhsSymbols.length; ++i) {
+            const symbolIdx = uniqueSymbols.findIndex(s => s.op === rhsSymbols[i].op && s.id === rhsSymbols[i].id && s.stage === rhsSymbols[i].stage);
+            if(symbolIdx === -1) {
+                uniqueSymbols.push(rhsSymbols[i]);
+            } else if(["cm", "custom", "const"].includes(uniqueSymbols[symbolIdx].op)) {
+                uniqueSymbols[symbolIdx].rowsOffsets = [...new Set(uniqueSymbols[symbolIdx].rowsOffsets.concat(...rhsSymbols[i].rowsOffsets))].sort((a, b) => a - b);
+
+            }
+        }          
+
+        exp.symbols = uniqueSymbols.sort((a, b) => a.stage !== b.stage ? a.stage - b.stage : a.op !== b.op ? b.op.localeCompare(a.op) : ["const", "airgroupvalue", "airvalue", "public"].includes(a.op) ? a.id - b.id : a.stageId - b.stageId);
     }
 
     return;
