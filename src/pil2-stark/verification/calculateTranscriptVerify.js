@@ -1,13 +1,13 @@
 const Transcript = require("./transcript/transcript");
 const TranscriptBN128 = require("./transcript/transcript.bn128");
-const buildPoseidonGL = require("./poseidon/poseidon");
+const buildPoseidon2GL = require("./poseidon/poseidon2.js");
 const buildPoseidonBN128 = require("circomlibjs").buildPoseidon;
 
 async function calculateHashStark(ctx, inputs) {
     const verificationHashType = ctx.pilInfo.starkStruct.verificationHashType;
     let transcript;
     if (verificationHashType == "GL") {
-        const poseidon = await buildPoseidonGL();
+        const poseidon = await buildPoseidon2GL();
         transcript = new Transcript(poseidon);
     } else if (verificationHashType == "BN128") {
         let transcriptArity = ctx.pilInfo.starkStruct.merkleTreeCustom ? ctx.pilInfo.starkStruct.merkleTreeArity : 16;
@@ -30,7 +30,7 @@ module.exports.calculateTranscript = async function calculateTranscript(F, stark
     let transcript;
     let transcriptArity;
     if (starkInfo.starkStruct.verificationHashType == "GL") {
-        const poseidonGL = await buildPoseidonGL();
+        const poseidonGL = await buildPoseidon2GL();
         transcript = new Transcript(poseidonGL);
     } else if (starkInfo.starkStruct.verificationHashType == "BN128") {
         transcriptArity = starkInfo.starkStruct.merkleTreeCustom ? starkInfo.starkStruct.merkleTreeArity : 16;
@@ -136,7 +136,7 @@ module.exports.calculateFRIQueries = async function calculateFRIQueries(starkInf
     const logger = options.logger;
     let transcriptFRIQuery;
     if (starkInfo.starkStruct.verificationHashType == "GL") {
-        const poseidonGL = await buildPoseidonGL();
+        const poseidonGL = await buildPoseidon2GL();
         transcriptFRIQuery = new Transcript(poseidonGL);
     } else if (starkInfo.starkStruct.verificationHashType == "BN128") {
         const poseidonBN128 = await buildPoseidonBN128();

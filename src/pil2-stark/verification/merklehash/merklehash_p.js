@@ -1,10 +1,10 @@
 const LinearHash = require("./linearhash/linearhash.js");
 const LinearHashGPU = require("./linearhash/linearhash_gpu.js");
 
-buildPoseidon = require("../poseidon/poseidon.js");
+const buildPoseidon2 = require("../poseidon/poseidon2.js");
 
 module.exports = async function buildMerkleHash(splitLinearHash = false) {
-    const poseidon = await buildPoseidon();
+    const poseidon = await buildPoseidon2();
     const MH = new MerkleHash(poseidon, splitLinearHash);
     return MH;
 }

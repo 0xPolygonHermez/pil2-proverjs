@@ -2,7 +2,7 @@ const FRI = require("./verification/fri.js");
 const buildMerkleHashGL = require("./verification/merklehash/merklehash_p.js");
 const buildMerkleHashBN128 = require("./verification/merklehash/merklehash_bn128_p.js");
 const { assert } = require("chai");
-const buildPoseidonGL = require("./verification/poseidon/poseidon.js");
+const buildPoseidon2GL = require("./verification/poseidon/poseidon2.js");
 const { calculateTranscript, calculateFRIQueries } = require("./verification/calculateTranscriptVerify.js");
 
 module.exports.starkVerify = async function starkVerify(proof, proofValues, publics, constRoot, challenges, starkInfo, verifierInfo, options = {}) {
@@ -10,7 +10,7 @@ module.exports.starkVerify = async function starkVerify(proof, proofValues, publ
 
     const starkStruct = starkInfo.starkStruct;
 
-    const poseidon = await buildPoseidonGL();
+    const poseidon = await buildPoseidon2GL();
 
     const F = poseidon.F;
 
