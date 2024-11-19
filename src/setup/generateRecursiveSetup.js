@@ -93,7 +93,7 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
     // Build stark info
     const pilRecursive = await compile(F, `${buildDir}/pil/${nameFilename}.pil`);
 
-    const setup = await starkSetup(constPols, pilRecursive, starkStruct, {...setupOptions, F, pil2: false, airgroupId, airId, recursion: true});
+    const setup = await starkSetup(pilRecursive, starkStruct, {...setupOptions, F, pil2: false, airgroupId, airId, recursion: true});
 
     await fs.promises.writeFile(`${filesDir}/${template}.starkinfo.json`, JSON.stringify(setup.starkInfo, null, 1), "utf8");
 

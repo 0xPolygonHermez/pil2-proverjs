@@ -140,7 +140,9 @@ module.exports.addInfoExpressionsSymbols = function addInfoExpressionsSymbols(sy
             }
             const lSym = {op: lhsValue.op, stage: lhsValue.stage, stageId: lhsValue.stageId, id: lhsValue.id};
             lhsSymbols.push(lSym);
-        } else if(["public", "airgroupvalue", "airvalue", "const"].includes(lhsValue.op)) {
+        } else if(lhsValue.op === "const") {
+            lhsSymbols.push({op: lhsValue.op, stage: lhsValue.stage, id: lhsValue.id});
+        } else if(["public", "airgroupvalue", "airvalue"].includes(lhsValue.op)) {
             lhsSymbols.push({op: lhsValue.op, stage: lhsValue.stage, id: lhsValue.id});
         } else if(lhsValue.symbols) {
             lhsSymbols.push(...lhsValue.symbols);
@@ -154,7 +156,9 @@ module.exports.addInfoExpressionsSymbols = function addInfoExpressionsSymbols(sy
             }
             const rSym = {op: rhsValue.op, stage: rhsValue.stage, stageId: rhsValue.stageId, id: rhsValue.id};
             rhsSymbols.push(rSym);
-        } else if(["public", "airgroupvalue", "airvalue", "const"].includes(rhsValue.op)) {
+        } else if(rhsValue.op === "const") {
+            rhsSymbols.push({op: rhsValue.op, stage: rhsValue.stage, id: rhsValue.id});
+        } else if(["public", "airgroupvalue", "airvalue"].includes(rhsValue.op)) {
             rhsSymbols.push({op: rhsValue.op, stage: rhsValue.stage, id: rhsValue.id});
         } else if(rhsValue.symbols) {
             rhsSymbols.push(...rhsValue.symbols);

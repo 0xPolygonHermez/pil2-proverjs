@@ -7,6 +7,7 @@ const F3g = require("stark-recurser/src/utils/f3g.js");
 
 const util = require('util');
 const { exec } = require('child_process');
+const { log2 } = require("./utils");
 const execPromise = util.promisify(exec);
 const tmp = require('os').tmpdir();
 
@@ -46,7 +47,7 @@ module.exports.isCompressorNeeded = async function isCompressorNeeded(constRoot,
     
     console.log("Number of rows used", NUsedC18);
 
-    let nBitsC18 = Math.log2(NUsedC18 - 1) + 1;
+    let nBitsC18 = log2(NUsedC18 - 1) + 1;
 
     await fs.promises.rm(tempDir, { recursive: true, force: true });
     

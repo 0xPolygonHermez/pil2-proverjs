@@ -11,6 +11,17 @@ import smt_generation_pil_2
 import json
   
 
+# The degree is the maximum of the list    
+def mix_degrees(deg_1, deg_2, deg_3):
+    result = []
+    for d in deg_3:
+        result.append(d)
+    for i in deg_1:
+        for j in deg_2:
+            result.append((i, j))
+    return result
+
+
 def get_used_expressions(expr, expressions, used_expressions):
     type_union = {"add", "sub", "mul"}
     
@@ -93,39 +104,72 @@ def minimize_expression_pil(tree, zero_expressions, one_expressions):
         else:
             return tree
 
+# TODO: Check this function as it is not exactly the same as the one in JS
 def calculate_added_cols(expressions, used_variables, q_deg, q_dim):
     q_cols = q_deg * q_dim
     im_cols = 0
     for v in used_variables:
         im_cols += expressions[v]["dim"]
     added_cols = q_cols + im_cols
-    print("Max constraint degree: " + str(q_deg + 1))
-    print("Number of intermediate polynomials: " + str(len(used_variables)))
-    print("Polynomial Q degree: " + str(q_deg))
-    print("Number of columns added in the basefield: " + str(added_cols) + " (Polynomial Q columns: " + str(q_cols) + " Intermediate polynomials columns " + str(im_cols) + ")")
+    print("maxDeg: " + str(q_deg + 1) + ", nIm: " + str(len(used_variables)) + ", d: " + str(q_deg) + ", addedCols in the basefield: " + str(added_cols) + " (" + str(q_cols) + " + " + str(im_cols) + ")")
     return added_cols
 
 
-def rebuild_expression(exp, expressions, used_expressions, new_map_expressions):
-    
+def rebuild_expression(exp, expressions, used_expressions, new_expression_list):
+    #revise because ids are not always in order!
     type_operation = {"add", "sub", "mul"}
     new_expression = {}
     if exp["op"] in type_operation:
         new_expression["op"] = exp["op"]
         new_values = []
         for e in exp["values"]:
-            new_values.append(rebuild_expression(e, expressions, used_expressions, new_map_expressions))
+            new_values.append(rebuild_expression(e, expressions, used_expressions, new_expression_list))
         new_expression["values"] = new_values
     elif exp["op"] == "exp":
         id_expr = int(exp["id"])
         if id_expr in used_expressions:
             new_expression = exp
         else:
-            new_expression = new_map_expressions[id_expr]
+            new_expression = new_expression_list[id_expr]
     else:
         new_expression = exp
     return new_expression 
 
+def rename_and_flat_expression(exp, names, invnames):
+    
+    new_expression = {}
+    if exp["op"] in {"add", "sub", "mul"}:
+        new_expression["op"] = exp["op"]
+        new_values = []
+        for v in exp["values"]:
+            new_values.append(rename_and_flat_expression(v, names, invnames))
+        if  exp["op"] in {"add", "mul"}:
+            flat_new_values = []
+            for v in new_values:
+                if  v["op"] == exp["op"]:
+                    flat_new_values += v["values"]
+                else:
+                    flat_new_values.append(v)
+            new_values = flat_new_values
+        new_expression["values"] = new_values
+    elif "id" in exp:
+        id_expr = exp["op"] +"_"+str(exp["id"])
+        if id_expr not in names:
+            names[id_expr] = exp
+            invnames[str(exp)] = id_expr           
+        new_expression["op"] = id_expr
+    else:
+        sexp = str(exp)
+        id_expr = ""
+        if sexp in invnames:
+            id_expr = invnames[sexp]
+        else:
+            id_expr = exp["op"] +"_"+str(len(names))
+            assert(id_expr not in names)
+            names[id_expr] = exp
+            invnames[sexp] = id_expr
+        new_expression["op"] = id_expr
+    return new_expression
 
 import sys
 sys.setrecursionlimit(10000)
@@ -194,34 +238,21 @@ while min_vars != 0 and possible_degree <= degree:
     solver = Optimize()
     smt_generation_pil_2.declare_keep_variables(number_intermediates, possible_degree, solver)
     for (index, value) in trees.items():
-        smt_generation_pil_2.generate_expression_declaration(value, zero_expressions, one_expressions, index, possible_degree, solver)    
-    smt_generation_pil_2.declare_minimize_keeps(number_intermediates, solver)
+        smt_generation_pil_2.generate_expression_declaration(value, expressions, zero_expressions, one_expressions, index, possible_degree, solver)    
     new_used_variables = smt_generation_pil_2.get_minimal_expressions(number_intermediates, solver)
     
     added_basefield_cols = calculate_added_cols(expressions, new_used_variables, possible_degree - 1, q_dim)
+    dims = []
+    for v in new_used_variables:
+        dims.append(expressions[v]["dim"])
     if min_value == -1 or added_basefield_cols < min_value:
         min_value = added_basefield_cols
         used_variables = new_used_variables
+        var_dims = dims
         optimal_degree = possible_degree - 1
     if len(new_used_variables) < min_vars:
         min_vars = len(new_used_variables)
     possible_degree = possible_degree + 1
-        
-        
-print("--------------------- SELECTED DEGREE ----------------------")
-print("Constraints maximum degree: " + str(optimal_degree + 1))
-print("Number of intermediate polynomials required: " + str(used_variables))
-
-#new_map_expressions = {}
-#i = 0
-#for e in expressions:
-#    new_e = rebuild_expression(e, expressions, used_variables, new_map_expressions)
-#    new_map_expressions[i] = new_e
-#    print("expresion " + str(i))
-#    print(new_e)
-#    i = i + 1
-    
-result = {}
 
 used_index = list(used_variables)
 used_index.sort()

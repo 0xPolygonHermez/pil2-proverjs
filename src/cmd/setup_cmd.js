@@ -18,7 +18,7 @@ const { generateFixedCols } = require('../pil2-stark/witness_computation/witness
 const { genFinalSetup } = require("../setup/generateFinalSetup.js");
 const { genRecursiveSetup } = require("../setup/generateRecursiveSetup.js");
 const { isCompressorNeeded } = require('../setup/is_compressor_needed.js');
-const { generateStarkStruct, setAiroutInfo } = require("../setup/utils.js");
+const { generateStarkStruct, setAiroutInfo, log2 } = require("../setup/utils.js");
 
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
@@ -47,7 +47,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             if(settings.starkStruct) {
                 minFinalDegree = Math.min(minFinalDegree, settings.starkStruct.steps[settings.starkStruct.steps.length - 1].nBits);
             } else {
-                minFinalDegree = Math.min(minFinalDegree, Math.log2(air.numRows) + 1);
+                minFinalDegree = Math.min(minFinalDegree, log2(air.numRows) + 1);
             }
         }
     }
@@ -70,19 +70,17 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
                 throw new Error(`[${this.name}] No settings for air '${air.name}'${air.numRows ? ` with N=${air.numRows}` : ''}`);
             }
 
-            let starkStruct = settings.starkStruct || generateStarkStruct(settings, Math.log2(air.numRows));
+            const filesDir = path.join(buildDir, "provingKey", airout.name, airgroup.name, "airs", `${air.name}`, "air");
+            await fs.promises.mkdir(filesDir, { recursive: true });
+
+            let starkStruct = settings.starkStruct || generateStarkStruct(settings, log2(air.numRows));
             starkStructs.push(starkStruct);
 
             const fixedPols = generateFixedCols(air.symbols.filter(s => s.airGroupId == airgroup.airgroupId), air.numRows);
             await getFixedPolsPil2(air, fixedPols, setupOptions.F);
+            await fixedPols.saveToFile(path.join(filesDir, `${air.name}.const`));
 
             setup[airgroup.airgroupId][air.airId] = await starkSetup(air, starkStruct, setupOptions);
-
-            const filesDir = path.join(buildDir, "provingKey", airout.name, airgroup.name, "airs", `${air.name}`, "air");
-            await fs.promises.mkdir(filesDir, { recursive: true });
-
-            await fixedPols.saveToFile(path.join(filesDir, `${air.name}.const`));
-            
             await fs.promises.writeFile(path.join(filesDir, `${air.name}.starkinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].starkInfo, null, 1), "utf8");
             await fs.promises.writeFile(path.join(filesDir, `${air.name}.verifierinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].verifierInfo, null, 1), "utf8");
             await fs.promises.writeFile(path.join(filesDir, `${air.name}.expressionsinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].expressionsInfo, null, 1), "utf8");
@@ -96,7 +94,8 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         }));
     }));
 
-
+    setupOptions.optImPols = false;
+    
     let globalInfo;
     let globalConstraints;
     

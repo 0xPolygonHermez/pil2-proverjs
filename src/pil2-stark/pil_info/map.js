@@ -6,10 +6,10 @@ module.exports = function map(res, symbols, expressions, constraints, options) {
 
     for(let i = 0; i < constraints.length; ++i) {
         if(constraints[i].filename === `${res.name}.ImPol`) {
-            try {
+            constraints[i].imPol = true;
+            if(!options.recursion) {
                 constraints[i].line = printExpressions(res, expressions[constraints[i].e], expressions, true);
-                constraints[i].imPol = true;
-            } catch(e) {
+            } else {
                 constraints[i].line = "";
             }  
         }

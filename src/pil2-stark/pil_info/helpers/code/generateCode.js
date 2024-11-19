@@ -112,7 +112,6 @@ module.exports.generateConstraintsDebugCode = function generateConstraintsDebugC
 }
 
 module.exports.generateConstraintPolynomialVerifierCode = function generateConstraintPolynomialVerifierCode(res, verifierInfo, symbols, expressions, stark) {       
-    let addMul = stark ? false : true;
 
     let ctx = {
         stage: res.nStages + 1,
@@ -125,7 +124,6 @@ module.exports.generateConstraintPolynomialVerifierCode = function generateConst
         airgroupId: res.airgroupId,
         openingPoints: res.openingPoints,
         stark,
-        addMul,
         symbolsUsed: [],
         verifierEvaluations: true,
     };
