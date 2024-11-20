@@ -25,7 +25,7 @@ module.exports.generatePilCode = function generatePilCode(res, symbols, constrai
 
     expressionsInfo.expressionsCode = generateExpressionsCode(res, symbols, expressions);
 
-    verifierInfo.queryVerifier = expressionsInfo.expressionsCode.find(e => e.expId === res.friExpId).code;
+    verifierInfo.queryVerifier = expressionsInfo.expressionsCode.find(e => e.expId === res.friExpId);
     verifierInfo.queryVerifier.code[verifierInfo.queryVerifier.code.length - 1].dest = { type: "tmp", id: verifierInfo.queryVerifier.tmpUsed - 1, dim: 3 };
     
     expressionsInfo.constraints = generateConstraintsDebugCode(res, symbols, constraints, expressions);

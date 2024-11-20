@@ -47,24 +47,20 @@ module.exports.generateExpressionsCode = function generateExpressionsCode(res, s
          
 
         pilCodeGen(ctx, symbols, expressions, j, 0);
-        const code = buildCode(ctx);
+        const expInfo = buildCode(ctx);
         
         if(j == res.cExpId) {
-            code.code[code.code.length-1].dest = { type: "q", id: 0, dim: res.qDim };
+            expInfo.code[expInfo.code.length-1].dest = { type: "q", id: 0, dim: res.qDim };
         }
 
         if(j == res.friExpId) {
-            code.code[code.code.length-1].dest = { type: "f", id: 0, dim: 3 };
+            expInfo.code[expInfo.code.length-1].dest = { type: "f", id: 0, dim: 3 };
         }
 
-        const expInfo = {
-            expId: j,
-            stage: exp.stage,
-            symbols: exp.symbols,
-            code,
-            dest: exprDest,
-            line: exp.line || "",
-        }
+        expInfo.expId = j;
+        expInfo.stage = exp.stage;
+        expInfo.dest = exprDest;
+        expInfo.line = exp.line || "";       
 
         expressionsCode.push(expInfo);
     }

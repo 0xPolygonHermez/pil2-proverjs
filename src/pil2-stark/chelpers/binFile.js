@@ -169,6 +169,7 @@ async function writeExpressionsSection(cHelpersBin, expressionsInfo, numbersExps
 
     for(let i = 0; i < nExpressions; i++) {
         const expInfo = expressionsInfo[i];
+        console.log(expInfo);
         await cHelpersBin.writeULE32(expInfo.expId);
         await cHelpersBin.writeULE32(expInfo.destDim);
         await cHelpersBin.writeULE32(expInfo.destId);
@@ -602,10 +603,10 @@ async function prepareExpressionsBin(starkInfo, expressionsInfo) {
         const expCode = JSON.parse(JSON.stringify(expressionsInfo.expressionsCode[i]));
         if(!expCode) continue;
         if(expCode.expId === starkInfo.cExpId || expCode.expId === starkInfo.friExpId || starkInfo.cmPolsMap.find(c => c.expId === expCode.expId)) {
-                expCode.code.code[expCode.code.code.length - 1].dest.type = "tmp";
-                expCode.code.code[expCode.code.code.length - 1].dest.id = expCode.code.tmpUsed++;
+                expCode.code[expCode.code.length - 1].dest.type = "tmp";
+                expCode.code[expCode.code.length - 1].dest.id = expCode.tmpUsed++;
         }
-        const {expsInfo: expInfo} = getParserArgs(starkInfo, operations, expCode.code, numbersExps);
+        const {expsInfo: expInfo} = getParserArgs(starkInfo, operations, expCode, numbersExps);
         expInfo.expId = expCode.expId;
         expInfo.stage = expCode.stage;
         expInfo.line = expCode.line;
