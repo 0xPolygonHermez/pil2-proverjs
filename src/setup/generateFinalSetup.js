@@ -1,21 +1,18 @@
-const {readR1cs} = require("r1csfile");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const JSONbig = require('json-bigint')({ useNativeBigInt: true, alwaysParseAsBig: true });
 const fs = require('fs');
 const { compile } = require('pilcom');
 
-const F3g = require('pil2-stark-js/src/helpers/f3g');
-const buildMerkleHashGL = require("pil2-stark-js/src/helpers/hash/merklehash/merklehash_p.js");
-const { starkSetup } = require('pil2-stark-js');
-
 const { compressorSetup } = require('stark-recurser/src/circom2pil/compressor_setup.js');
 const { genCircom } = require('stark-recurser/src/gencircom.js');
 const { generateStarkStruct } = require("./utils");
 const path = require("path");
-const { prepareExpressionsBin } = require("pil2-stark-js/src/stark/chelpers/stark_chelpers");
-const { writeExpressionsBinFile } = require("pil2-stark-js/src/stark/chelpers/binFile");
 const { runFinalWitnessLibraryGeneration } = require("./generateWitness");
+
+const F3g = require("../pil2-stark/utils/f3g.js");
+const {starkSetup} = require("../pil2-stark/stark_setup");
+const { writeExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
 
 module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptions, finalSettings, globalInfo, globalConstraints, compressorCols) {
     const F = new F3g();
@@ -50,7 +47,7 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     await fs.promises.writeFile(finalFilename, finalVerifier, "utf8");
 
 
-    const circuitsGLPath = path.resolve(__dirname, '../../', 'node_modules/pil2-stark-js/circuits.gl');
+    const circuitsGLPath = path.resolve(__dirname, '../../', 'node_modules/stark-recurser/src/pil2circom/circuits.gl');
     const starkRecurserCircuits = path.resolve(__dirname, '../../', 'node_modules/stark-recurser/src/vadcop/helpers/circuits');
 
     // Compile circom
@@ -85,7 +82,7 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     let starkStructFinal = finalSettings.starkStruct || generateStarkStruct(finalSettings, nBits);
     
     // Build stark info
-    const setup = await starkSetup(constPols, pilFinal, starkStructFinal, {...setupOptions, F, pil2: false, recursion: true});
+    const setup = await starkSetup(pilFinal, starkStructFinal, {...setupOptions, F, pil2: false, recursion: true});
 
     await constPols.saveToFile(`${filesDir}/final.const`);
 
@@ -96,20 +93,12 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
 
     await fs.promises.writeFile(`${filesDir}/final.verifierinfo.json`, JSON.stringify(setup.verifierInfo, null, 1), "utf8");
     
-    if(!setupOptions.constTree) {
-        const MH = await buildMerkleHashGL();
-        await MH.writeToFile(setup.constTree, `${filesDir}/final.consttree`);
-        await fs.promises.writeFile(`${filesDir}/final.verkey.json`, JSONbig.stringify(setup.constRoot, null, 1), "utf8");
-    } else {
-        console.log("Computing Constant Tree...");
-        // const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/final.const -s ${filesDir}/final.starkinfo.json -t ${filesDir}/final.consttree -v ${filesDir}/final.verkey.json`);
-        const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/final.const -s ${filesDir}/final.starkinfo.json -v ${filesDir}/final.verkey.json`);
-        setup.constRoot = JSON.parse(await fs.promises.readFile(`${filesDir}/final.verkey.json`, "utf8"));
-    }
-
-    const expsBin = await prepareExpressionsBin(setup.starkInfo, setup.expressionsInfo);
-
-    await writeExpressionsBinFile(`${filesDir}/final.bin`, expsBin);
+    console.log("Computing Constant Tree...");
+    // const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/final.const -s ${filesDir}/final.starkinfo.json -t ${filesDir}/final.consttree -v ${filesDir}/final.verkey.json`);
+    const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/final.const -s ${filesDir}/final.starkinfo.json -v ${filesDir}/final.verkey.json`);
+    setup.constRoot = JSON.parse(await fs.promises.readFile(`${filesDir}/final.verkey.json`, "utf8"));
+    
+    await writeExpressionsBinFile(`${filesDir}/final.bin`, setup.starkInfo, setup.expressionsInfo);
 
     return {starkInfoFinal: setup.starkInfo, verifierInfoFinal: setup.verifierInfo, constRootFinal: setup.constRoot};
 }

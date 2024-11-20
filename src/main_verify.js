@@ -2,6 +2,7 @@ const fs = require("fs");
 const version = require("../package").version;
 
 const path = require("path");
+const log = require("../logger.js");
 
 const verifyCmd = require("./cmd/verify_cmd");
 const { assert } = require("chai");
@@ -65,7 +66,7 @@ async function run() {
 
     const config = {
         name: globalInfo.name + "-" + Date.now(),
-        verifier: { filename:  path.join(__dirname, "/lib/provers/stark_fri_verifier.js") }
+        verifier: { filename:  path.join(__dirname, "/verify/stark_fri_verifier.js") }
     }
 
     const setup = {
@@ -76,6 +77,7 @@ async function run() {
 
     const options = {
         vadcop: true,
+        logger: log
     }
 
     const isValid = await verifyCmd(setup, proofs, challenges, publics, proofValues, options);

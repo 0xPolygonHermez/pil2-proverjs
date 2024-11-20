@@ -1,6 +1,0 @@
-airgroup Simple2(2**3) {
-
-    col witness a,b,c;
-
-    a*c'3 === 2'b;
-}
