@@ -34,7 +34,7 @@ module.exports.generatePilCode = function generatePilCode(res, symbols, constrai
 }
 
 
-module.exports.addHintsInfo = function addHintsInfo(res, expressions, hints) {
+module.exports.addHintsInfo = function addHintsInfo(res, expressions, hints, global) {
     const hintsInfo = [];
     for(let i = 0; i < hints.length; ++i) {
         const hint = hints[i];
@@ -45,7 +45,7 @@ module.exports.addHintsInfo = function addHintsInfo(res, expressions, hints) {
             const field = hint.fields[j];
             const hintField = { 
                 name: field.name,
-                values: processHintFieldValue(field.values, res, expressions).flat(Infinity),
+                values: processHintFieldValue(field.values, res, expressions, global).flat(Infinity),
             };
 
             if(!field.lengths) hintField.values[0].pos = [];
@@ -63,7 +63,7 @@ module.exports.addHintsInfo = function addHintsInfo(res, expressions, hints) {
     return hintsInfo;
 }
 
-function processHintFieldValue(values, res, expressions, pos = []) {
+function processHintFieldValue(values, res, expressions, global, pos = []) {
     const processedFields = [];
 
     for (let j = 0; j < values.length; ++j) {
@@ -72,13 +72,17 @@ function processHintFieldValue(values, res, expressions, pos = []) {
         const currentPos = [...pos, j];
 
         if (Array.isArray(field)) {
-            processedFields.push(processHintFieldValue(field, res, expressions, currentPos));
+            processedFields.push(processHintFieldValue(field, res, expressions, global, currentPos));
         } else {
             let processedField;
             if (field.op === "exp") {
                 expressions[field.id].line = printExpressions(res, expressions[field.id], expressions);
                 processedField = { op: "tmp", id: field.id, dim: expressions[field.id].dim, pos: currentPos };
-            } else if (["cm", "custom", "challenge", "public", "airgroupvalue", "airvalue", "const", "number", "string"].includes(field.op)) {
+            } else if (["cm", "custom", "const"].includes(field.op)) {
+                const primeIndex = res.openingPoints.findIndex(p => p === field.rowOffset);
+                console.log(primeIndex);
+                processedField = { ...field, rowOffsetIndex: primeIndex, pos: currentPos };
+            } else if (["challenge", "public", "airgroupvalue", "airvalue","number", "string"].includes(field.op)) {
                 processedField = { ...field, pos: currentPos };
             } else {
                 throw new Error("Invalid hint op: " + field.op);

@@ -28,16 +28,14 @@ const operationsMap = {
     "eval": 11,
 }
 
-module.exports.getParserArgs = function getParserArgs(starkInfo, operations, code, numbers = [], global = false, verify = false, debug = false) {
+module.exports.getParserArgs = function getParserArgs(starkInfo, operations, codeInfo, numbers = [], global = false, verify = false) {
 
     var ops = [];
     var args = [];
 
-    var counters_ops = new Array(operations.length).fill(0);
+    let code_ = codeInfo.code;
 
-    let code_ = code.code;
-
-    let symbolsUsed = code.symbolsUsed;
+    let symbolsUsed = codeInfo.symbolsUsed;
 
     const customCommits = !global ? starkInfo.customCommits : [];
     let nStages = starkInfo.nStages + 2 + customCommits.length;
@@ -55,17 +53,15 @@ module.exports.getParserArgs = function getParserArgs(starkInfo, operations, cod
 
         if(operation.op !== "copy") args.push(operationsTypeMap[operation.op]);
 
-        pushResArg(r, r.dest.type, verify);
+        pushArgs(r.dest, r.dest.type, true, verify);
         for(let i = 0; i < operation.src.length; i++) {
-            pushSrcArg(operation.src[i], operation.src[i].type, verify);
+            pushArgs(operation.src[i], operation.src[i].type, false, verify);
         }
 
         let opsIndex = operations.findIndex(op => !op.op && op.dest_type === operation.dest_type && op.src0_type === operation.src0_type && op.src1_type === operation.src1_type);
         if (opsIndex === -1) throw new Error("Operation not considered: " + JSON.stringify(operation));
 
         ops.push(opsIndex);
-
-        counters_ops[opsIndex] += 1;
     }
 
    
@@ -99,36 +95,11 @@ module.exports.getParserArgs = function getParserArgs(starkInfo, operations, cod
         expsInfo.destId = ID3D[destTmp.id];
     } else throw new Error("Unknown");
     
-    const opsUsed = counters_ops.reduce((acc, currentValue, currentIndex) => {
-        if (currentValue !== 0) {
-          acc.push(currentIndex);
-        }
-        return acc;
-    }, []);
+    return {expsInfo};
 
-    return {expsInfo, opsUsed};
-
-    function pushResArg(r, type, verify) {
-        switch (type) {
-            case "tmp": {
-                if (r.dest.dim == 1) {
-                    args.push(ID1D[r.dest.id]);
-                } else {
-                    assert(r.dest.dim == 3);
-                    args.push(ID3D[r.dest.id]);
-                }
-                break;
-            }
-            case "cm": {
-                evalMap_(r.dest.id, r.dest.prime, verify)
-                break;
-            }
-            default: throw new Error("Invalid reference type set: " + r.dest.type);
-        }
-    }
-
-
-    function pushSrcArg(r, type, verify) {
+    function pushArgs(r, type, dest, verify) {
+        if(dest && !["tmp", "cm"].includes(r.type)) throw new Error("Invalid reference type set: " + r.type);
+        
         switch (type) {
             case "tmp": {
                 if (r.dim == 1) {
@@ -162,8 +133,17 @@ module.exports.getParserArgs = function getParserArgs(starkInfo, operations, cod
 
                 break;
             }
-            case "cm": {
-                evalMap_(r.id, r.prime, verify)
+            case "cm": {        
+                const primeIndex = starkInfo.openingPoints.findIndex(p => p === r.prime);
+                if(primeIndex == -1) throw new Error("Something went wrong");
+        
+       
+                if(verify) {
+                    args.push(starkInfo.cmPolsMap[r.id].stage);
+                } else {
+                    args.push(nStages*primeIndex + starkInfo.cmPolsMap[r.id].stage);
+                }
+                args.push(Number(starkInfo.cmPolsMap[r.id].stagePos));
                 break;
             }
             case "number": {
@@ -225,21 +205,20 @@ module.exports.getParserArgs = function getParserArgs(starkInfo, operations, cod
         }
     }
 
-    function evalMap_(polId, prime, verify) {
-        let p = starkInfo.cmPolsMap[polId];
-
-        const stage = p.stage;
-        
-        const primeIndex = starkInfo.openingPoints.findIndex(p => p === prime);
-        if(primeIndex == -1) throw new Error("Something went wrong");
-        
-       
-        if(verify) {
-            args.push(stage);
+    function getType(r, verify) {
+        if(r.type === "cm") {
+            return `commit${r.dim}`;
+        } else if(r.type === "const" || (r.type === "custom" && r.dim === 1) || ((r.type === "Zi" || r.type === "x") && !verify)) {
+            return "commit1";
+        } else if(r.type === "xDivXSubXi" || (r.type === "custom" && r.dim === 3) || ((r.type === "Zi" || r.type === "x") && verify)) {
+            return "commit3";
+        } else if(r.type === "tmp") {
+            return `tmp${r.dim}`;
+        } else if(r.type === "airvalue") {
+            return `airvalue${r.dim}`;
         } else {
-            args.push(nStages*primeIndex + stage);
+            return r.type;
         }
-        args.push(Number(p.stagePos));
     }
 
     function getOperation(r, verify = false) {
@@ -253,15 +232,9 @@ module.exports.getParserArgs = function getParserArgs(starkInfo, operations, cod
             _op.dest_type = r.dest.type;
         }
         
-        let src = [...r.src];
-    
-        for(let i = 0; i < src.length; i++) {
-            if(verify && src[i].type.includes("tree")) {
-                src[i].type = "cm";
-            }
-        }
-    
-        src.sort((a, b) => {
+        _op.src = [...r.src];
+        
+        _op.src.sort((a, b) => {
             let opA =  a.type === "cm" ? operationsMap[`commit${a.dim}`] : a.type === "tmp" ? operationsMap[`tmp${a.dim}`] : a.type === "airvalue" ? operationsMap[`airvalue${a.dim}`] : a.type === "custom" ? operationsMap[`custom${a.dim}`] : operationsMap[a.type];
             let opB = b.type === "cm" ? operationsMap[`commit${b.dim}`] : b.type === "tmp" ? operationsMap[`tmp${b.dim}`] : b.type === "airvalue" ? operationsMap[`airvalue${b.dim}`] : b.type === "custom" ? operationsMap[`custom${b.dim}`] : operationsMap[b.type];
             let swap = a.dim !== b.dim ? b.dim - a.dim : opA - opB;
@@ -270,32 +243,9 @@ module.exports.getParserArgs = function getParserArgs(starkInfo, operations, cod
         });
         
     
-        for(let i = 0; i < src.length; i++) {
-            if(src[i].type === "cm") {
-                _op[`src${i}_type`] = `commit${src[i].dim}`;
-            } else if(src[i].type === "const" || (src[i].type === "custom" && src[i].dim === 1) || ((src[i].type === "Zi" || src[i].type === "x") && !verify)) {
-                _op[`src${i}_type`] = "commit1";
-            } else if(src[i].type === "xDivXSubXi" || (src[i].type === "custom" && src[i].dim === 3) || ((src[i].type === "Zi" || src[i].type === "x") && verify)) {
-                _op[`src${i}_type`] = "commit3";
-            } else if(src[i].type === "tmp") {
-                _op[`src${i}_type`] =  `tmp${src[i].dim}`;
-            } else if(src[i].type === "airvalue") {
-                _op[`src${i}_type`] = `airvalue${src[i].dim}`;
-            } else {
-                _op[`src${i}_type`] = src[i].type;
-            }
+        for(let i = 0; i < _op.src.length; i++) {
+            _op[`src${i}_type`] = getType(_op.src[i], verify);
         }
-    
-        src.sort((a, b) => {
-            let opA =  a.type === "cm" ? operationsMap[`commit${a.dim}`] : a.type === "tmp" ? operationsMap[`tmp${a.dim}`] : operationsMap[a.type];
-            let opB = b.type === "cm" ? operationsMap[`commit${b.dim}`] : b.type === "tmp" ? operationsMap[`tmp${b.dim}`] : operationsMap[b.type];
-            let swap = a.dim !== b.dim ? b.dim - a.dim : opA - opB;
-            if(r.op === "sub" && swap < 0) _op.op = "sub_swap";
-            return swap;
-        });
-    
-        _op.src = src;
-    
         
         return _op;
     }
@@ -395,8 +345,6 @@ function getIdMaps(maxid, ID1D, ID3D, code) {
         }
         ++count3d;
     }
-    // console.log(`Number of tmp1: ${count1d}`);
-    // console.log(`Number of tmp3: ${count3d}`);
     return { count1d, count3d };
 }
 

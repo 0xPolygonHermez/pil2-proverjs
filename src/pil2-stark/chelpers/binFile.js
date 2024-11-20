@@ -169,7 +169,6 @@ async function writeExpressionsSection(cHelpersBin, expressionsInfo, numbersExps
 
     for(let i = 0; i < nExpressions; i++) {
         const expInfo = expressionsInfo[i];
-        console.log(expInfo);
         await cHelpersBin.writeULE32(expInfo.expId);
         await cHelpersBin.writeULE32(expInfo.destDim);
         await cHelpersBin.writeULE32(expInfo.destId);
@@ -542,6 +541,7 @@ async function writeHintsSection(cHelpersBin, hintsInfo, section) {
                 } else {
                     await cHelpersBin.writeULE32(value.id);
                 }
+                if(value.op === "custom" || value.op === "const" || value.op === "cm") await cHelpersBin.writeULE32(value.rowOffsetIndex);
                 if(value.op === "tmp") await cHelpersBin.writeULE32(value.dim);
                 if(value.op === "custom") await cHelpersBin.writeULE32(value.commitId);
 
