@@ -125,7 +125,7 @@ function fixDimensionsVerifier(ctx) {
     }
 
     function getDim(r) {
-        let d = r.type === "tmp" ? tmpDim[r.id] : r.type === "Zi" ? 3 : r.dim;
+        let d = r.type === "tmp" ? tmpDim[r.id] : r.type === "Zi" || r.type === "x" ? 3 : r.dim;
         r.dim = d;
         return d;
     }

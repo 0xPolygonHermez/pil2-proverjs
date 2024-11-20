@@ -80,7 +80,6 @@ function processHintFieldValue(values, res, expressions, global, pos = []) {
                 processedField = { op: "tmp", id: field.id, dim: expressions[field.id].dim, pos: currentPos };
             } else if (["cm", "custom", "const"].includes(field.op)) {
                 const primeIndex = res.openingPoints.findIndex(p => p === field.rowOffset);
-                console.log(primeIndex);
                 processedField = { ...field, rowOffsetIndex: primeIndex, pos: currentPos };
             } else if (["challenge", "public", "airgroupvalue", "airvalue","number", "string"].includes(field.op)) {
                 processedField = { ...field, pos: currentPos };
