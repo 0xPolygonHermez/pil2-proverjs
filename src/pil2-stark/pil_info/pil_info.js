@@ -13,8 +13,8 @@ const childProcess = require('child_process'); // Split into two lines for clari
 const exec = util.promisify(childProcess.exec);
 const {tmpName} = require("tmp-promise");
 
-module.exports = async function pilInfo(F, pil, stark = true, pil2 = true, starkStruct, options = {}) {
-    const infoPil = preparePil(F, pil, starkStruct, stark, pil2, options);
+module.exports = async function pilInfo(F, pil, pil2 = true, starkStruct, options = {}) {
+    const infoPil = preparePil(F, pil, starkStruct, pil2, options);
     
     const expressions = infoPil.expressions;
     const constraints = infoPil.constraints;
@@ -23,12 +23,8 @@ module.exports = async function pilInfo(F, pil, stark = true, pil2 = true, stark
     const res = infoPil.res;
     
     let newExpressions = expressions;
-    let maxDeg;
-    if(stark) {
-        maxDeg = (1 << (res.starkStruct.nBitsExt- res.starkStruct.nBits)) + 1;
-    } else {
-        maxDeg = Math.pow(2,3) + 1;
-    }
+    let maxDeg = (1 << (res.starkStruct.nBitsExt- res.starkStruct.nBits)) + 1;
+
     if(!options.debug || !options.skipImPols) {
         let imInfo;
 
@@ -56,55 +52,54 @@ module.exports = async function pilInfo(F, pil, stark = true, pil2 = true, stark
         }
         
         newExpressions = imInfo.newExpressions;
-        addIntermediatePolynomials(res, newExpressions, constraints, symbols, imInfo.imExps, imInfo.qDeg, stark);
+        addIntermediatePolynomials(res, newExpressions, constraints, symbols, imInfo.imExps, imInfo.qDeg);
     }
     
     map(res, symbols, expressions, constraints, options);       
 
-    const {expressionsInfo, verifierInfo} = generatePilCode(res, symbols, constraints, newExpressions, hints, options.debug, stark);
+    const {expressionsInfo, verifierInfo} = generatePilCode(res, symbols, constraints, newExpressions, hints, options.debug);
     
     let nCols = {};
     let summary = "";
-    if(stark) {
-        console.log("------------------------- AIR INFO -------------------------")
-        let nColumnsBaseField = 0;
-        let nColumns = 0;
-        summary = `nBits: ${res.starkStruct.nBits} | blowUpFactor: ${res.starkStruct.nBitsExt - res.starkStruct.nBits} | maxConstraintDegree: ${res.qDeg + 1} `;
-        for(let i = 1; i <= res.nStages + 1; ++i) {
-            let stage = i;
-            let stageDebug = i === res.nStages + 1 ? "Q" : stage;
-            let stageName = "cm" + stage;
-            let nColsStage = res.cmPolsMap.filter(p => p.stage == stage).length;
-            nCols[stageName] = nColsStage;
-            let nColsBaseField = res.mapSectionsN[stageName];
-            let imPols = res.cmPolsMap.filter(p => p.stage == stage && p.imPol);
-            if(i === res.nStages + 1 || (i < res.nStages && !res.imPolsStages)) {
-                console.log(`Columns stage ${stageDebug}: ${nColsStage} -> Columns in the basefield: ${nColsBaseField}`);
-            } else {
-                console.log(`Columns stage ${stageDebug}: ${nColsStage} (${imPols.length} intermediate polynomials) -> Columns in the basefield: ${nColsBaseField} (${imPols.reduce((acc, curr) => acc + curr.dim, 0)} from intermediate polynomials)`);
-            }
-            if(i < res.nStages + 1) {
-                summary += `| Stage${i}: ${nColsBaseField} `;  
-            } else if (i == res.nStages + 1) {
-                summary += `| StageQ: ${nColsBaseField} `; 
-            }
-            nColumns += nColsStage;
-            nColumnsBaseField += nColsBaseField;
+    
+    console.log("------------------------- AIR INFO -------------------------")
+    let nColumnsBaseField = 0;
+    let nColumns = 0;
+    summary = `nBits: ${res.starkStruct.nBits} | blowUpFactor: ${res.starkStruct.nBitsExt - res.starkStruct.nBits} | maxConstraintDegree: ${res.qDeg + 1} `;
+    for(let i = 1; i <= res.nStages + 1; ++i) {
+        let stage = i;
+        let stageDebug = i === res.nStages + 1 ? "Q" : stage;
+        let stageName = "cm" + stage;
+        let nColsStage = res.cmPolsMap.filter(p => p.stage == stage).length;
+        nCols[stageName] = nColsStage;
+        let nColsBaseField = res.mapSectionsN[stageName];
+        let imPols = res.cmPolsMap.filter(p => p.stage == stage && p.imPol);
+        if(i === res.nStages + 1 || (i < res.nStages && !res.imPolsStages)) {
+            console.log(`Columns stage ${stageDebug}: ${nColsStage} -> Columns in the basefield: ${nColsBaseField}`);
+        } else {
+            console.log(`Columns stage ${stageDebug}: ${nColsStage} (${imPols.length} intermediate polynomials) -> Columns in the basefield: ${nColsBaseField} (${imPols.reduce((acc, curr) => acc + curr.dim, 0)} from intermediate polynomials)`);
         }
-
-        const imPols = res.cmPolsMap.filter(p => p.imPol);
-        summary += `| ImPols: ${imPols.length} => ${imPols.reduce((acc, curr) => acc + curr.dim, 0)} = ${imPols.filter(i => i.dim === 1).reduce((acc, curr) => acc + curr.dim, 0)} + ${imPols.filter(i => i.dim === 3).reduce((acc, curr) => acc + curr.dim, 0)} `;
-        
-        if(res.evMap) summary += `| Total: ${nColumnsBaseField} | nConstraints: ${constraints.length}`;
-        if(res.evMap) summary += ` | nEvals: ${res.evMap.length}`;
-        
-        console.log(`Total Columns: ${nColumns} -> Columns in the basefield: ${nColumnsBaseField}`);
-        console.log(`Total Constraints: ${constraints.length}`)
-        if(!options.debug) console.log(`Number of evaluations: ${res.evMap.length}`)
-        console.log("------------------------------------------------------------")
-        console.log(`SUMMARY | ${pil.name} | ${summary}`);
-        console.log("------------------------------------------------------------")
+        if(i < res.nStages + 1) {
+            summary += `| Stage${i}: ${nColsBaseField} `;  
+        } else if (i == res.nStages + 1) {
+            summary += `| StageQ: ${nColsBaseField} `; 
+        }
+        nColumns += nColsStage;
+        nColumnsBaseField += nColsBaseField;
     }
+
+    const imPols = res.cmPolsMap.filter(p => p.imPol);
+    summary += `| ImPols: ${imPols.length} => ${imPols.reduce((acc, curr) => acc + curr.dim, 0)} = ${imPols.filter(i => i.dim === 1).reduce((acc, curr) => acc + curr.dim, 0)} + ${imPols.filter(i => i.dim === 3).reduce((acc, curr) => acc + curr.dim, 0)} `;
+    
+    if(res.evMap) summary += `| Total: ${nColumnsBaseField} | nConstraints: ${constraints.length}`;
+    if(res.evMap) summary += ` | nEvals: ${res.evMap.length}`;
+    
+    console.log(`Total Columns: ${nColumns} -> Columns in the basefield: ${nColumnsBaseField}`);
+    console.log(`Total Constraints: ${constraints.length}`)
+    if(!options.debug) console.log(`Number of evaluations: ${res.evMap.length}`)
+    console.log("------------------------------------------------------------")
+    console.log(`SUMMARY | ${pil.name} | ${summary}`);
+    console.log("------------------------------------------------------------")
         
     let stats = {summary, intermediatePolynomials: res.imPolsInfo};
     

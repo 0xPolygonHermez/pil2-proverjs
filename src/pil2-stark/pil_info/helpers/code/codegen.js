@@ -10,7 +10,6 @@ function pilCodeGen(ctx, symbols, expressions, expId, prime) {
         tmpUsed: ctx.tmpUsed,
         calculated: ctx.calculated,
         dom: ctx.dom,
-        stark: ctx.stark,
         verifierEvaluations: ctx.verifierEvaluations,
         evMap: ctx.evMap,
         airId: ctx.airId,
@@ -43,7 +42,7 @@ function pilCodeGen(ctx, symbols, expressions, expId, prime) {
 
 function evalExp(ctx, symbols, expressions, exp, prime) {
     prime = prime || 0;
-    if (["add", "sub", "mul", "muladd"].includes(exp.op)) {
+    if (["add", "sub", "mul"].includes(exp.op)) {
         const values = [];
         for(let i = 0; i < exp.values.length; ++i) {
             values[i] = evalExp(ctx, symbols, expressions, exp.values[i], prime);
@@ -75,7 +74,7 @@ function evalExp(ctx, symbols, expressions, exp, prime) {
     } else if (exp.op === "public") {
         return { type: exp.op, id: exp.id, dim: 1}
     } else if (exp.op === "proofvalue") {
-        return { type: exp.op, id: exp.id, dim: 3 }
+        return { type: exp.op, id: exp.id, dim: 3}
     } else if (exp.op == "number") {
         return { type: exp.op, value: exp.value.toString(), dim: 1 }
     } else if ("eval" === exp.op) {
@@ -98,7 +97,7 @@ function calculateDeps(ctx, symbols, expressions, exp, prime, expId, evMap) {
     if (exp.op == "exp") {
         let p = exp.rowOffset || prime;
         pilCodeGen(ctx, symbols, expressions, exp.id, p, evMap);
-    } else if (["add", "sub", "mul", "muladd"].includes(exp.op)) {
+    } else if (["add", "sub", "mul"].includes(exp.op)) {
         exp.values.map(v => calculateDeps(ctx, symbols, expressions, v, prime, expId, evMap));
     }
 }
@@ -118,7 +117,7 @@ function fixDimensionsVerifier(ctx) {
     const tmpDim = [];
 
     for (let i=0; i<ctx.code.length; i++) {
-        if (!["add", "sub", "mul", "muladd", "copy"].includes(ctx.code[i].op)) throw new Error("Invalid op:"+ ctx.code[i].op);
+        if (!["add", "sub", "mul", "copy"].includes(ctx.code[i].op)) throw new Error("Invalid op:"+ ctx.code[i].op);
         if (ctx.code[i].dest.type !== "tmp") throw new Error("Invalid dest type:"+ ctx.code[i].dest.type);
         let newDim = Math.max(...ctx.code[i].src.map(s => getDim(s)));
         tmpDim[ctx.code[i].dest.id] = newDim;
@@ -126,18 +125,7 @@ function fixDimensionsVerifier(ctx) {
     }
 
     function getDim(r) {
-        let d;
-        if(r.type === "tmp") {
-            d = tmpDim[r.id];
-        } else if(r.type.includes("cm")) {
-            d = r.dim;
-        } else if(["const", "number", "public", "custom"].includes(r.type)) {
-            d = 1;
-        } else if(["eval", "challenge", "xDivXSubXi", "x", "Zi"].includes(r.type)) {
-            d = ctx.stark ? 3 : 1;
-        } else if(["airvalue", "airgroupvalue"].includes(r.type)) {
-            d = r.dim;
-        } else throw new Error("Invalid type: " + r.type);
+        let d = r.type === "tmp" ? tmpDim[r.id] : r.type === "Zi" ? 3 : r.dim;
         r.dim = d;
         return d;
     }
@@ -166,7 +154,7 @@ function fixEval(r, ctx) {
     delete r.prime;
     r.id = evalIndex;
     r.type = "eval";
-    r.dim = ctx.stark ? 3 : 1;
+    r.dim = 3;
     return r;
 }
 

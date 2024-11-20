@@ -1,7 +1,7 @@
 const ProtoOut = require("pil2-compiler/src/proto_out.js");
 const { formatExpressions, formatConstraints, formatSymbols, formatHints } = require("./utils");
 
-module.exports.getPiloutInfo = function getPiloutInfo(res, pilout, stark) {
+module.exports.getPiloutInfo = function getPiloutInfo(res, pilout) {
     res.airId = pilout.airId;
     res.airgroupId = pilout.airgroupId;
     
@@ -10,11 +10,11 @@ module.exports.getPiloutInfo = function getPiloutInfo(res, pilout, stark) {
     let saveSymbols = pilout.symbols ? false : true;
     let expressions, symbols;
     if(!saveSymbols) {
-        const e = formatExpressions(pilout, stark);
+        const e = formatExpressions(pilout);
         expressions = e.expressions;
-        symbols = formatSymbols(pilout, stark);
+        symbols = formatSymbols(pilout);
     } else {
-        const e = formatExpressions(pilout, stark, true);
+        const e = formatExpressions(pilout, true);
         expressions = e.expressions;
         symbols = e.symbols;
     }
@@ -35,7 +35,7 @@ module.exports.getPiloutInfo = function getPiloutInfo(res, pilout, stark) {
     }
     
     const airHints = pilout.hints?.filter(h => h.airId === res.airId && h.airGroupId === res.airgroupId) || [];
-    const hints = formatHints(pilout, airHints, symbols, expressions, stark, saveSymbols);
+    const hints = formatHints(pilout, airHints, symbols, expressions, saveSymbols);
 
     res.customCommits = pilout.customCommits || [];
     res.customCommitsMap = [];

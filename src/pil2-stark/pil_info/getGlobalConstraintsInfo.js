@@ -4,7 +4,7 @@ const { addInfoExpressions } = require("./helpers/helpers");
 const { formatHints } = require("./helpers/pil2/utils");
 const { formatExpressions, formatSymbols } = require("./helpers/pil2/utils");
 
-module.exports.getGlobalConstraintsInfo = function getGlobalConstraintsInfo(pilout, stark) {
+module.exports.getGlobalConstraintsInfo = function getGlobalConstraintsInfo(pilout) {
     
     let saveSymbols = pilout.symbols ? false : true;
     let expressions, symbols;
@@ -14,17 +14,17 @@ module.exports.getGlobalConstraintsInfo = function getGlobalConstraintsInfo(pilo
     if(pilout.constraints) {
         const constraints = pilout.constraints.map(c => {  return { e: c.expressionIdx.idx, boundary: "finalProof", line: c.debugLine } });
         if(!saveSymbols) {
-            const e = formatExpressions(pilout, stark, false, true);
+            const e = formatExpressions(pilout, false, true);
             expressions = e.expressions;
-            symbols = formatSymbols(pilout, stark, true);
+            symbols = formatSymbols(pilout, true);
         } else {
-            const e = formatExpressions(pilout, stark, true, true);
+            const e = formatExpressions(pilout, true, true);
             expressions = e.expressions;
             symbols = e.symbols;
         }
     
         for(let i = 0; i < constraints.length; ++i) {
-            addInfoExpressions(expressions, expressions[constraints[i].e], stark);
+            addInfoExpressions(expressions, expressions[constraints[i].e]);
         }
        
         const ctx = {
@@ -32,7 +32,6 @@ module.exports.getGlobalConstraintsInfo = function getGlobalConstraintsInfo(pilo
             tmpUsed: 0,
             code: [],
             dom: "n",
-            stark,
         };
         
         for(let j = 0; j < constraints.length; ++j) {
@@ -49,7 +48,7 @@ module.exports.getGlobalConstraintsInfo = function getGlobalConstraintsInfo(pilo
     const globalHints = pilout.hints.filter(h => h.airId === undefined && h.airgroupId === undefined);
 
     if(globalHints) {
-        const hints = formatHints(pilout, globalHints, symbols, expressions, stark, saveSymbols, true);
+        const hints = formatHints(pilout, globalHints, symbols, expressions, saveSymbols, true);
         const res = {};
         hintsCode = addHintsInfo(res, expressions, hints, true);
     }

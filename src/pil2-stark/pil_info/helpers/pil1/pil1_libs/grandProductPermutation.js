@@ -1,8 +1,8 @@
 const ExpressionOps = require("../../../expressionops");
 const { getExpDim } = require("../../helpers");
 
-module.exports.initChallengesPermutation = function initChallengesPermutation(stark) {
-    const dim = stark ? 3 : 1;
+module.exports.initChallengesPermutation = function initChallengesPermutation() {
+    const dim = 3;
 
     const alpha = {name: "std_alpha", stage: 2, dim, stageId: 0};
     const beta = {name: "std_beta", stage: 2, dim, stageId: 1};
@@ -11,11 +11,11 @@ module.exports.initChallengesPermutation = function initChallengesPermutation(st
     return [alpha, beta, gamma];
 }
 
-module.exports.grandProductPermutation = function grandProductPermutation(pil, symbols, hints, stark, airgroupId, airId) {
+module.exports.grandProductPermutation = function grandProductPermutation(pil, symbols, hints, airgroupId, airId) {
     const E = new ExpressionOps();
 
     const stage = 2;
-    const dim = stark ? 3 : 1;
+    const dim = 3;
 
     let alphaSymbol = symbols.find(s => s.type === "challenge" && stage === s.stage && s.stageId === 0);
     const alpha = E.challenge(alphaSymbol.name, alphaSymbol.stage, alphaSymbol.dim, alphaSymbol.stageId, alphaSymbol.id);
@@ -49,7 +49,7 @@ module.exports.grandProductPermutation = function grandProductPermutation(pil, s
         peCtx.tExpId = pil.expressions.length;
         tExp.stage = stage;
         pil.expressions.push(tExp);
-        const tDim = getExpDim(pil.expressions, peCtx.tExpId, stark);
+        const tDim = getExpDim(pil.expressions, peCtx.tExpId);
         pil.expressions[peCtx.tExpId].deg = tDim;
 
 
@@ -71,7 +71,7 @@ module.exports.grandProductPermutation = function grandProductPermutation(pil, s
         peCtx.fExpId = pil.expressions.length;
         fExp.stage = stage;
         pil.expressions.push(fExp);
-        const fDim = getExpDim(pil.expressions, peCtx.fExpId, stark);
+        const fDim = getExpDim(pil.expressions, peCtx.fExpId);
         pil.expressions[peCtx.fExpId].deg = fDim;
 
         peCtx.zId = pil.nCommitments++;
@@ -90,7 +90,7 @@ module.exports.grandProductPermutation = function grandProductPermutation(pil, s
         pil.expressions.push(c1);
         let c1Id = pil.expressions.length - 1;
         pil.polIdentities.push({e: c1Id, boundary: "everyRow", fileName: pi.fileName, line: pi.line });
-        let c1Dim = getExpDim(pil.expressions, c1Id, stark);
+        let c1Dim = getExpDim(pil.expressions, c1Id);
         pil.expressions[c1Id].dim = c1Dim;
 
         const numExp = E.add(f, gamma);
@@ -98,7 +98,7 @@ module.exports.grandProductPermutation = function grandProductPermutation(pil, s
         numExp.keep = true;
         numExp.stage = stage;
         pil.expressions.push(numExp);
-        const numDim = getExpDim(pil.expressions, peCtx.numId, stark);
+        const numDim = getExpDim(pil.expressions, peCtx.numId);
         pil.expressions[peCtx.numId].deg = numDim;
 
         const denExp = E.add(t, gamma);
@@ -106,7 +106,7 @@ module.exports.grandProductPermutation = function grandProductPermutation(pil, s
         denExp.keep = true;
         denExp.stage = stage;
         pil.expressions.push(denExp);
-        const denDim = getExpDim(pil.expressions, peCtx.denId, stark);
+        const denDim = getExpDim(pil.expressions, peCtx.denId);
         pil.expressions[peCtx.denId].deg = denDim;
 
         const c2 = E.sub(  E.mul(zp,  E.exp(peCtx.denId,0,stage)), E.mul(z, E.exp(peCtx.numId,0,stage)));
@@ -114,7 +114,7 @@ module.exports.grandProductPermutation = function grandProductPermutation(pil, s
         pil.expressions.push(c2);
         let c2Id = pil.expressions.length - 1;
         pil.polIdentities.push({e: c2Id, boundary: "everyRow", fileName: pi.fileName, line: pi.line });
-        let c2Dim = getExpDim(pil.expressions, c2Id, stark);
+        let c2Dim = getExpDim(pil.expressions, c2Id);
         pil.expressions[c2Id].dim = c2Dim;
 
         const hint = {

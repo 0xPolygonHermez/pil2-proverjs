@@ -2,7 +2,7 @@ const { log2 } = require("pilcom/src/utils");
 const ExpressionOps = require("../../expressionops");
 const generateLibsPolynomials = require("./generateLibsPolynomials");
 
-module.exports.generatePil1Polynomials = function generatePil1Polynomials(F, res, _pil, stark, options = {}) {
+module.exports.generatePil1Polynomials = function generatePil1Polynomials(F, res, _pil, options = {}) {
     const E = new ExpressionOps();
     const pil = JSON.parse(JSON.stringify(_pil));    // Make a copy as we are going to destroy the original
 
@@ -42,7 +42,7 @@ module.exports.generatePil1Polynomials = function generatePil1Polynomials(F, res
         }
     }
 
-    generateLibsPolynomials(F, res, pil, symbols, hints, stark);
+    generateLibsPolynomials(F, res, pil, symbols, hints);
 
     res.nCommitments = pil.nCommitments;
     res.pilPower = log2(Object.values(pil.references)[0].polDeg);

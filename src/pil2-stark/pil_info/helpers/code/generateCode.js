@@ -1,7 +1,7 @@
 const { pilCodeGen, buildCode } = require("./codegen");
 
 
-module.exports.generateExpressionsCode = function generateExpressionsCode(res, symbols, expressions, stark) {
+module.exports.generateExpressionsCode = function generateExpressionsCode(res, symbols, expressions) {
     const expressionsCode = [];
     for(let j = 0; j < expressions.length; ++j) {
         const exp = expressions[j];
@@ -16,7 +16,6 @@ module.exports.generateExpressionsCode = function generateExpressionsCode(res, s
             dom,
             airId: res.airId,
             airgroupId: res.airgroupId,
-            stark,
         };
 
         if(j === res.friExpId) ctx.openingPoints = res.openingPoints;
@@ -73,7 +72,7 @@ module.exports.generateExpressionsCode = function generateExpressionsCode(res, s
     return expressionsCode;
 }
 
-module.exports.generateConstraintsDebugCode = function generateConstraintsDebugCode(res, symbols, constraints, expressions, stark) {
+module.exports.generateConstraintsDebugCode = function generateConstraintsDebugCode(res, symbols, constraints, expressions) {
     const constraintsCode = [];
     for(let j = 0; j < constraints.length; ++j) {
         const ctx = {
@@ -85,7 +84,6 @@ module.exports.generateConstraintsDebugCode = function generateConstraintsDebugC
             dom: "n",
             airId: res.airId,
             airgroupId: res.airgroupId,
-            stark,
         };
 
         const e = expressions[constraints[j].e];
@@ -111,7 +109,7 @@ module.exports.generateConstraintsDebugCode = function generateConstraintsDebugC
     return constraintsCode;
 }
 
-module.exports.generateConstraintPolynomialVerifierCode = function generateConstraintPolynomialVerifierCode(res, verifierInfo, symbols, expressions, stark) {       
+module.exports.generateConstraintPolynomialVerifierCode = function generateConstraintPolynomialVerifierCode(res, verifierInfo, symbols, expressions) {       
 
     let ctx = {
         stage: res.nStages + 1,
@@ -123,7 +121,6 @@ module.exports.generateConstraintPolynomialVerifierCode = function generateConst
         airId: res.airId,
         airgroupId: res.airgroupId,
         openingPoints: res.openingPoints,
-        stark,
         symbolsUsed: [],
         verifierEvaluations: true,
     };
@@ -183,19 +180,5 @@ module.exports.generateConstraintPolynomialVerifierCode = function generateConst
     verifierInfo.qVerifier.line = "";
 
     res.evMap = ctx.evMap;
-
-    if (!stark) {
-        let nOpenings = {};
-        for(let i = 0; i < res.evMap.length; ++i) {
-            if(res.evMap[i].type === "const") continue;
-            const name = res.evMap[i].type + res.evMap[i].id;
-            if(!nOpenings[name]) nOpenings[name] = 1;
-            ++nOpenings[name];
-        }   
-
-        res.maxPolsOpenings = Math.max(...Object.values(nOpenings));
-
-        res.nBitsZK = Math.ceil(Math.log2((res.pilPower + res.maxPolsOpenings) / res.pilPower));
-    }
 }
 

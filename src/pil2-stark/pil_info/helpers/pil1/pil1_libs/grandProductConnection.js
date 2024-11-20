@@ -4,8 +4,8 @@ const { getExpDim } = require("../../helpers");
 
 const getKs = require("pilcom").getKs;
 
-module.exports.initChallengesConnection = function initChallengesConnection(stark) {
-    const dim = stark ? 3 : 1;
+module.exports.initChallengesConnection = function initChallengesConnection() {
+    const dim = 3;
 
     const gamma = {name: "std_gamma", stage: 2, dim, stageId: 0};
     const delta = {name: "std_delta", stage: 2, dim, stageId: 1};
@@ -13,11 +13,11 @@ module.exports.initChallengesConnection = function initChallengesConnection(star
     return [gamma, delta];
 }
 
-module.exports.grandProductConnection = function grandProductConnection(pil, symbols, hints, stark, airgroupId, airId, F) {
+module.exports.grandProductConnection = function grandProductConnection(pil, symbols, hints, airgroupId, airId, F) {
     const E = new ExpressionOps();
 
     const stage = 2;
-    const dim = stark ? 3 : 1;
+    const dim = 3;
 
     let gammaSymbol = symbols.find(s => s.type === "challenge" && s.stage === stage && s.stageId === 0);
     const gamma = E.challenge(gammaSymbol.name, gammaSymbol.stage, gammaSymbol.dim, gammaSymbol.stageId, gammaSymbol.id);
@@ -46,13 +46,13 @@ module.exports.grandProductConnection = function grandProductConnection(pil, sym
         ciCtx.numId = pil.expressions.length;
         numExp.stage = stage;
         pil.expressions.push(numExp);
-        let nDim = getExpDim(pil.expressions, ciCtx.numId, stark);
+        let nDim = getExpDim(pil.expressions, ciCtx.numId);
         pil.expressions[ciCtx.numId].dim = nDim;
 
         ciCtx.denId = pil.expressions.length;
         denExp.stage = stage;
         pil.expressions.push(denExp);
-        let dDim = getExpDim(pil.expressions, ciCtx.denId, stark);
+        let dDim = getExpDim(pil.expressions, ciCtx.denId);
         pil.expressions[ciCtx.denId].dim = dDim;
 
         let ks = getKs(F, ci.pols.length-1);
@@ -86,13 +86,13 @@ module.exports.grandProductConnection = function grandProductConnection(pil, sym
             ciCtx.numId = pil.expressions.length;
             numExp.stage = stage;
             pil.expressions.push(numExp);
-            let numDim = getExpDim(pil.expressions, ciCtx.numId, stark);
+            let numDim = getExpDim(pil.expressions, ciCtx.numId);
             pil.expressions[ciCtx.numId].dim = numDim;
 
             ciCtx.denId = pil.expressions.length;
             denExp.stage = stage;
             pil.expressions.push(denExp);
-            let denDim = getExpDim(pil.expressions, ciCtx.denId, stark);
+            let denDim = getExpDim(pil.expressions, ciCtx.denId);
             pil.expressions[ciCtx.denId].dim = denDim;
         }
 
@@ -110,7 +110,7 @@ module.exports.grandProductConnection = function grandProductConnection(pil, sym
         pil.expressions.push(c1);
         let c1Id = pil.expressions.length - 1;
         pil.polIdentities.push({e: c1Id, boundary: "everyRow", fileName: ci.fileName, line: ci.line });
-        let c1Dim = getExpDim(pil.expressions, c1Id, stark);
+        let c1Dim = getExpDim(pil.expressions, c1Id);
         pil.expressions[c1Id].dim = c1Dim;
 
         const c2 = E.sub(  E.mul(zp,  E.exp(ciCtx.denId,0,stage)), E.mul(z, E.exp(ciCtx.numId,0,stage)));
@@ -119,11 +119,11 @@ module.exports.grandProductConnection = function grandProductConnection(pil, sym
         pil.expressions.push(c2);
         let c2Id = pil.expressions.length - 1;
         pil.polIdentities.push({e: c2Id, boundary: "everyRow", fileName: ci.fileName, line: ci.line });
-        let c2Dim = getExpDim(pil.expressions, c2Id, stark);
+        let c2Dim = getExpDim(pil.expressions, c2Id);
         pil.expressions[c2Id].dim = c2Dim;
 
-        const numDim = getExpDim(pil.expressions, ciCtx.numId, stark);
-        const denDim = getExpDim(pil.expressions, ciCtx.denId, stark);
+        const numDim = getExpDim(pil.expressions, ciCtx.numId);
+        const denDim = getExpDim(pil.expressions, ciCtx.denId);
 
         symbols.push({ type: "witness", name: `Connection${i}.z`, polId: ciCtx.zId, stage, dim: Math.max(numDim, denDim), airId, airgroupId});
 

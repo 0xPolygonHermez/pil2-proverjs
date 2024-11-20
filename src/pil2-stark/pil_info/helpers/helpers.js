@@ -1,11 +1,11 @@
-module.exports.getExpDim = function getExpDim(expressions, expId, stark) {
+module.exports.getExpDim = function getExpDim(expressions, expId) {
 
     return _getExpDim(expressions[expId]);
 
     function _getExpDim(exp) {
         if(typeof(exp.dim) !== "undefined") {
             return exp.dim; 
-        } else if(["add", "sub", "mul", "muladd"].includes(exp.op)) {
+        } else if(["add", "sub", "mul"].includes(exp.op)) {
             return Math.max(...exp.values.map(v => _getExpDim(v)));
         } else if (exp.op === "exp") {
             exp.dim = _getExpDim(expressions[exp.id]);
@@ -15,12 +15,12 @@ module.exports.getExpDim = function getExpDim(expressions, expId, stark) {
         } else if (["const", "number", "public", "x", "Zi"].includes(exp.op)) {
             return 1;
         } else if (["challenge", "eval", "xDivXSubXi"].includes(exp.op)) {
-            return stark ? 3 : 1;
+            return 3;
         } else throw new Error("Exp op not defined: " + exp.op);
     }
 }
 
-module.exports.addInfoExpressions = function addInfoExpressions(expressions, exp, stark) {
+module.exports.addInfoExpressions = function addInfoExpressions(expressions, exp) {
     if("expDeg" in exp) return;
 
     if("next" in exp) {
@@ -29,7 +29,7 @@ module.exports.addInfoExpressions = function addInfoExpressions(expressions, exp
     }
 
     if (exp.op == "exp") {
-        addInfoExpressions(expressions, expressions[exp.id], stark);
+        addInfoExpressions(expressions, expressions[exp.id]);
         exp.expDeg = expressions[exp.id].expDeg;
         exp.rowsOffsets = expressions[exp.id].rowsOffsets;
         if(!exp.dim) exp.dim = expressions[exp.id].dim;
@@ -51,13 +51,13 @@ module.exports.addInfoExpressions = function addInfoExpressions(expressions, exp
         exp.expDeg = 1;
     } else if (["challenge", "eval"].includes(exp.op)) {
         exp.expDeg = 0;
-        exp.dim = stark ? 3 : 1;
+        exp.dim = 3;
     } else if(exp.op === "airgroupvalue" || exp.op === "proofvalue") {
         exp.expDeg = 0;
         exp.dim = 3;
     } else if (exp.op === "airvalue") {
         exp.expDeg = 0;
-        if(!exp.dim) exp.dim = exp.stage != 1 && stark ? 3 : 1; 
+        if(!exp.dim) exp.dim = exp.stage != 1 ? 3 : 1; 
     } else if (exp.op === "public") {
         exp.expDeg = 0;
         exp.stage = 1; 
@@ -81,8 +81,8 @@ module.exports.addInfoExpressions = function addInfoExpressions(expressions, exp
             exp.op = "mul";
             rhsValue.value = "1";
         }
-        addInfoExpressions(expressions, lhsValue, stark);
-        addInfoExpressions(expressions, rhsValue, stark);
+        addInfoExpressions(expressions, lhsValue);
+        addInfoExpressions(expressions, rhsValue);
 
         const lhsDeg = lhsValue.expDeg;
         const rhsDeg = rhsValue.expDeg;
@@ -101,11 +101,11 @@ module.exports.addInfoExpressions = function addInfoExpressions(expressions, exp
     return;
 }
 
-module.exports.addInfoExpressionsSymbols = function addInfoExpressionsSymbols(symbols, expressions, exp, stark) {
+module.exports.addInfoExpressionsSymbols = function addInfoExpressionsSymbols(symbols, expressions, exp) {
     if("symbols" in exp) return;
 
     if (exp.op == "exp") {
-        addInfoExpressionsSymbols(symbols, expressions, expressions[exp.id], stark);
+        addInfoExpressionsSymbols(symbols, expressions, expressions[exp.id]);
         exp.symbols = expressions[exp.id].symbols ? [...expressions[exp.id].symbols] : [];
 
         if(expressions[exp.id].imPol) {
@@ -131,8 +131,8 @@ module.exports.addInfoExpressionsSymbols = function addInfoExpressionsSymbols(sy
         const lhsValue = exp.values[0];
         const rhsValue = exp.values[1];
        
-        addInfoExpressionsSymbols(symbols, expressions, lhsValue, stark);
-        addInfoExpressionsSymbols(symbols, expressions, rhsValue, stark);
+        addInfoExpressionsSymbols(symbols, expressions, lhsValue);
+        addInfoExpressionsSymbols(symbols, expressions, rhsValue);
 
         let lhsSymbols = [];
         if(["cm", "challenge"].includes(lhsValue.op)) {

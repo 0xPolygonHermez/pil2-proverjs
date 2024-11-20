@@ -4,34 +4,31 @@ const { generateConstraintPolynomialVerifierCode, generateConstraintsDebugCode, 
 const { addInfoExpressionsSymbols, addInfoExpressions } = require("./helpers");
 const { printExpressions } = require("./pil2/utils");
 
-module.exports.generatePilCode = function generatePilCode(res, symbols, constraints, expressions, hints, debug, stark) {
+module.exports.generatePilCode = function generatePilCode(res, symbols, constraints, expressions, hints, debug) {
     
     const expressionsInfo = {};
 
     const verifierInfo = {};
 
     for(let i = 0; i < expressions.length; i++) {
-        addInfoExpressionsSymbols(symbols, expressions, expressions[i], stark);
+        addInfoExpressionsSymbols(symbols, expressions, expressions[i]);
     }
 
     if(!debug) {
-        generateConstraintPolynomialVerifierCode(res, verifierInfo, symbols, expressions, stark);
-
-        if(stark) {
-            generateFRIPolynomial(res, symbols, expressions);
-            addInfoExpressions(expressions, expressions[res.friExpId], stark);
-            addInfoExpressionsSymbols(symbols, expressions, expressions[res.friExpId], stark);
-        } 
+        generateConstraintPolynomialVerifierCode(res, verifierInfo, symbols, expressions);
+        generateFRIPolynomial(res, symbols, expressions);
+        addInfoExpressions(expressions, expressions[res.friExpId]);
+        addInfoExpressionsSymbols(symbols, expressions, expressions[res.friExpId]);
     }
 
     expressionsInfo.hintsInfo = module.exports.addHintsInfo(res, expressions, hints);
 
-    expressionsInfo.expressionsCode = generateExpressionsCode(res, symbols, expressions, stark);
+    expressionsInfo.expressionsCode = generateExpressionsCode(res, symbols, expressions);
 
     verifierInfo.queryVerifier = expressionsInfo.expressionsCode.find(e => e.expId === res.friExpId).code;
     verifierInfo.queryVerifier.code[verifierInfo.queryVerifier.code.length - 1].dest = { type: "tmp", id: verifierInfo.queryVerifier.tmpUsed - 1, dim: 3 };
     
-    expressionsInfo.constraints = generateConstraintsDebugCode(res, symbols, constraints, expressions, stark);
+    expressionsInfo.constraints = generateConstraintsDebugCode(res, symbols, constraints, expressions);
 
     return {expressionsInfo, verifierInfo};
 }

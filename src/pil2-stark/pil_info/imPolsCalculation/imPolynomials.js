@@ -3,7 +3,7 @@ const ExpressionOps = require("../expressionops");
 
 const { getExpDim, addInfoExpressions } = require("../helpers/helpers");
 
-module.exports.addIntermediatePolynomials = function addIntermediatePolynomials(res, expressions, constraints, symbols, imExps, qDeg, stark) {
+module.exports.addIntermediatePolynomials = function addIntermediatePolynomials(res, expressions, constraints, symbols, imExps, qDeg) {
     const E = new ExpressionOps();
 
     console.log("--------------------- SELECTED DEGREE ----------------------");
@@ -12,7 +12,7 @@ module.exports.addIntermediatePolynomials = function addIntermediatePolynomials(
 
     res.qDeg = qDeg;
 
-    const dim = stark ? 3 : 1;
+    const dim = 3;
     const stage = res.nStages + 1;
 
     const vc_id = symbols.filter(s => s.type === "challenge" && s.stage < stage).length;
@@ -20,19 +20,19 @@ module.exports.addIntermediatePolynomials = function addIntermediatePolynomials(
     const vc = E.challenge("std_vc", stage, dim, 0, vc_id);
     vc.expDeg = 0;
     
-    // const maxDegExpr = module.exports.calculateExpDeg(expressions, expressions[res.cExpId], imExps);
-    // if(maxDegExpr > qDeg + 1) {
-    //     throw new Error(`The maximum degree of the constraint expression has a higher degree (${maxDegExpr}) than the maximum allowed degree (${qDeg + 1})`);
-    // }
-    
-    // for (let i=0; i<imExps.length; i++) {
-    //     const expId = imExps[i];
-        
-    //     const imPolDeg = module.exports.calculateExpDeg(expressions, expressions[expId], imExps);
-    //     if(imPolDeg > qDeg + 1) {
-    //         throw new Error(`Intermediate polynomial with id: ${expId} has a higher degree (${imPolDeg}) than the maximum allowed degree (${qDeg + 1})`);
-    //     }
-    // }
+    const maxDegExpr = module.exports.calculateExpDeg(expressions, expressions[res.cExpId], imExps);
+    if(maxDegExpr > qDeg + 1) {
+        throw new Error(`The maximum degree of the constraint expression has a higher degree (${maxDegExpr}) than the maximum allowed degree (${qDeg + 1})`);
+    }
+
+    for (let i=0; i<imExps.length; i++) {
+        const expId = imExps[i];
+
+        const imPolDeg = module.exports.calculateExpDeg(expressions, expressions[expId], imExps);
+        if(imPolDeg > qDeg + 1) {
+            throw new Error(`Intermediate polynomial with id: ${expId} has a higher degree (${imPolDeg}) than the maximum allowed degree (${qDeg + 1})`);
+        }
+    }
 
     for (let i=0; i<imExps.length; i++) {
         const expId = imExps[i];
@@ -41,7 +41,7 @@ module.exports.addIntermediatePolynomials = function addIntermediatePolynomials(
         
         const stageId = symbols.filter(s => s.type === "witness" && s.stage === stageIm).length;
 
-        const dim = getExpDim(expressions, expId, stark);
+        const dim = getExpDim(expressions, expId);
       
         symbols.push({ type: "witness", name: `${res.name}.ImPol`, expId, polId: res.nCommitments++, stage: stageIm, stageId, dim, imPol: true, airId: res.airId, airgroupId: res.airgroupId });    
         
@@ -57,7 +57,7 @@ module.exports.addIntermediatePolynomials = function addIntermediatePolynomials(
             ]
         };
         expressions.push(e);
-        addInfoExpressions(expressions, e, stark);
+        addInfoExpressions(expressions, e);
 
         constraints.push({ e: expressions.length - 1, boundary: "everyRow", filename: `${res.name}.ImPol`, stage: expressions[expId].stage });
         
@@ -67,18 +67,17 @@ module.exports.addIntermediatePolynomials = function addIntermediatePolynomials(
     expressions[res.cExpId] = E.mul(expressions[res.cExpId], E.zi(res.boundaries.findIndex(b => b.name === "everyRow")));
     expressions[res.cExpId].stage = res.nStages + 1;
     
-    let cExpDim = getExpDim(expressions, res.cExpId, stark);
+    let cExpDim = getExpDim(expressions, res.cExpId);
     expressions[res.cExpId].dim = cExpDim;
 
     res.qDim = cExpDim;
 
-    if(stark) {
-                for (let i=0; i<res.qDeg; i++) {
-            const index = res.nCommitments++;
-            symbols.push({ type: "witness", name: `Q${i}`, polId: index, stage, dim: res.qDim, airId: res.airId, airgroupId: res.airgroupId });
-            E.cm(index, 0, stage, res.qDim);
-        }
+    for (let i=0; i<res.qDeg; i++) {
+        const index = res.nCommitments++;
+        symbols.push({ type: "witness", name: `Q${i}`, polId: index, stage, dim: res.qDim, airId: res.airId, airgroupId: res.airgroupId });
+        E.cm(index, 0, stage, res.qDim);
     }
+    
 }
 
 module.exports.calculateIntermediatePolynomials = function calculateIntermediatePolynomials(expressions, cExpId, maxQDeg, qDim) {
