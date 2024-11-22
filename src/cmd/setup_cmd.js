@@ -17,7 +17,7 @@ const { generateFixedCols } = require('../pil2-stark/witness_computation/witness
 
 const { genFinalSetup } = require("../setup/generateFinalSetup.js");
 const { genRecursiveSetup } = require("../setup/generateRecursiveSetup.js");
-const { isCompressorNeeded } = require('../setup/is_compressor_needed.js');
+const { isCompressorNeeded } = require('stark-recurser/src/vadcop/is_compressor_needed.js');
 const { generateStarkStruct, setAiroutInfo, log2 } = require("../setup/utils.js");
 
 
@@ -31,6 +31,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         optImPols: (proofManagerConfig.setup && proofManagerConfig.setup.optImPols) || false,
         constTree: proofManagerConfig.setup.constTree,
         binFile: proofManagerConfig.setup.binFile,
+        stdlib: proofManagerConfig.setup.stdlib,
     };
 
     let setup = [];

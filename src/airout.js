@@ -28,14 +28,18 @@ const HINT_FIELD_TYPES = {
 const airoutProto = require.resolve('./pilout.proto');
 
 class AirOut {
-    constructor(airoutFilename) {
-        log.info("[AirOut    ]", "··· Loading airout...");
+    constructor(airoutFilename = "", pilout) {
+        console.log(airoutFilename);
+        if(airoutFilename != "") {
+            log.info("[AirOut    ]", "··· Loading airout...");
 
-        const airoutEncoded = fs.readFileSync(airoutFilename);
-        const AirOut = protobuf.loadSync(airoutProto).lookupType("PilOut");
-
-        Object.assign(this, AirOut.toObject(AirOut.decode(airoutEncoded)));
-
+            const airoutEncoded = fs.readFileSync(airoutFilename);
+            const AirOut = protobuf.loadSync(airoutProto).lookupType("PilOut");
+            Object.assign(this, AirOut.toObject(AirOut.decode(airoutEncoded)));
+        } else {
+            Object.assign(this, pilout);
+        }
+        
         this.preprocessAirout();
 
         this.printInfo();

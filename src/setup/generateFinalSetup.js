@@ -2,7 +2,6 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const JSONbig = require('json-bigint')({ useNativeBigInt: true, alwaysParseAsBig: true });
 const fs = require('fs');
-const { compile } = require('pilcom');
 
 const { compressorSetup } = require('stark-recurser/src/circom2pil/compressor_setup.js');
 const { genCircom } = require('stark-recurser/src/gencircom.js');
@@ -61,9 +60,11 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     
     await runFinalWitnessLibraryGeneration(buildDir, filesDir);
 
+    const pil2 = false;
+
     // Generate setup
     const finalR1csFile = `${buildDir}/build/final.r1cs`;
-    const {exec: execBuff, pilStr, constPols, nBits } = await compressorSetup(F, finalR1csFile, compressorCols);
+    const {exec: execBuff, pilStr, constPols, nBits, pilout } = await compressorSetup(F, finalR1csFile, compressorCols, pil2, { stdPath: setupOptions.stdlib });
 
     const fd =await fs.promises.open(`${filesDir}/final.exec`, "w+");
     await fd.write(execBuff);
@@ -72,17 +73,16 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     const pilFilename = `${buildDir}/pil/final.pil`
     await fs.promises.writeFile(pilFilename, pilStr, "utf8");
 
-    // Compile pil
-    const pilFinal = await compile(F, pilFilename);
-
     if(finalSettings.starkStruct && finalSettings.starkStruct.nBits !== nBits) {
         throw new Error("Final starkStruct nBits does not match with final circuit size");
     };
 
     let starkStructFinal = finalSettings.starkStruct || generateStarkStruct(finalSettings, nBits);
     
+    let pilFinal = pil2 ? new AirOut("", pilout).airGroups[0].airs[0] : pilout;
+  
     // Build stark info
-    const setup = await starkSetup(pilFinal, starkStructFinal, {...setupOptions, F, pil2: false, recursion: true});
+    const setup = await starkSetup(pilFinal, starkStructFinal, {...setupOptions, F, pil2, recursion: true});
 
     await constPols.saveToFile(`${filesDir}/final.const`);
 

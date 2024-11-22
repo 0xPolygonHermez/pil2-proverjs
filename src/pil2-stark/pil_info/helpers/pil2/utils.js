@@ -1,5 +1,3 @@
-const ProtoOut = require("pil2-compiler/src/proto_out.js");
-
 const piloutTypes =  {
     FIXED_COL: 1,
     WITNESS_COL: 3,
@@ -86,9 +84,7 @@ function processHintField(hintField, pilout, symbols, expressions, saveSymbols, 
 }
 
 
-function formatExpression(exp, pilout, symbols, saveSymbols = false, global = false) {
-    const P = new ProtoOut();
-    
+function formatExpression(exp, pilout, symbols, saveSymbols = false, global = false) {    
     if(exp.op) return exp;
 
     let op = Object.keys(exp)[0];
@@ -98,7 +94,7 @@ function formatExpression(exp, pilout, symbols, saveSymbols = false, global = fa
     if(op === "expression") {
         const id = exp[op].idx;
         const expOp = Object.keys(pilout.expressions[id])[0];
-        if(expOp != "mul" && Object.keys(pilout.expressions[id][expOp].lhs)[0] !== "expression" && Object.keys(pilout.expressions[id][expOp].rhs)[0] === "constant" && P.buf2bint(pilout.expressions[id][expOp].rhs.constant.value).toString() === "0") {
+        if(expOp != "mul" && Object.keys(pilout.expressions[id][expOp].lhs)[0] !== "expression" && Object.keys(pilout.expressions[id][expOp].rhs)[0] === "constant" &&  module.exports.buf2bint(pilout.expressions[id][expOp].rhs.constant.value).toString() === "0") {
             return formatExpression(pilout.expressions[id][expOp].lhs, pilout, symbols, saveSymbols, global);
         }
         exp = { op: "exp", id };
@@ -110,7 +106,7 @@ function formatExpression(exp, pilout, symbols, saveSymbols = false, global = fa
         const value = formatExpression(exp[op].value, pilout, symbols, saveSymbols, global);
         exp = { op, values: [value] };
     } else if (op === "constant") {
-        const value = P.buf2bint(exp.constant.value).toString();
+        const value = module.exports.buf2bint(exp.constant.value).toString();
         exp = { op: "number", value };
     } else if (op === "witnessCol" || op === "customCol") {
         const type = op === "witnessCol" ? "cm" : "custom";
@@ -139,6 +135,7 @@ function formatExpression(exp, pilout, symbols, saveSymbols = false, global = fa
         store = true;
     } else if (op === "airGroupValue") {
         const id = exp[op].idx;
+        console.log(exp)
         const stage = !global ? pilout.airGroupValues[id].stage : pilout.airGroups[exp[op].airGroupId].airGroupValues[id].stage;
         exp = { op: "airgroupvalue", id, airgroupId: exp[op].airGroupId, dim: 3, stage };
         store = true;
@@ -392,6 +389,28 @@ module.exports.formatSymbols = function formatSymbols(pilout, global = false) {
     });
 
     return symbols;
+}
+
+module.exports.buf2bint = function buf2bint(buf) {
+    let value = 0n;
+    let offset = 0;
+    while ((buf.length - offset) >= 8) {
+        value = (value << 64n) + buf.readBigUInt64BE(offset);
+        offset += 8;
+    }
+    while ((buf.length - offset) >= 4) {
+        value = (value << 32n) + BigInt(buf.readUInt32BE(offset));
+        offset += 4;
+    }
+    while ((buf.length - offset) >= 2) {
+        value = (value << 16n) + BigInt(buf.readUInt16BE(offset));
+        offset += 2;
+    }
+    while ((buf.length - offset) >= 1) {
+        value = (value << 8n) + BigInt(buf.readUInt8(offset));
+        offset += 1;
+    }
+    return value;
 }
 
 function generateMultiArraySymbols(symbols, indexes, sym, type, dim, polId, shift) {

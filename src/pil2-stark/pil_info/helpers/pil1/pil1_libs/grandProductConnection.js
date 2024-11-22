@@ -1,8 +1,7 @@
 
+const { getKs } = require("../../../../../setup/utils");
 const ExpressionOps = require("../../../expressionops");
 const { getExpDim } = require("../../helpers");
-
-const getKs = require("pilcom").getKs;
 
 module.exports.initChallengesConnection = function initChallengesConnection() {
     const dim = 3;

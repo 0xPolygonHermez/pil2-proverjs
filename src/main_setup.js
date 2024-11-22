@@ -13,6 +13,7 @@ const argv = require("yargs")
     .alias("f", "binfile")
     .alias("r", "recursive")
     .alias("m", "impols")
+    .alias("l", "stdlib")
         .argv;
 
 async function run() {
@@ -23,6 +24,7 @@ async function run() {
     if(!argv.consttree) throw new Error("Bctree path must be provided");
 
     //if(!argv.binfile) throw new Error("BinFile path must be provided");
+    // if(!argv.stdlib) throw new Error("Std lib path must be provided");
 
     let piloutPath = argv.airout;
 
@@ -38,6 +40,7 @@ async function run() {
             optImPols: argv.impols || false,
             constTree: argv.consttree,
             binFile: argv.binfile,
+            stdlib: argv.stdlib,
         }
     }
 

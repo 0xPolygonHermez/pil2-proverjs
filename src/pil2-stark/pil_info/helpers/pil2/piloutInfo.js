@@ -1,5 +1,4 @@
-const ProtoOut = require("pil2-compiler/src/proto_out.js");
-const { formatExpressions, formatConstraints, formatSymbols, formatHints } = require("./utils");
+const { formatExpressions, formatConstraints, formatSymbols, formatHints, buf2bint } = require("./utils");
 
 module.exports.getPiloutInfo = function getPiloutInfo(res, pilout) {
     res.airId = pilout.airId;
@@ -52,8 +51,6 @@ module.exports.getPiloutInfo = function getPiloutInfo(res, pilout) {
 }
 
 module.exports.getFixedPolsPil2 = function getFixedPolsPil2(pil, cnstPols, F) {        
-    const P = new ProtoOut();
-
     for(let i = 0; i < cnstPols.$$defArray.length; ++i) {
         const def = cnstPols.$$defArray[i];
         const id = def.id;
@@ -61,7 +58,7 @@ module.exports.getFixedPolsPil2 = function getFixedPolsPil2(pil, cnstPols, F) {
         const fixedCols = pil.fixedCols[i];
         for(let j = 0; j < deg; ++j) {
             const constPol = cnstPols[id];
-            constPol[j] = P.buf2bint(fixedCols.values[j]);
+            constPol[j] = buf2bint(fixedCols.values[j]);
         }
     }
 }

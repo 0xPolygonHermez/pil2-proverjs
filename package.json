@@ -37,11 +37,8 @@
   "dependencies": {
     "json-bigint": "^1.0.0",
     "npmlog": "^7.0.1",
-    "stark-recurser":  "https://github.com/0xPolygonHermez/stark-recurser#0.0.12",
-    "pilcom": "https://github.com/0xPolygonHermez/pilcom.git#polsArrayGeneric",
-    "pil2-compiler": "https://github.com/0xPolygonHermez/pil2-compiler.git#feature/custom-cols",
-    "protobufjs": "^7.2.4",
-    "r1csfile": "^0.0.47"
+    "stark-recurser":  "https://github.com/0xPolygonHermez/stark-recurser#pil2",
+    "protobufjs": "^7.2.4"
   },
   "devDependencies": {
     "chai": "^4.3.8",

@@ -3,7 +3,6 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const JSONbig = require('json-bigint')({ useNativeBigInt: true, alwaysParseAsBig: true });
 const fs = require('fs');
-const { compile } = require('pilcom');
 const pil2circom = require('stark-recurser/src/pil2circom/pil2circom.js');
 const {compressorSetup} = require('stark-recurser/src/circom2pil/compressor_setup');
 const {genCircom} = require('stark-recurser/src/gencircom.js');
@@ -14,6 +13,7 @@ const { runWitnessLibraryGeneration } = require('./generateWitness');
 const F3g = require('../pil2-stark/utils/f3g.js');
 const { writeExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
 const { starkSetup } = require('../pil2-stark/stark_setup');
+const { AirOut } = require('../airout.js');
 
 module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, setupOptions, template, airgroupName, airgroupId, airId, globalInfo, constRoot, verificationKeys = [], starkInfo, verifierInfo, starkStruct, compressorCols, hasCompressor) {
 
@@ -79,8 +79,10 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
     // Generate witness library
     runWitnessLibraryGeneration(buildDir, filesDir, nameFilename, template);
 
+    const pil2 = false;
+
     // Generate setup
-    const {exec: execBuff, pilStr, constPols} = await compressorSetup(F, `${buildDir}/build/${nameFilename}.r1cs`, compressorCols);
+    const {exec: execBuff, pilStr, constPols, pilout} = await compressorSetup(F, `${buildDir}/build/${nameFilename}.r1cs`, compressorCols, pil2, { stdPath: setupOptions.stdlib });
 
     await constPols.saveToFile(`${filesDir}/${template}.const`);
 
@@ -90,9 +92,8 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
 
     await fs.promises.writeFile(`${buildDir}/pil/${nameFilename}.pil`, pilStr, "utf8");
 
-    // Build stark info
-    const pilRecursive = await compile(F, `${buildDir}/pil/${nameFilename}.pil`);
-
+    let pilRecursive = pil2 ? new AirOut("", pilout).airGroups[0].airs[0] : pilout;
+  
     const setup = await starkSetup(pilRecursive, starkStruct, {...setupOptions, F, pil2: false, airgroupId, airId, recursion: true});
 
     await fs.promises.writeFile(`${filesDir}/${template}.starkinfo.json`, JSON.stringify(setup.starkInfo, null, 1), "utf8");
