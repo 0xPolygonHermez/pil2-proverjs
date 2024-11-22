@@ -10,6 +10,7 @@ const argv = require("yargs")
     .alias("b", "builddir")
     .alias("s", "starkstructs")
     .alias("t", "consttree")
+    .alias("f", "binfile")
     .alias("r", "recursive")
     .alias("m", "impols")
         .argv;
@@ -20,6 +21,8 @@ async function run() {
     await fs.promises.mkdir(buildDir, { recursive: true });
 
     if(!argv.consttree) throw new Error("Bctree path must be provided");
+
+    //if(!argv.binfile) throw new Error("BinFile path must be provided");
 
     let piloutPath = argv.airout;
 
@@ -34,6 +37,7 @@ async function run() {
             genAggregationSetup: argv.recursive || false,
             optImPols: argv.impols || false,
             constTree: argv.consttree,
+            binFile: argv.binfile,
         }
     }
 

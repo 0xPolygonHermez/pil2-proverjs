@@ -5,10 +5,10 @@ const { createBinFile,
 const { getParserArgs } = require("./getParserArgs.js");
 const { getAllOperations } = require("./utils.js");
 
-const CHELPERS_NSECTIONS = 4;
-const CHELPERS_EXPRESSIONS_SECTION = 2;
-const CHELPERS_CONSTRAINTS_DEBUG_SECTION = 3;
-const CHELPERS_HINTS_SECTION = 4;
+const CHELPERS_NSECTIONS = 3;
+const CHELPERS_EXPRESSIONS_SECTION = 1;
+const CHELPERS_CONSTRAINTS_DEBUG_SECTION = 2;
+const CHELPERS_HINTS_SECTION = 3;
 
 module.exports.writeStringToFile = async function writeStringToFile(fd, str) {
     let buff = new Uint8Array(str.length + 1);

@@ -55,6 +55,7 @@ module.exports.generateExpressionsCode = function generateExpressionsCode(res, s
 
         if(j == res.friExpId) {
             expInfo.code[expInfo.code.length-1].dest = { type: "f", id: 0, dim: 3 };
+            exp.stage = res.nStages + 3;
         }
 
         expInfo.expId = j;

@@ -98,7 +98,13 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/final.const -s ${filesDir}/final.starkinfo.json -v ${filesDir}/final.verkey.json`);
     setup.constRoot = JSON.parse(await fs.promises.readFile(`${filesDir}/final.verkey.json`, "utf8"));
     
-    await writeExpressionsBinFile(`${filesDir}/final.bin`, setup.starkInfo, setup.expressionsInfo);
+    console.log("Computing Bin File...");
+    if(setupOptions.binFile) {
+        await exec(`${setupOptions.binFile} -s ${filesDir}/final.starkinfo.json -e ${filesDir}/final.expressionsinfo.json -b ${filesDir}/final.bin`);
+    } else {
+        await writeExpressionsBinFile(`${filesDir}/final.bin`, setup.starkInfo, setup.expressionsInfo);
+    }
+
 
     return {starkInfoFinal: setup.starkInfo, verifierInfoFinal: setup.verifierInfo, constRootFinal: setup.constRoot};
 }

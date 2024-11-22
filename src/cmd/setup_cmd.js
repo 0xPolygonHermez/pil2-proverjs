@@ -29,8 +29,8 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         F: new F3g("0xFFFFFFFF00000001"),
         pil2: true,
         optImPols: (proofManagerConfig.setup && proofManagerConfig.setup.optImPols) || false,
-        skipConstTree: (proofManagerConfig.setup && proofManagerConfig.setup.constTree !== undefined) ? true : false,
-        constTree: proofManagerConfig.setup && proofManagerConfig.setup.constTree !== undefined ? proofManagerConfig.setup.constTree : undefined,
+        constTree: proofManagerConfig.setup.constTree,
+        binFile: proofManagerConfig.setup.binFile,
     };
 
     let setup = [];
@@ -86,11 +86,17 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             await fs.promises.writeFile(path.join(filesDir, `${air.name}.expressionsinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].expressionsInfo, null, 1), "utf8");
 
             console.log("Computing Constant Tree...");
-            const { stdout } = await exec(`${proofManagerConfig.setup.constTree} -c ${path.join(filesDir, `${air.name}.const`)} -s ${path.join(filesDir, `${air.name}.starkinfo.json`)} -v ${path.join(filesDir, `${air.name}.verkey.json`)}`);
+            const { stdout } = await exec(`${setupOptions.constTree} -c ${path.join(filesDir, `${air.name}.const`)} -s ${path.join(filesDir, `${air.name}.starkinfo.json`)} -v ${path.join(filesDir, `${air.name}.verkey.json`)}`);
             console.log(stdout);
             setup[airgroup.airgroupId][air.airId].constRoot = JSONbig.parse(await fs.promises.readFile(path.join(filesDir, `${air.name}.verkey.json`), "utf8"));
 
-            await writeExpressionsBinFile(path.join(filesDir, `${air.name}.bin`), setup[airgroup.airgroupId][air.airId].starkInfo, setup[airgroup.airgroupId][air.airId].expressionsInfo);
+            console.log("Computing Bin File...");
+            if(setupOptions.binFile) {
+                await exec(`${setupOptions.binFile} -s ${path.join(filesDir, `${air.name}.starkinfo.json`)} -e ${path.join(filesDir, `${air.name}.expressionsinfo.json`)} -b ${path.join(filesDir, `${air.name}.bin`)}`);
+            } else {
+                await writeExpressionsBinFile(path.join(filesDir, `${air.name}.bin`), setup[airgroup.airgroupId][air.airId].starkInfo, setup[airgroup.airgroupId][air.airId].expressionsInfo);
+            }
+            
         }));
     }));
 
@@ -225,7 +231,13 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
 
     await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalInfo.json`, JSON.stringify(globalInfo, null, 1), "utf8");
     await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalConstraints.json`, JSON.stringify(globalConstraints, null, 1), "utf8");
-    await writeGlobalConstraintsBinFile(globalConstraints, `${buildDir}/provingKey/pilout.globalConstraints.bin`);
+    console.log("Computing Global Bin File...");
+    if(setupOptions.binFile) {
+        const { stdoutBin } = await exec(`${setupOptions.binFile} -g -e ${buildDir}/provingKey/pilout.globalConstraints.json -b ${buildDir}/provingKey/pilout.globalConstraints.bin`);
+    } else {
+        await writeGlobalConstraintsBinFile(globalConstraints, `${buildDir}/provingKey/pilout.globalConstraints.bin`);
+    }
+    
 
     return { setup, airoutInfo: {...globalInfo, globalConstraints}, config: proofManagerConfig };
 }

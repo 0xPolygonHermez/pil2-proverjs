@@ -41,7 +41,7 @@ module.exports.getParserArgs = function getParserArgs(starkInfo, operations, cod
     let nStages = starkInfo.nStages + 2 + customCommits.length;
 
     // Evaluate max and min temporal variable for tmp_ and tmp3_
-    let maxid = 1000000;
+    let maxid = codeInfo.tmpUsed;
     let ID1D = new Array(maxid).fill(-1);
     let ID3D = new Array(maxid).fill(-1);
     let { count1d, count3d } = getIdMaps(maxid, ID1D, ID3D, code_);
