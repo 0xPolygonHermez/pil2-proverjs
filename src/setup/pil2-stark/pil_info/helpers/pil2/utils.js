@@ -135,7 +135,6 @@ function formatExpression(exp, pilout, symbols, saveSymbols = false, global = fa
         store = true;
     } else if (op === "airGroupValue") {
         const id = exp[op].idx;
-        console.log(exp)
         const stage = !global ? pilout.airGroupValues[id].stage : pilout.airGroups[exp[op].airGroupId].airGroupValues[id].stage;
         exp = { op: "airgroupvalue", id, airgroupId: exp[op].airGroupId, dim: 3, stage };
         store = true;

@@ -1,4 +1,4 @@
-const { log2 } = require("../../../../setup/utils");
+const { log2 } = require("../../../../utils");
 const ExpressionOps = require("../../expressionops");
 const generateLibsPolynomials = require("./generateLibsPolynomials");
 

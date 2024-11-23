@@ -1,9 +1,10 @@
 
 const pilInfo = require("./pil_info/pil_info.js");
+const F3g = require("./utils/f3g.js");
 
 module.exports.starkSetup = async function starkSetup(pil, starkStruct, options) {
 
-    const F = options.F;
+    const F = new F3g("0xFFFFFFFF00000001");
     
     const pil2 = options.pil2 || false;
     

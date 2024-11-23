@@ -1,6 +1,6 @@
 const log = require("../../logger.js");
-const F3g = require("../pil2-stark/utils/f3g.js");
-const { executeCode, starkVerify } = require("../pil2-stark/stark_verify.js");
+const F3g = require("../setup/pil2-stark/utils/f3g.js");
+const { executeCode, starkVerify } = require("./stark_verify.js");
 
 module.exports = async function verifyCmd(setup, proofs, challenges, publics, proofValues, options) {
     log.info("[VerifyCmd ]", "==> PROOF VERIFICATION")

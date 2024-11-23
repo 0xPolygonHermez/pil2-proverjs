@@ -1,7 +1,7 @@
 const fs = require("fs");
 const version = require("../package").version;
 
-const setupCmd = require("./cmd/setup_cmd");
+const setupCmd = require("./setup/setup_cmd");
 
 const argv = require("yargs")
     .version(version)
@@ -23,7 +23,7 @@ async function run() {
 
     if(!argv.consttree) throw new Error("Bctree path must be provided");
 
-    //if(!argv.binfile) throw new Error("BinFile path must be provided");
+    if(!argv.binfile) throw new Error("BinFile path must be provided");
     // if(!argv.stdlib) throw new Error("Std lib path must be provided");
 
     let piloutPath = argv.airout;

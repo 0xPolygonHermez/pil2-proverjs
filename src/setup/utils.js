@@ -1,5 +1,5 @@
 const fs =require("fs");
-const { getGlobalConstraintsInfo } = require("../pil2-stark/pil_info/getGlobalConstraintsInfo");
+const { getGlobalConstraintsInfo } = require("./pil2-stark/pil_info/getGlobalConstraintsInfo");
 
 async function fileExists(path) {
     return fs.promises.access(path, fs.constants.F_OK)

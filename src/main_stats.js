@@ -5,8 +5,7 @@ const { AirOut } = require("./airout");
 const log = require("../logger.js");
 const { generateStarkStruct, log2 } = require("./setup/utils.js");
 const path = require("path");
-const {starkSetup} = require("./pil2-stark/stark_setup.js");
-const F3g = require("./pil2-stark/utils/f3g.js");
+const {starkSetup} = require("./setup/pil2-stark/stark_setup.js");
 
 const argv = require("yargs")
     .version(version)
@@ -25,7 +24,6 @@ async function run() {
     await fs.promises.mkdir( path.dirname(statsFile), { recursive: true });
 
     const setupOptions = {
-        F: new F3g("0xFFFFFFFF00000001"),
         pil2: true,
         optImPols: argv.impols || false,
     };

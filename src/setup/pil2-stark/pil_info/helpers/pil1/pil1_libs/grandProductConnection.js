@@ -1,5 +1,5 @@
 
-const { getKs } = require("../../../../../setup/utils");
+const { getKs } = require("../../../../../utils");
 const ExpressionOps = require("../../../expressionops");
 const { getExpDim } = require("../../helpers");
 

@@ -14,7 +14,7 @@ https://eprint.iacr.org/2020/500.pdf
 
 */
 
-const F3g = require('../../utils/f3g');
+const F3g = require('../../../../setup/pil2-stark/utils/f3g');
 const poseidonConstants = require('./poseidon_constants_opt');
 
 let poseidon;

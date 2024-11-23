@@ -38,14 +38,20 @@ async function generateWitnessLibrary(buildDir,filesDir, nameFilename, template)
     }
 }
 
-module.exports.runWitnessLibraryGeneration = function runWitnessLibraryGeneration(buildDir, filesDir, template, nameFilename) {
-    generateWitnessLibrary(buildDir, filesDir, template, nameFilename)
+module.exports.runWitnessLibraryGeneration = function runWitnessLibraryGeneration(buildDir, filesDir, nameFilename, template) {
+    console.log("Copying circom files...");
+    fs.copyFile(`${buildDir}/build/${nameFilename}_cpp/${nameFilename}.dat`, `${filesDir}/${template}.dat`, (err) => { if(err) throw err; });
+    
+    generateWitnessLibrary(buildDir, filesDir, nameFilename, template)
         .then(() => console.log(`Witness library for ${nameFilename} generated.`))
         .catch((err) => console.error('Error running witness library generation:', err));
 }
 
-module.exports.runFinalWitnessLibraryGeneration = async function runFinalWitnessLibraryGeneration(buildDir, filesDir) {
+module.exports.runFinalWitnessLibraryGeneration = async function runFinalWitnessLibraryGeneration(buildDir, filesDir, name) {
     try {
+        console.log("Copying circom files...");
+        fs.copyFile(`${buildDir}/build/final_cpp/final.dat`, `${buildDir}/provingKey/${name}/final/final.dat`, (err) => { if(err) throw err; });
+        
         await generateWitnessLibrary(buildDir, filesDir, "final", "final");
         console.log('Final Witness library generation completed.');
 

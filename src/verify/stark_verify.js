@@ -1,9 +1,9 @@
-const FRI = require("./verification/fri.js");
-const buildMerkleHashGL = require("./verification/merklehash/merklehash_p.js");
-const buildMerkleHashBN128 = require("./verification/merklehash/merklehash_bn128_p.js");
+const FRI = require("./pil2-stark/verification/fri.js");
+const buildMerkleHashGL = require("./pil2-stark/verification/merklehash/merklehash_p.js");
+const buildMerkleHashBN128 = require("./pil2-stark/verification/merklehash/merklehash_bn128_p.js");
 const { assert } = require("chai");
-const buildPoseidonGL = require("./verification/poseidon/poseidon.js");
-const { calculateTranscript, calculateFRIQueries } = require("./verification/calculateTranscriptVerify.js");
+const buildPoseidonGL = require("./pil2-stark/verification/poseidon/poseidon.js");
+const { calculateTranscript, calculateFRIQueries } = require("./pil2-stark/verification/calculateTranscriptVerify.js");
 
 module.exports.starkVerify = async function starkVerify(proof, proofValues, publics, constRoot, challenges, starkInfo, verifierInfo, options = {}) {
     const logger = options.logger;

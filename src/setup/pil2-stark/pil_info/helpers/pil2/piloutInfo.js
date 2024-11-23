@@ -1,3 +1,4 @@
+const path = require("path");
 const { formatExpressions, formatConstraints, formatSymbols, formatHints, buf2bint } = require("./utils");
 
 module.exports.getPiloutInfo = function getPiloutInfo(res, pilout) {
@@ -50,7 +51,7 @@ module.exports.getPiloutInfo = function getPiloutInfo(res, pilout) {
     return {expressions, hints, constraints, symbols};
 }
 
-module.exports.getFixedPolsPil2 = function getFixedPolsPil2(pil, cnstPols, F) {        
+module.exports.getFixedPolsPil2 = async function getFixedPolsPil2(filesDir, pil, cnstPols) {        
     for(let i = 0; i < cnstPols.$$defArray.length; ++i) {
         const def = cnstPols.$$defArray[i];
         const id = def.id;
@@ -61,5 +62,6 @@ module.exports.getFixedPolsPil2 = function getFixedPolsPil2(pil, cnstPols, F) {
             constPol[j] = buf2bint(fixedCols.values[j]);
         }
     }
+    await cnstPols.saveToFile(path.join(filesDir, `${pil.name}.const`));
 }
     
