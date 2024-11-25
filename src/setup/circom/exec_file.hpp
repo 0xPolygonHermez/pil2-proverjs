@@ -11,7 +11,41 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "fr_goldilocks.hpp"
+
+void loadFileParallel(void* buffer, const std::string &fileName, uint64_t size) {
+
+    // Check file size
+    struct stat sb;
+    if (lstat(fileName.c_str(), &sb) == -1) {
+        exit(-1);
+    }
+    if ((uint64_t)sb.st_size != size) {
+        exit(-1);
+    }
+
+    // Determine the number of chunks and the size of each chunk
+    size_t numChunks = 8; //omp_get_max_threads()/2;
+    if(numChunks == 0 ) numChunks = 1;
+    size_t chunkSize = size / numChunks;
+    size_t remainder = size - numChunks*chunkSize;
+    
+    #pragma omp parallel for num_threads(numChunks)
+    for(size_t i=0; i<numChunks; i++){
+        // Open the file
+        FILE* file = fopen(fileName.c_str(), "rb");
+        if(file == NULL){
+            exit(-1);
+        }
+        size_t chunkSize_ = i == numChunks -1 ? chunkSize + remainder : chunkSize;
+        size_t offset = i * chunkSize;
+        fseek(file, offset, SEEK_SET);
+        size_t readed = fread((uint8_t*)buffer + offset, 1, chunkSize_, file);
+        if(readed != chunkSize_){
+            exit(-1);
+        }
+        fclose(file);
+    }
+}
 
 class ExecFile
 {
@@ -19,52 +53,27 @@ public:
     uint64_t nAdds;
     uint64_t nSMap;
 
-    FrGElement *p_adds;
-    FrGElement *p_sMap;
+    uint64_t *p_data;
+    uint64_t *p_adds;
+    uint64_t *p_sMap;
 
-    ExecFile(std::string execFile, uint64_t nCommitedPols)
+    ExecFile(const std::string &execFile, uint64_t nCommitedPols)
     {
-        int fd;
-        struct stat sb;
-        uint64_t *p_data;
-
-        fd = open(execFile.c_str(), O_RDONLY);
-        if (fd == -1)
-        {
-            throw std::system_error(errno, std::generic_category(), "open");
-        }
-
-        if (fstat(fd, &sb) == -1)
-        { /* To obtain file size */
-            throw std::system_error(errno, std::generic_category(), "fstat");
-        }
-
-        p_data = (uint64_t *)mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-        close(fd);
-
-        nAdds = (uint64_t)p_data[0];
-        nSMap = (uint64_t)p_data[1];
-
-        p_adds = new FrGElement[nAdds * 4];
-        p_sMap = new FrGElement[nSMap * nCommitedPols];
-        for (uint64_t i = 0; i < nAdds * 4; i++)
-        {
-            p_adds[i].shortVal = 0;
-            p_adds[i].type = FrG_LONG;
-            p_adds[i].longVal[0] = p_data[i + 2];
-        }
-        for (uint64_t j = 0; j < nSMap * nCommitedPols; j++)
-        {
-            p_sMap[j].shortVal = 0;
-            p_sMap[j].type = FrG_LONG;
-            p_sMap[j].longVal[0] = p_data[2 + nAdds * 4 + j];
-        }
-        munmap(p_data, sb.st_size);
+        std::ifstream file(execFile, std::ios::binary);
+        file.read(reinterpret_cast<char *>(&nAdds), sizeof(uint64_t));
+        file.read(reinterpret_cast<char *>(&nSMap), sizeof(uint64_t));
+        
+        p_data = new uint64_t[2 + nAdds * 4 + nSMap * nCommitedPols];
+        
+        loadFileParallel(p_data, execFile, (2 + nAdds * 4 + nSMap * nCommitedPols) * sizeof(uint64_t));
+        
+        p_adds = &p_data[2];
+        p_sMap = &p_data[2 + nAdds * 4];
     }
+
     ~ExecFile()
     {
-        delete[] p_adds;
-        delete[] p_sMap;
+        delete[] p_data;
     }
 };
 #endif

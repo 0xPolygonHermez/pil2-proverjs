@@ -125,7 +125,7 @@ bool check_valid_number(std::string & s, uint base){
   return is_valid;
 }
 
-void json2FrGElements (ordered_json val, std::vector<FrGElement> & vval){
+void json2FrGElements (json val, std::vector<FrGElement> & vval){
   if (!val.is_array()) {
     FrGElement v;
     std::string s_aux, s;
@@ -171,12 +171,12 @@ void json2FrGElements (ordered_json val, std::vector<FrGElement> & vval){
   }
 }
 
-ordered_json::value_t check_type(std::string prefix, ordered_json in){
+json::value_t check_type(std::string prefix, json in){
   if (not in.is_array()) {
       return in.type();
     } else {
-    if (in.size() == 0) return ordered_json::value_t::null;
-    ordered_json::value_t t = check_type(prefix, in[0]);
+    if (in.size() == 0) return json::value_t::null;
+    json::value_t t = check_type(prefix, in[0]);
     for (uint i = 1; i < in.size(); i++) {
       if (t != check_type(prefix, in[i])) {
 	fprintf(stderr, "Types are not the same in the the key %s\n",prefix.c_str());
@@ -187,9 +187,9 @@ ordered_json::value_t check_type(std::string prefix, ordered_json in){
   }
 }
 
-void qualify_input(std::string prefix, ordered_json &in, ordered_json &in1);
+void qualify_input(std::string prefix, json &in, json &in1);
 
-void qualify_input_list(std::string prefix, ordered_json &in, ordered_json &in1){
+void qualify_input_list(std::string prefix, json &in, json &in1){
     if (in.is_array()) {
       for (uint i = 0; i<in.size(); i++) {
 	  std::string new_prefix = prefix + "[" + std::to_string(i) + "]";
@@ -200,11 +200,11 @@ void qualify_input_list(std::string prefix, ordered_json &in, ordered_json &in1)
     }
 }
 
-void qualify_input(std::string prefix, ordered_json &in, ordered_json &in1) {
+void qualify_input(std::string prefix, json &in, json &in1) {
   if (in.is_array()) {
     if (in.size() > 0) {
-      ordered_json::value_t t = check_type(prefix,in);
-      if (t == ordered_json::value_t::object) {
+      json::value_t t = check_type(prefix,in);
+      if (t == json::value_t::object) {
 	qualify_input_list(prefix,in,in1);
       } else {
 	in1[prefix] = in;
@@ -213,7 +213,7 @@ void qualify_input(std::string prefix, ordered_json &in, ordered_json &in1) {
       in1[prefix] = in;
     }
   } else if (in.is_object()) {
-    for (ordered_json::iterator it = in.begin(); it != in.end(); ++it) {
+    for (json::iterator it = in.begin(); it != in.end(); ++it) {
       std::string new_prefix = prefix.length() == 0 ? it.key() : prefix + "." + it.key();
       qualify_input(new_prefix,it.value(),in1);
     }
@@ -222,13 +222,13 @@ void qualify_input(std::string prefix, ordered_json &in, ordered_json &in1) {
   }
 }
 
-void loadJsonImpl(Circom_CalcWit *ctx, ordered_json &j) {
+void loadJsonImpl(Circom_CalcWit *ctx, json &j) {
   u64 nItems = j.size();
   // printf("Items : %llu\n",nItems);
   if (nItems == 0){
     ctx->tryRunCircuit();
   }
-  for (ordered_json::iterator it = j.begin(); it != j.end(); ++it) {
+  for (json::iterator it = j.begin(); it != j.end(); ++it) {
     // std::cout << it.key() << " => " << it.value() << '\n';
     u64 h = fnv1a(it.key());
     std::vector<FrGElement> v;
@@ -260,9 +260,9 @@ void loadJsonImpl(Circom_CalcWit *ctx, ordered_json &j) {
 void loadJson(Circom_CalcWit *ctx, std::string filename)
 {
   std::ifstream inStream(filename);
-  ordered_json jin;
+  json jin;
   inStream >> jin;
-  ordered_json j;
+  json j;
   std::string prefix = "";
   qualify_input(prefix, jin, j);
   inStream.close();
@@ -339,7 +339,7 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
 
     Circom_CalcWit *ctx = new Circom_CalcWit(circuit);
 
-    loadJsonImpl(ctx, *(ordered_json*) zkin);
+    loadJsonImpl(ctx, *(json*) zkin);
 
     if (ctx->getRemaingInputsToBeSet() != 0)
     {
@@ -373,16 +373,11 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
     // #pragma omp parallel for
     for (uint64_t i = 0; i < exec.nAdds; i++)
     {
-      FrG_toLongNormal(&exec.p_adds[i * 4], &exec.p_adds[i * 4]);
-      FrG_toLongNormal(&exec.p_adds[i * 4 + 1], &exec.p_adds[i * 4 + 1]);
-      FrG_toLongNormal(&exec.p_adds[i * 4 + 2], &exec.p_adds[i * 4 + 2]);
-      FrG_toLongNormal(&exec.p_adds[i * 4 + 3], &exec.p_adds[i * 4 + 3]);
+      uint64_t idx_1 = exec.p_adds[i * 4];
+      uint64_t idx_2 = exec.p_adds[i * 4 + 1];
 
-      uint64_t idx_1 = exec.p_adds[i * 4].longVal[0];
-      uint64_t idx_2 = exec.p_adds[i * 4 + 1].longVal[0];
-
-      Goldilocks::Element c = tmp[idx_1] * Goldilocks::fromU64(exec.p_adds[i * 4 + 2].longVal[0]);
-      Goldilocks::Element d = tmp[idx_2] * Goldilocks::fromU64(exec.p_adds[i * 4 + 3].longVal[0]);
+      Goldilocks::Element c = tmp[idx_1] * Goldilocks::fromU64(exec.p_adds[i * 4 + 2]);
+      Goldilocks::Element d = tmp[idx_2] * Goldilocks::fromU64(exec.p_adds[i * 4 + 3]);
       tmp[sizeWitness + i] = c + d;
     }
 
@@ -391,13 +386,9 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
     {
       for (uint j = 0; j < nCols; j++)
       {
-        FrGElement aux;
-        FrG_toLongNormal(&aux, &exec.p_sMap[nCols * i + j]);
-        uint64_t idx_1 = aux.longVal[0];
-        if (idx_1 != 0)
+        if (exec.p_sMap[nCols * i + j] != 0)
         {
-          uint64_t idx_2 = Goldilocks::toU64(tmp[idx_1]);
-          commitPols.Compressor.a[j][i] = Goldilocks::fromU64(idx_2);
+          commitPols.Compressor.a[j][i] = tmp[exec.p_sMap[nCols * i + j]];
         }
         else
         {

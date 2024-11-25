@@ -13,7 +13,7 @@
 #include <vector>
 #include <chrono>
 
-using ordered_json = nlohmann::ordered_json;
+using json = nlohmann::json;
 
 #include "calcwit.hpp"
 #include "circom.hpp"
@@ -26,7 +26,7 @@ using namespace std;
 Circom_Circuit *loadCircuit(std::string const &datFileName);
 void freeCircuit(Circom_Circuit *circuit);
 void loadJson(Circom_CalcWit *ctx, std::string filename);
-void loadJsonImpl(Circom_CalcWit *ctx, ordered_json &j);
+void loadJsonImpl(Circom_CalcWit *ctx, json &j);
 void writeBinWitness(Circom_CalcWit *ctx, std::string wtnsFileName);
 void getBinWitness(Circom_CalcWit *ctx, FrGElement *&pWitness, uint64_t &witnessSize);
 bool check_valid_number(std::string &s, uint base);
