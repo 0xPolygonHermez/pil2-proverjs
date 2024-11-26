@@ -19,7 +19,7 @@ witness: $(WITNESS_DIR)/$(WITNESS_FILE)
 clean:
 	$(RM) -r $(BUILD_DIR)
 
-SRCS_WITNESS_LIB := calcwit.cpp fr_goldilocks.cpp fr_goldilocks.asm goldilocks_base_field.cpp main.cpp verifier.cpp
+SRCS_WITNESS_LIB := calcwit.cpp fr_goldilocks.cpp fr_goldilocks.asm main.cpp verifier.cpp
 OBJS_WITNESS_LIB := $(SRCS_WITNESS_LIB:%=$(BUILD_DIR)/%.o)
 DEPS_WITNESS_LIB := $(OBJS_WITNESS_LIB:.o=.d)
 

@@ -326,18 +326,17 @@ void freeCircuit(Circom_Circuit *circuit)
   delete circuit;
 }
 
-extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAddress, void* pPublics, void *zkin, uint64_t N, uint64_t nPublics, uint64_t offsetCm1, char* datFile, char* execFile)  {
+extern "C" __attribute__((visibility("default"))) uint64_t getSizeWitness()  {
+  return get_size_of_witness();
+}
 
-    uint64_t nCols = 18;
-
-    CommitPolsStarks commitPols((uint8_t *)pAddress + offsetCm1 * sizeof(Goldilocks::Element), N, nCols);
-
+extern "C" __attribute__((visibility("default"))) void getWitness(void *zkin, char* datFile, void* pWitness, uint64_t nMutexes)  {
     //-------------------------------------------
     // Verifier stark proof
     //-------------------------------------------
     Circom_Circuit *circuit = loadCircuit(string(datFile));
 
-    Circom_CalcWit *ctx = new Circom_CalcWit(circuit);
+    Circom_CalcWit *ctx = new Circom_CalcWit(circuit, nMutexes);
 
     loadJsonImpl(ctx, *(json*) zkin);
 
@@ -348,62 +347,18 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
     }
 
     //-------------------------------------------
-    // Compute witness and commited pols
+    // Compute witness
     //------------------------------------------- 
-    ExecFile exec(string(execFile), nCols);
+    uint64_t *witness = (uint64_t *)pWitness;
     uint64_t sizeWitness = get_size_of_witness();
-    Goldilocks::Element *tmp = new Goldilocks::Element[exec.nAdds + sizeWitness];
     for (uint64_t i = 0; i < sizeWitness; i++)
     {
       FrGElement aux;
       ctx->getWitness(i, &aux);
       FrG_toLongNormal(&aux, &aux);
-      tmp[i] = Goldilocks::fromU64(aux.longVal[0]);
-    }
-    
-
-    Goldilocks::Element *publics = (Goldilocks::Element *)pPublics;
-
-    for(uint64_t i = 0; i < nPublics; ++i) {
-      publics[i] = tmp[1 + i];
+      witness[i] = aux.longVal[0];
     }
     
     delete ctx;
-  
-    // #pragma omp parallel for
-    for (uint64_t i = 0; i < exec.nAdds; i++)
-    {
-      uint64_t idx_1 = exec.p_adds[i * 4];
-      uint64_t idx_2 = exec.p_adds[i * 4 + 1];
-
-      Goldilocks::Element c = tmp[idx_1] * Goldilocks::fromU64(exec.p_adds[i * 4 + 2]);
-      Goldilocks::Element d = tmp[idx_2] * Goldilocks::fromU64(exec.p_adds[i * 4 + 3]);
-      tmp[sizeWitness + i] = c + d;
-    }
-
-    // #pragma omp parallel for
-    for (uint i = 0; i < exec.nSMap; i++)
-    {
-      for (uint j = 0; j < nCols; j++)
-      {
-        if (exec.p_sMap[nCols * i + j] != 0)
-        {
-          commitPols.Compressor.a[j][i] = tmp[exec.p_sMap[nCols * i + j]];
-        }
-        else
-        {
-          commitPols.Compressor.a[j][i] = Goldilocks::zero();
-        }
-      }
-    }
-    // #pragma omp parallel for
-    for (uint i = exec.nSMap; i < N; i++)
-    {
-      for (uint j = 0; j < nCols; j++)
-      {
-        commitPols.Compressor.a[j][i] = Goldilocks::zero();
-      }
-    }
-    delete[] tmp;
     freeCircuit(circuit);
-  }
+}
