@@ -1,4 +1,4 @@
-const F3g = require("../utils/f3g");
+const F3g = require("../../../setup/pil2-stark/utils/f3g");
 
 class FRI {
 

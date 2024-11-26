@@ -4,7 +4,7 @@ const version = require("../package").version;
 const path = require("path");
 const log = require("../logger.js");
 
-const verifyCmd = require("./cmd/verify_cmd");
+const verifyCmd = require("./verify/verify_cmd");
 const { assert } = require("chai");
 const JSONbig = require('json-bigint')({ useNativeBigInt: true, alwaysParseAsBig: true });
 
