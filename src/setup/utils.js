@@ -11,9 +11,12 @@ async function fileExists(path) {
 function generateStarkStruct(settings, nBits) {
     let starkStruct = {
         nBits,
-        verificationHashType: "GL",
     };
 
+    if(settings.verificationHashType && !["GL", "BN128"].includes(settings.verificationHashType)) {
+        throw new Error("Invalid verificationHashType " + settings.verificationHashType);
+    }
+    let verificationHashType = settings.verificationHashType || "GL";
     let hashCommits = settings.hashCommits || true;
     let blowupFactor = settings.blowupFactor || 1;
     let nQueries = Math.ceil(128 / blowupFactor);
@@ -21,9 +24,15 @@ function generateStarkStruct(settings, nBits) {
     let foldingFactor = settings.foldingFactor || 4;
     let finalDegree = settings.finalDegree || 5;
     
+    if(verificationHashType === "BN128") {
+        starkStruct.merkleTreeArity = settings.merkleTreeArity || 16;
+        starkStruct.merkleTreeCustom = settings.merkleTreeCustom || false;
+    }
+    
     starkStruct.hashCommits = hashCommits;
     starkStruct.nBitsExt = starkStruct.nBits + blowupFactor;
     starkStruct.nQueries = nQueries;
+    starkStruct.verificationHashType = verificationHashType;
     
     starkStruct.steps = [{nBits: starkStruct.nBitsExt}];
     let friStepBits = starkStruct.nBitsExt;

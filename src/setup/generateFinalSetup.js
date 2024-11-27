@@ -8,7 +8,7 @@ const { compressorSetup } = require('stark-recurser/src/circom2pil/compressor_se
 const { genCircom } = require('stark-recurser/src/gencircom.js');
 const { generateStarkStruct } = require("./utils");
 const path = require("path");
-const { runFinalWitnessLibraryGeneration } = require("./generateWitness");
+const { runWitnessLibraryGenerationAwait } = require("./generateWitness");
 
 const F3g = require("../pil2-stark/utils/f3g.js");
 const {starkSetup} = require("../pil2-stark/stark_setup");
@@ -23,7 +23,8 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     const basicKeysRecursive1 = [];
     const verifierNames = [];
 
-    const finalFilename = `${buildDir}/circom/final.circom`;
+    const nameFilename = "vadcop_final";
+    const finalFilename = `${buildDir}/circom/${nameFilename}.circom`;
 
     for(let i = 0; i < globalInfo.aggTypes.length; i++) {
         const starkInfo = JSON.parse(await fs.promises.readFile(`${buildDir}/provingKey/${globalInfo.name}/${globalInfo.air_groups[i]}/recursive2/recursive2.starkinfo.json`, "utf8"));
@@ -37,7 +38,7 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
         verifierNames.push( `${globalInfo.air_groups[i]}_recursive2.verifier.circom`);
     }
         
-    const filesDir = `${buildDir}/provingKey/${globalInfo.name}/final`;
+    const filesDir = `${buildDir}/provingKey/${globalInfo.name}/${nameFilename}`;
     await fs.promises.mkdir(filesDir, { recursive: true });
 
     let templateFilename = path.resolve(__dirname, "../..", `node_modules/stark-recurser/src/vadcop/templates/final.circom.ejs`);
@@ -57,26 +58,26 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     console.log(execCompile.stdout);
     
     console.log("Copying circom files...");
-    fs.copyFile(`${buildDir}/build/final_cpp/final.dat`, `${buildDir}/provingKey/${globalInfo.name}/final/final.dat`, (err) => { if(err) throw err; });
+    fs.copyFile(`${buildDir}/build/${nameFilename}_cpp/${nameFilename}.dat`, `${buildDir}/provingKey/${globalInfo.name}/${nameFilename}/${nameFilename}.dat`, (err) => { if(err) throw err; });
     
-    await runFinalWitnessLibraryGeneration(buildDir, filesDir);
+    await runWitnessLibraryGenerationAwait(buildDir, filesDir, nameFilename, nameFilename);
 
     // Generate setup
-    const finalR1csFile = `${buildDir}/build/final.r1cs`;
+    const finalR1csFile = `${buildDir}/build/${nameFilename}.r1cs`;
     const {exec: execBuff, pilStr, constPols, nBits } = await compressorSetup(F, finalR1csFile, compressorCols);
 
-    const fd =await fs.promises.open(`${filesDir}/final.exec`, "w+");
+    const fd =await fs.promises.open(`${filesDir}/${nameFilename}.exec`, "w+");
     await fd.write(execBuff);
     await fd.close();
 
-    const pilFilename = `${buildDir}/pil/final.pil`
+    const pilFilename = `${buildDir}/pil/${nameFilename}.pil`
     await fs.promises.writeFile(pilFilename, pilStr, "utf8");
 
     // Compile pil
     const pilFinal = await compile(F, pilFilename);
 
     if(finalSettings.starkStruct && finalSettings.starkStruct.nBits !== nBits) {
-        throw new Error("Final starkStruct nBits does not match with final circuit size");
+        throw new Error("Final starkStruct nBits does not match with vadcop final circuit size");
     };
 
     let starkStructFinal = finalSettings.starkStruct || generateStarkStruct(finalSettings, nBits);
@@ -84,21 +85,20 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     // Build stark info
     const setup = await starkSetup(pilFinal, starkStructFinal, {...setupOptions, F, pil2: false, recursion: true});
 
-    await constPols.saveToFile(`${filesDir}/final.const`);
+    await constPols.saveToFile(`${filesDir}/${nameFilename}.const`);
 
 
-    await fs.promises.writeFile(`${filesDir}/final.starkinfo.json`, JSON.stringify(setup.starkInfo, null, 1), "utf8");
+    await fs.promises.writeFile(`${filesDir}/${nameFilename}.starkinfo.json`, JSON.stringify(setup.starkInfo, null, 1), "utf8");
 
-    await fs.promises.writeFile(`${filesDir}/final.expressionsinfo.json`, JSON.stringify(setup.expressionsInfo, null, 1), "utf8");
+    await fs.promises.writeFile(`${filesDir}/${nameFilename}.expressionsinfo.json`, JSON.stringify(setup.expressionsInfo, null, 1), "utf8");
 
-    await fs.promises.writeFile(`${filesDir}/final.verifierinfo.json`, JSON.stringify(setup.verifierInfo, null, 1), "utf8");
+    await fs.promises.writeFile(`${filesDir}/${nameFilename}.verifierinfo.json`, JSON.stringify(setup.verifierInfo, null, 1), "utf8");
     
     console.log("Computing Constant Tree...");
-    // const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/final.const -s ${filesDir}/final.starkinfo.json -t ${filesDir}/final.consttree -v ${filesDir}/final.verkey.json`);
-    const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/final.const -s ${filesDir}/final.starkinfo.json -v ${filesDir}/final.verkey.json`);
-    setup.constRoot = JSON.parse(await fs.promises.readFile(`${filesDir}/final.verkey.json`, "utf8"));
+    const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/${nameFilename}.const -s ${filesDir}/${nameFilename}.starkinfo.json -v ${filesDir}/${nameFilename}.verkey.json`);
+    setup.constRoot = JSONbig.parse(await fs.promises.readFile(`${filesDir}/${nameFilename}.verkey.json`, "utf8"));
     
-    await writeExpressionsBinFile(`${filesDir}/final.bin`, setup.starkInfo, setup.expressionsInfo);
+    await writeExpressionsBinFile(`${filesDir}/${nameFilename}.bin`, setup.starkInfo, setup.expressionsInfo);
 
-    return {starkInfoFinal: setup.starkInfo, verifierInfoFinal: setup.verifierInfo, constRootFinal: setup.constRoot};
+    return {starkInfoFinal: setup.starkInfo, verifierInfoFinal: setup.verifierInfo, constRootFinal: setup.constRoot, nBitsFinal: nBits};
 }

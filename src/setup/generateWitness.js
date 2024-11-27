@@ -44,9 +44,9 @@ module.exports.runWitnessLibraryGeneration = function runWitnessLibraryGeneratio
         .catch((err) => console.error('Error running witness library generation:', err));
 }
 
-module.exports.runFinalWitnessLibraryGeneration = async function runFinalWitnessLibraryGeneration(buildDir, filesDir) {
+module.exports.runWitnessLibraryGenerationAwait = async function runWitnessLibraryGenerationAwait(buildDir, filesDir, template, nameFilename) {
     try {
-        await generateWitnessLibrary(buildDir, filesDir, "final", "final");
+        await generateWitnessLibrary(buildDir, filesDir, template, nameFilename);
         console.log('Final Witness library generation completed.');
 
         while (pendingTasks.length > 0) {

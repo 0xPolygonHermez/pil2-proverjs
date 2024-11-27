@@ -19,6 +19,7 @@ const { genFinalSetup } = require("../setup/generateFinalSetup.js");
 const { genRecursiveSetup } = require("../setup/generateRecursiveSetup.js");
 const { isCompressorNeeded } = require('../setup/is_compressor_needed.js');
 const { generateStarkStruct, setAiroutInfo, log2 } = require("../setup/utils.js");
+const { genRecursiveFSetup } = require('../setup/recursion/generateRecursiveFSetup.js');
 
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
@@ -213,9 +214,22 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             finalSettings = proofManagerConfig.setup.settings.final;
         }
 
-        await genFinalSetup(buildDir, setupOptions, finalSettings, globalInfo, globalConstraints, 18);
+        const {starkInfoFinal,
+            constRootFinal,
+            verifierInfoFinal,
+            nBitsFinal,
+        } = await genFinalSetup(buildDir, setupOptions, finalSettings, globalInfo, globalConstraints, 18);
         
-        // TODO: GENERATE COMPRESSOR / RECURSIVE1 / RECURSIVE2 / RECURSIVEF / FINAL
+        // TODO: GENERATE COMPRESSOR / RECURSIVE1 / RECURSIVE2
+
+        await genRecursiveFSetup(
+            buildDir, setupOptions, "recursivef", globalInfo, constRootFinal, [],
+            starkInfoFinal, verifierInfoFinal,
+            12
+        );
+
+        // TODO: GENERATE FINAL
+
     } else {
         const airoutInfo = await setAiroutInfo(airout, starkStructs);
         airoutInfo.vadcopInfo.publicsMap = setup[0][0].starkInfo.publicsMap;
