@@ -53,8 +53,10 @@ function mapSymbols(res, symbols) {
             if(symbol.lengths) res.publicsMap[symbol.id].lengths = symbol.lengths;
         } else if(symbol.type === "airgroupvalue") {
             res.airgroupValuesMap[symbol.id] = { name: symbol.name, stage: symbol.stage };
+            if(symbol.lengths) res.airgroupValuesMap[symbol.id].lengths = symbol.lengths;
         } else if(symbol.type == "airvalue") {
             res.airValuesMap[symbol.id] = { name: symbol.name, stage: symbol.stage };
+            if(symbol.lengths) res.airValuesMap[symbol.id].lengths = symbol.lengths;
         }
     }
 }

@@ -10,7 +10,7 @@ const F3g = require("./pil2-stark/utils/f3g.js");
 
 const argv = require("yargs")
     .version(version)
-    .usage("node main_stats.js -a <airout.ptb>")
+    .usage("node src/main_stats.js -a <airout.ptb>")
     .alias("a", "airout")
     .alias("o", "output")
     .alias("g", "airgroups").array("g")

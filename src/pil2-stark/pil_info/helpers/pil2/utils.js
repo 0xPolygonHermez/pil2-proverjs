@@ -297,7 +297,9 @@ module.exports.formatConstraints = function formatConstraints(pilout) {
 }
 
 module.exports.formatSymbols = function formatSymbols(pilout, global = false) {
-    const symbols = pilout.symbols.flatMap(s => {
+    const symbols = pilout.symbols
+        .filter(s => !global || ![piloutTypes.AIR_VALUE, piloutTypes.CUSTOM_COL, piloutTypes.FIXED_COL, piloutTypes.WITNESS_COL].includes(s.type))
+        .flatMap(s => {
         if(s.type === piloutTypes.CUSTOM_COL && s.stage !== 0) throw new Error("Invalid stage " + s.stage + "for a custom commit");
         if([piloutTypes.FIXED_COL, piloutTypes.WITNESS_COL, piloutTypes.CUSTOM_COL].includes(s.type)) {
             const dim = ([0,1].includes(s.stage)) ? 1 : 3;
@@ -331,14 +333,20 @@ module.exports.formatSymbols = function formatSymbols(pilout, global = false) {
                 return symbol;
             } else {
                 const multiArraySymbols = [];
-                generateMultiArraySymbols(multiArraySymbols, [], s, type, dim, polId, 0);
+                generateMultiArraySymbols(multiArraySymbols, [], s, type, s.stage, dim, polId, 0);
                 return multiArraySymbols;
             }
         } else if(s.type === piloutTypes.PROOF_VALUE) {
-            return {
-                name: s.name,
-                type: "proofValue",
-                id: s.id,
+            if(!s.dim) {
+                return {
+                    name: s.name,
+                    type: "proofValue",
+                    id: s.id,
+                }
+            } else {
+                const multiArraySymbols = [];
+                generateMultiArraySymbols(multiArraySymbols, [], s, "proofValue", undefined, 3, s.id, 0);
+                return multiArraySymbols;
             }
         } else if(s.type === piloutTypes.CHALLENGE) {
             const id = pilout.symbols.filter(si => si.type === piloutTypes.CHALLENGE && ((si.stage < s.stage) || (si.stage === s.stage && si.id < s.id))).length;
@@ -361,31 +369,45 @@ module.exports.formatSymbols = function formatSymbols(pilout, global = false) {
                 }
             } else {
                 const multiArraySymbols = [];
-                generateMultiArraySymbols(multiArraySymbols, [], s, "public", 1, s.id, 0);
+                generateMultiArraySymbols(multiArraySymbols, [], s, "public", 1, 1, s.id, 0);
                 return multiArraySymbols;
             }
         } else if(s.type === piloutTypes.AIRGROUP_VALUE) {
-            const airgroupValue = {
-                name: s.name,
-                type: "airgroupvalue",
-                id: s.id,
-                airgroupId: s.airGroupId,
-                dim: 3,
+            const stage = !global ? pilout.airGroupValues[s.id].stage : undefined;
+            if(!s.dim) {
+                const airgroupValue = {
+                    name: s.name,
+                    type: "airgroupvalue",
+                    id: s.id,
+                    airgroupId: s.airGroupId,
+                    dim: 3,
+                }
+                if(stage) airgroupValue.stage = stage;
+                return airgroupValue;
+            } else {
+                const multiArraySymbols = [];
+                generateMultiArraySymbols(multiArraySymbols, [], s, "airgroupvalue", stage, 3, s.id, 0);
+                return multiArraySymbols;
             }
-            if(!global) airgroupValue.stage = pilout.airGroupValues[s.id].stage;
-            return airgroupValue;
         } else if(s.type === piloutTypes.AIR_VALUE) {
-            const airvalue = {
-                name: s.name,
-                type: "airvalue",
-                id: s.id,
-                airgroupId: s.airGroupId,
+            console.log(s);
+            const stage = pilout.airValues[s.id].stage;
+            const dim = stage != 1 ? 3 : 1
+            if(!s.dim) {
+                return {
+                    name: s.name,
+                    type: "airvalue",
+                    id: s.id,
+                    airgroupId: s.airGroupId,
+                    stage,
+                    dim,
+                }
+            } else {
+                const multiArraySymbols = [];
+                generateMultiArraySymbols(multiArraySymbols, [], s, "airvalue", stage, dim, s.id, 0);
+                return multiArraySymbols;
             }
-            if(!global) {
-                airvalue.stage = pilout.airValues[s.id].stage;
-                airvalue.dim = airvalue.stage != 1 ? 3 : 1;
-            }
-            return airvalue;
+            
         } else {
             throw new Error("Invalid type " + s.type);
         }
@@ -394,30 +416,31 @@ module.exports.formatSymbols = function formatSymbols(pilout, global = false) {
     return symbols;
 }
 
-function generateMultiArraySymbols(symbols, indexes, sym, type, dim, polId, shift) {
+function generateMultiArraySymbols(symbols, indexes, sym, type, stage, dim, polId, shift) {
     if (indexes.length === sym.lengths.length) {
 
-        const symbol = type === "public"
-            ? { name: sym.name, type: "public", stage: 1, dim: 1, id: polId + shift, lengths: indexes }
-            : {
+        const symbol = {
             name: sym.name,
             lengths: indexes,
             idx: shift,
-            stage: sym.stage,
             type,
             polId: polId + shift,
+            id: polId + shift,
             stageId: sym.id + shift,
+            stage,
             dim,
-            airId: sym.airId,
-            airgroupId: sym.airGroupId,
-        };
-        if(type === "custom") symbol.commitId = sym.commitId;
+        }
+
+        if(sym.hasOwnProperty("airId")) symbol.airId = sym.airId;
+        if(sym.hasOwnProperty("airGroupId")) symbol.airgroupId = sym.airGroupId;
+        if(sym.hasOwnProperty("commitId")) symbol.commitId = sym.commitId;
+    
         symbols.push(symbol);
         return shift + 1;
     }
 
     for (let i = 0; i < sym.lengths[indexes.length]; i++) {
-        shift = generateMultiArraySymbols(symbols, [...indexes, i], sym, type, dim, polId, shift);
+        shift = generateMultiArraySymbols(symbols, [...indexes, i], sym, type, stage, dim, polId, shift);
     }
 
     return shift;
