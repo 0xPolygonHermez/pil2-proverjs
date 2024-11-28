@@ -77,14 +77,17 @@ async function checkProof(proof, constRoot, starkInfo, verifierInfo, airoutInfo,
 
     log.info(`[${this.name}]`, `--> STARK verification (airgroupId ${proof.airgroupId} airId ${proof.airId})`);
 
-    const challengesFRIStepsProof = [];
-    for(let i = 0; i < starkInfo.starkStruct.steps.length; i++) {
-        let stepIndex = airoutInfo.stepsFRI.findIndex(step => step.nBits === starkInfo.starkStruct.steps[i].nBits);
-        challengesFRIStepsProof.push(challenges.challengesFRISteps[stepIndex]);
+    let challengesProof;
+    if(!options.isFinalProof) {
+        const challengesFRIStepsProof = [];
+        for(let i = 0; i < starkInfo.starkStruct.steps.length; i++) {
+            let stepIndex = airoutInfo.stepsFRI.findIndex(step => step.nBits === starkInfo.starkStruct.steps[i].nBits);
+            challengesFRIStepsProof.push(challenges.challengesFRISteps[stepIndex]);
+        }
+        challengesFRIStepsProof.push(challenges.challengesFRISteps[airoutInfo.stepsFRI.length]);
+        
+        challengesProof = { challenges: challenges.challenges, challengesFRISteps: challengesFRIStepsProof };
     }
-    challengesFRIStepsProof.push(challenges.challengesFRISteps[airoutInfo.stepsFRI.length]);
-    
-    const challengesProof = { challenges: challenges.challenges, challengesFRISteps: challengesFRIStepsProof };
 
     const isValid = await starkVerify(proof, proofValues, publics, constRoot, challengesProof, starkInfo, verifierInfo, options);
 

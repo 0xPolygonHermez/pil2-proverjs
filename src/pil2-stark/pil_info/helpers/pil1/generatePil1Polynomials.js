@@ -16,6 +16,7 @@ module.exports.generatePil1Polynomials = function generatePil1Polynomials(F, res
     res.nConstants = pil.nConstants;
 
     res.customCommits = [];
+    res.customCommitsMap = [];
 
     res.nStages = pil.plookupIdentities.length == 0 ? 2 : 3;
 

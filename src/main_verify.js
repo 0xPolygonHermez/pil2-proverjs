@@ -13,6 +13,7 @@ const argv = require("yargs")
     .usage("node main_verify.js -a airout -k proving_key -p <proofsDir> ")
     .alias("k", "provingkey")
     .alias("p", "proofsdir")
+    .alias("f", "final")
         .argv;
 
 async function run() {
@@ -31,7 +32,10 @@ async function run() {
 
     const proofs = [];
 
+    const isFinalProof = argv.final || false;
+
     for(let i = 0; i < proofsFiles.length; ++i) {
+        if((isFinalProof && !proofsFiles[i].includes("final_proof")) || (!isFinalProof && proofsFiles[i].includes("final_proof"))) continue;
         const proof = JSONbig.parse(await fs.promises.readFile(path.join(argv.proofsdir, "proofs", proofsFiles[i])));
         proofs.push(str2bigInt(proof));
     }
@@ -43,27 +47,35 @@ async function run() {
     
     const setups = [];
     
-    for(let i = 0; i < globalInfo.airs.length; ++i) {
-        const setupsAir = [];
-        for(let j = 0; j < globalInfo.airs[i].length; ++j) {
-            const airName = globalInfo.airs[i][j].name;
-            const pathAir = path.join(argv.provingkey, globalInfo.name, globalInfo.air_groups[i], "airs", globalInfo.airs[i][j].name, "air");
+    if(!isFinalProof) {
+        for(let i = 0; i < globalInfo.airs.length; ++i) {
+            const setupsAir = [];
+            for(let j = 0; j < globalInfo.airs[i].length; ++j) {
+                const airName = globalInfo.airs[i][j].name;
+                const pathAir = path.join(argv.provingkey, globalInfo.name, globalInfo.air_groups[i], "airs", globalInfo.airs[i][j].name, "air");
+                
+                const starkInfo = JSON.parse(await fs.promises.readFile(path.join(pathAir, `${airName}.starkinfo.json`), "utf8"));
             
-            const starkInfo = JSON.parse(await fs.promises.readFile(path.join(pathAir, `${airName}.starkinfo.json`), "utf8"));
-        
-            const verifierInfo = JSON.parse(await fs.promises.readFile(path.join(pathAir, `${airName}.verifierinfo.json`), "utf8"));
-        
-            const constRoot = JSONbig.parse(await fs.promises.readFile(path.join(pathAir, `${airName}.verkey.json`), "utf8"));
+                const verifierInfo = JSON.parse(await fs.promises.readFile(path.join(pathAir, `${airName}.verifierinfo.json`), "utf8"));
             
-            setupsAir.push({
-                starkInfo,
-                verifierInfo, 
-                constRoot,
-            })
+                const constRoot = JSONbig.parse(await fs.promises.readFile(path.join(pathAir, `${airName}.verkey.json`), "utf8"));
+                
+                setupsAir.push({
+                    starkInfo,
+                    verifierInfo, 
+                    constRoot,
+                })
+            }
+            setups.push(setupsAir);
         }
-        setups.push(setupsAir);
+    } else {
+        setups.push([{
+            starkInfo: JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, globalInfo.name, "final", `final.starkinfo.json`), "utf8")),
+            verifierInfo: JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, globalInfo.name, "final", `final.verifierinfo.json`), "utf8")),
+            constRoot: JSONbig.parse(await fs.promises.readFile(path.join(argv.provingkey, globalInfo.name, "final", `final.verkey.json`), "utf8")),
+        }]);
     }
-
+    
     const config = {
         name: globalInfo.name + "-" + Date.now(),
         verifier: { filename:  path.join(__dirname, "/verify/stark_fri_verifier.js") }
@@ -77,7 +89,8 @@ async function run() {
 
     const options = {
         vadcop: true,
-        logger: log
+        logger: log,
+        isFinalProof,
     }
 
     const isValid = await verifyCmd(setup, proofs, challenges, publics, proofValues, options);

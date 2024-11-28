@@ -390,7 +390,6 @@ module.exports.formatSymbols = function formatSymbols(pilout, global = false) {
                 return multiArraySymbols;
             }
         } else if(s.type === piloutTypes.AIR_VALUE) {
-            console.log(s);
             const stage = pilout.airValues[s.id].stage;
             const dim = stage != 1 ? 3 : 1
             if(!s.dim) {
