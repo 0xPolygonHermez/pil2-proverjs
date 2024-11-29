@@ -55,7 +55,7 @@ module.exports = async function pilInfo(F, pil, pil2 = true, starkStruct, option
         addIntermediatePolynomials(res, newExpressions, constraints, symbols, imInfo.imExps, imInfo.qDeg);
     }
     
-    map(res, symbols, expressions, constraints, options);       
+    map(res, symbols, newExpressions, constraints, options);       
 
     const {expressionsInfo, verifierInfo} = generatePilCode(res, symbols, constraints, newExpressions, hints, options.debug);
     

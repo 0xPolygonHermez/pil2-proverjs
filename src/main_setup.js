@@ -19,7 +19,9 @@ async function run() {
     const buildDir = argv.builddir || "tmp";
     await fs.promises.mkdir(buildDir, { recursive: true });
 
-    if(!argv.consttree) throw new Error("Bctree path must be provided");
+    if (!argv.consttree || !fs.existsSync(argv.consttree)) {
+        throw new Error("Bctree path must be provided and must be an executable file");
+    }
 
     let piloutPath = argv.airout;
 

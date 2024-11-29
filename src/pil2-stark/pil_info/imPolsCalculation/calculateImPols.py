@@ -228,8 +228,8 @@ optimal_degree = -1
 min_vars = len(expressions)
 possible_degree = 2
 
-print("-------------------- POSSIBLE DEGREES ----------------------")
-print("** Considering degrees between 2 and " + str(degree) + " (blowup factor: " + str(int(math.log2(degree - 1))) + ") **")
+print("-------------------- POSSIBLE DEGREES  ----------------------")
+print("** Python version: Considering degrees between 2 and " + str(degree) + " (blowup factor: " + str(int(math.log2(degree - 1))) + ") **")
 print("------------------------------------------------------------");
 
 while min_vars != 0 and possible_degree <= degree:
