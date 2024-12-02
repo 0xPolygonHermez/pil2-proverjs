@@ -78,7 +78,7 @@ async function checkProof(proof, constRoot, starkInfo, verifierInfo, airoutInfo,
     log.info(`[${this.name}]`, `--> STARK verification (airgroupId ${proof.airgroupId} airId ${proof.airId})`);
 
     let challengesProof;
-    if(!options.isFinalProof) {
+    if(!options.template) {
         const challengesFRIStepsProof = [];
         for(let i = 0; i < starkInfo.starkStruct.steps.length; i++) {
             let stepIndex = airoutInfo.stepsFRI.findIndex(step => step.nBits === starkInfo.starkStruct.steps[i].nBits);

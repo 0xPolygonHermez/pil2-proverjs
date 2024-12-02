@@ -7,7 +7,7 @@
 #include <condition_variable>
 #include <thread>
 
-#include "fr_goldilocks.hpp"
+#include "fr.hpp"
 
 typedef unsigned long long u64;
 typedef uint32_t u32;
@@ -42,6 +42,7 @@ struct Circom_Circuit {
   IOFieldDefPair* busInsId2FieldInfo;
 };
 
+
 struct Circom_Component {
   u32 templateId;
   u64 signalStart;
@@ -57,6 +58,23 @@ struct Circom_Component {
   std::thread *sbct = NULL;//subcomponent threads
 };
 
+/*
+For every template instantiation create two functions:
+- name_create
+- name_run
+
+//PFrElement: pointer to FrElement
+
+Every name_run or circom_function has:
+=====================================
+
+//array of PFrElements for auxiliars in expression computation (known size);
+PFrElements expaux[];
+
+//array of PFrElements for local vars (known size)
+PFrElements lvar[];
+
+*/
 
 uint get_main_input_signal_start();
 uint get_main_input_signal_no();

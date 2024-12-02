@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "circom.hpp"
-#include "fr_goldilocks.hpp"
+#include "fr.hpp"
 
 #define NMUTEXES 32 //512
 

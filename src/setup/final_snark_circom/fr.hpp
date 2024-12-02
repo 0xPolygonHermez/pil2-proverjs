@@ -1,11 +1,15 @@
-#ifndef __FR_GOLDILOCKS_H
-#define __FR_GOLDILOCKS_H
+#ifndef __FR_H
+#define __FR_H
 
 #include <stdint.h>
 #include <string>
 #include <gmp.h>
 
-#define Fr_N64 1
+#ifdef __APPLE__
+#include <sys/types.h> // typedef unsigned int uint;
+#endif // __APPLE__
+
+#define Fr_N64 4
 #define Fr_SHORT 0x00000000
 #define Fr_LONG 0x80000000
 #define Fr_LONGMONTGOMERY 0xC0000000
@@ -66,7 +70,6 @@ extern "C" int Fr_rawIsZero(const FrRawElement pRawB);
 
 // Pending functions to convert
 
-void Fr_str2element(PFrElement pE, char const*s);
 void Fr_str2element(PFrElement pE, char const*s, uint base);
 char *Fr_element2str(PFrElement pE);
 void Fr_idiv(PFrElement r, PFrElement a, PFrElement b);
@@ -79,7 +82,7 @@ class RawFr {
 
 public:
     const static int N64 = Fr_N64;
-    const static int MaxBits = 64;
+    const static int MaxBits = 254;
 
 
     struct Element {
@@ -125,7 +128,7 @@ public:
     Element inline add(const Element &a, int b) { return add(a, set(b));};
     Element inline sub(const Element &a, int b) { return sub(a, set(b));};
     Element inline mul(const Element &a, int b) { return mul(a, set(b));};
-    
+
     void inline mul1(Element &r, const Element &a, uint64_t b) { Fr_rawMMul1(r.v, a.v, b); };
     void inline neg(Element &r, const Element &a) { Fr_rawNeg(r.v, a.v); };
     void inline square(Element &r, const Element &a) { Fr_rawMSquare(r.v, a.v); };
@@ -143,9 +146,9 @@ public:
 
     int toRprBE(const Element &element, uint8_t *data, int bytes);
     int fromRprBE(Element &element, const uint8_t *data, int bytes);
-    
+
     int bytes ( void ) { return Fr_N64 * 8; };
-    
+
     void fromUI(Element &r, unsigned long int v);
 
     static RawFr field;

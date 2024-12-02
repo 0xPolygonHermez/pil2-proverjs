@@ -19,7 +19,7 @@ const { genFinalSetup } = require("../setup/generateFinalSetup.js");
 const { genRecursiveSetup } = require("../setup/generateRecursiveSetup.js");
 const { isCompressorNeeded } = require('../setup/is_compressor_needed.js');
 const { generateStarkStruct, setAiroutInfo, log2 } = require("../setup/utils.js");
-const { genRecursiveFSetup } = require('../setup/recursion/generateRecursiveFSetup.js');
+const { genFinalSnarkSetup } = require('../setup/generateFinalSnarkSetup.js');
 
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
@@ -32,6 +32,9 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         optImPols: (proofManagerConfig.setup && proofManagerConfig.setup.optImPols) || false,
         skipConstTree: (proofManagerConfig.setup && proofManagerConfig.setup.constTree !== undefined) ? true : false,
         constTree: proofManagerConfig.setup && proofManagerConfig.setup.constTree !== undefined ? proofManagerConfig.setup.constTree : undefined,
+        publicsInfo: proofManagerConfig.setup && proofManagerConfig.setup.publicsInfo,
+        powersOfTauFile: proofManagerConfig.setup && proofManagerConfig.setup.powersOfTauFile,
+        fflonkSetup: proofManagerConfig.setup && proofManagerConfig.setup.fflonkSetup,
     };
 
     let setup = [];
@@ -217,19 +220,16 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         const {starkInfoFinal,
             constRootFinal,
             verifierInfoFinal,
-            nBitsFinal,
         } = await genFinalSetup(buildDir, setupOptions, finalSettings, globalInfo, globalConstraints, 18);
         
-        // TODO: GENERATE COMPRESSOR / RECURSIVE1 / RECURSIVE2
-
-        await genRecursiveFSetup(
-            buildDir, setupOptions, "recursivef", globalInfo, constRootFinal, [],
-            starkInfoFinal, verifierInfoFinal,
-            12
-        );
-
-        // TODO: GENERATE FINAL
-
+        if(proofManagerConfig.setup.genAggregationSetup) {
+            await genFinalSnarkSetup(
+                buildDir, setupOptions, globalInfo, constRootFinal, [],
+                starkInfoFinal, verifierInfoFinal,
+                12,
+            );
+        }
+        
     } else {
         const airoutInfo = await setAiroutInfo(airout, starkStructs);
         airoutInfo.vadcopInfo.publicsMap = setup[0][0].starkInfo.publicsMap;

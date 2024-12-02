@@ -8,7 +8,7 @@ const { compressorSetup } = require('stark-recurser/src/circom2pil/compressor_se
 const { genCircom } = require('stark-recurser/src/gencircom.js');
 const { generateStarkStruct } = require("./utils");
 const path = require("path");
-const { runWitnessLibraryGenerationAwait } = require("./generateWitness");
+const { runWitnessLibraryGeneration, witnessLibraryGenerationAwait } = require("./generateWitness");
 
 const F3g = require("../pil2-stark/utils/f3g.js");
 const {starkSetup} = require("../pil2-stark/stark_setup");
@@ -60,7 +60,11 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     console.log("Copying circom files...");
     fs.copyFile(`${buildDir}/build/${nameFilename}_cpp/${nameFilename}.dat`, `${buildDir}/provingKey/${globalInfo.name}/${nameFilename}/${nameFilename}.dat`, (err) => { if(err) throw err; });
     
-    await runWitnessLibraryGenerationAwait(buildDir, filesDir, nameFilename, nameFilename);
+    runWitnessLibraryGeneration(buildDir, filesDir, nameFilename, nameFilename);
+
+    if(!setupOptions.powersOfTauFile) {
+        await witnessLibraryGenerationAwait();
+    }
 
     // Generate setup
     const finalR1csFile = `${buildDir}/build/${nameFilename}.r1cs`;

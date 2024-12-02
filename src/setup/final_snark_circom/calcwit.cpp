@@ -27,7 +27,7 @@ Circom_CalcWit::Circom_CalcWit (Circom_Circuit *aCircuit, uint maxTh) {
   circuit = aCircuit;
   inputSignalAssignedCounter = get_main_input_signal_no();
   inputSignalAssigned = new bool[inputSignalAssignedCounter];
-  for (unsigned int i = 0; i< inputSignalAssignedCounter; i++) {
+  for (int i = 0; i< inputSignalAssignedCounter; i++) {
     inputSignalAssigned[i] = false;
   }
   signalValues = new FrElement[get_total_signal_no()];
@@ -36,7 +36,7 @@ Circom_CalcWit::Circom_CalcWit (Circom_Circuit *aCircuit, uint maxTh) {
   circuitConstants = circuit ->circuitConstants;
   templateInsId2IOSignalInfo = circuit -> templateInsId2IOSignalInfo;
   busInsId2FieldInfo = circuit -> busInsId2FieldInfo;
-  
+
   maxThread = maxTh;
 
   // parallelism

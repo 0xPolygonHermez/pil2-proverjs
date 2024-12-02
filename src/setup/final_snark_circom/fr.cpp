@@ -1,4 +1,4 @@
-#include "fr_goldilocks.hpp"
+#include "fr.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 #include <gmp.h>
@@ -51,14 +51,6 @@ bool Fr_init() {
     mpz_mul_2exp(mask, one, nBits);
     mpz_sub(mask, mask, one);
     return true;
-}
-
-void Fr_str2element(PFrElement pE, char const *s) {
-    mpz_t mr;
-    mpz_init_set_str(mr, s, 10);
-    mpz_fdiv_r(mr, mr, q);
-    Fr_fromMpz(pE, mr);
-    mpz_clear(mr);
 }
 
 void Fr_str2element(PFrElement pE, char const *s, uint base) {

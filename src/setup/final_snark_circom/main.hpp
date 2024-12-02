@@ -24,7 +24,6 @@ Circom_Circuit *loadCircuit(std::string const &datFileName);
 void freeCircuit(Circom_Circuit *circuit);
 void loadJson(Circom_CalcWit *ctx, std::string filename);
 void loadJsonImpl(Circom_CalcWit *ctx, json &j);
-void writeBinWitness(Circom_CalcWit *ctx, std::string wtnsFileName);
 bool check_valid_number(std::string &s, uint base);
 
 extern "C" __attribute__((visibility("default"))) uint64_t getSizeWitness();

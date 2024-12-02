@@ -13,7 +13,7 @@ const argv = require("yargs")
     .usage("node main_verify.js -a airout -k proving_key -p <proofsDir> ")
     .alias("k", "provingkey")
     .alias("p", "proofsdir")
-    .alias("f", "final")
+    .alias("t", "template")
         .argv;
 
 async function run() {
@@ -32,14 +32,15 @@ async function run() {
 
     const proofs = [];
 
-    const isFinalProof = argv.final || false;
+    const template = argv.template;
 
     for(let i = 0; i < proofsFiles.length; ++i) {
-        if((isFinalProof && !proofsFiles[i].includes("final_proof")) || (!isFinalProof && proofsFiles[i].includes("final_proof"))) continue;
+        if((template && !proofsFiles[i].includes(template)) || (!template && !proofsFiles[i].startsWith("proof_"))) continue;
         const proof = JSONbig.parse(await fs.promises.readFile(path.join(argv.proofsdir, "proofs", proofsFiles[i])));
         proofs.push(str2bigInt(proof));
     }
 
+    if(!proofs.length) throw new Error("No proof was found with name " + template);
 
     const globalConstraints = JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, "pilout.globalConstraints.json")));
 
@@ -47,7 +48,7 @@ async function run() {
     
     const setups = [];
     
-    if(!isFinalProof) {
+    if(!template) {
         for(let i = 0; i < globalInfo.airs.length; ++i) {
             const setupsAir = [];
             for(let j = 0; j < globalInfo.airs[i].length; ++j) {
@@ -70,9 +71,9 @@ async function run() {
         }
     } else {
         setups.push([{
-            starkInfo: JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, globalInfo.name, "final", `final.starkinfo.json`), "utf8")),
-            verifierInfo: JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, globalInfo.name, "final", `final.verifierinfo.json`), "utf8")),
-            constRoot: JSONbig.parse(await fs.promises.readFile(path.join(argv.provingkey, globalInfo.name, "final", `final.verkey.json`), "utf8")),
+            starkInfo: JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, globalInfo.name, template, `${template}.starkinfo.json`), "utf8")),
+            verifierInfo: JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, globalInfo.name, template, `${template}.verifierinfo.json`), "utf8")),
+            constRoot: JSONbig.parse(await fs.promises.readFile(path.join(argv.provingkey, globalInfo.name, template, `${template}.verkey.json`), "utf8")),
         }]);
     }
     
@@ -90,7 +91,7 @@ async function run() {
     const options = {
         vadcop: true,
         logger: log,
-        isFinalProof,
+        template,
     }
 
     const isValid = await verifyCmd(setup, proofs, challenges, publics, proofValues, options);

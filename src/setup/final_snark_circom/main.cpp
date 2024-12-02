@@ -1,5 +1,6 @@
 #include "main.hpp"
 
+
 #define handle_error(msg) \
            do { perror(msg); exit(EXIT_FAILURE); } while (0)
 
@@ -221,7 +222,6 @@ void qualify_input(std::string prefix, json &in, json &in1) {
     in1[prefix] = in;
   }
 }
-
 void loadJsonImpl(Circom_CalcWit *ctx, json &j) {
   u64 nItems = j.size();
   // printf("Items : %llu\n",nItems);
@@ -277,6 +277,7 @@ void freeCircuit(Circom_Circuit *circuit)
   delete circuit;
 }
 
+
 extern "C" __attribute__((visibility("default"))) uint64_t getSizeWitness()  {
   return get_size_of_witness();
 }
@@ -300,16 +301,18 @@ extern "C" __attribute__((visibility("default"))) void getWitness(void *zkin, ch
     //-------------------------------------------
     // Compute witness
     //------------------------------------------- 
-    uint64_t *witness = (uint64_t *)pWitness;
     uint64_t sizeWitness = get_size_of_witness();
+    uint8_t* witness = (uint8_t *)pWitness;
+    FrElement v;
     for (uint64_t i = 0; i < sizeWitness; i++)
     {
       FrElement aux;
-      ctx->getWitness(i, &aux);
-      Fr_toLongNormal(&aux, &aux);
-      witness[i] = aux.longVal[0];
+      ctx->getWitness(i, &v);
+      Fr_toLongNormal(&v, &v);
+      memcpy(witness + i * 32, &v.longVal, sizeof(v.longVal));
     }
     
     delete ctx;
     freeCircuit(circuit);
 }
+

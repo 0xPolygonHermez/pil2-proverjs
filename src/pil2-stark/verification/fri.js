@@ -17,8 +17,9 @@ class FRI {
             if(this.logger) this.logger.debug("Verifying MH FRI step: " + this.steps[si].nBits);
             const root = proof[si - 1].root;
             for (let i=0; i<this.nQueries; i++) {
+                let queryIdx = friQueries[i] % (1 << this.steps[si].nBits);
                 const query = proof[si - 1].polQueries[i];
-                const res = this.MH.verifyGroupProof(root, query[1], friQueries[i], query[0]);
+                const res = this.MH.verifyGroupProof(root, query[1], queryIdx, query[0]);
                 if (!res) return false;
             }
         }

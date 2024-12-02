@@ -64,6 +64,10 @@
 
 
 
+
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;
 ; copy
 ;;;;;;;;;;;;;;;;;;;;;;
@@ -82,6 +86,15 @@ Fr_copy:
 
         mov     rax, [rsi + 8]
         mov     [rdi + 8], rax
+
+        mov     rax, [rsi + 16]
+        mov     [rdi + 16], rax
+
+        mov     rax, [rsi + 24]
+        mov     [rdi + 24], rax
+
+        mov     rax, [rsi + 32]
+        mov     [rdi + 32], rax
 
         ret
 
@@ -102,6 +115,15 @@ Fr_rawCopy:
         mov     rax, [rsi + 0]
         mov     [rdi + 0], rax
 
+        mov     rax, [rsi + 8]
+        mov     [rdi + 8], rax
+
+        mov     rax, [rsi + 16]
+        mov     [rdi + 16], rax
+
+        mov     rax, [rsi + 24]
+        mov     [rdi + 24], rax
+
         ret
 
 
@@ -119,6 +141,12 @@ Fr_rawZero:
         xor     rax, rax
 
         mov     [rdi + 0], rax
+
+        mov     [rdi + 8], rax
+
+        mov     [rdi + 16], rax
+
+        mov     [rdi + 24], rax
 
         ret
 
@@ -140,6 +168,21 @@ Fr_rawSwap:
         mov     [rdi + 0], rax
         mov     [rsi + 0], rbx
 
+        mov     rax, [rsi + 8]
+        mov     rcx, [rdi + 8]
+        mov     [rdi + 8], rax
+        mov     [rsi + 8], rbx
+
+        mov     rax, [rsi + 16]
+        mov     rcx, [rdi + 16]
+        mov     [rdi + 16], rax
+        mov     [rsi + 16], rbx
+
+        mov     rax, [rsi + 24]
+        mov     rcx, [rdi + 24]
+        mov     [rdi + 24], rax
+        mov     [rsi + 24], rbx
+
         ret
 
 
@@ -159,7 +202,7 @@ Fr_copyn:
 Fr_copyn_loop:
         mov     r8, rsi
         mov     r9, rdi
-        mov     rax, 2
+        mov     rax, 5
         mul     rdx
         mov     rcx, rax
         cld
@@ -191,6 +234,12 @@ rawCopyS2L:
         mov     [rdi + 8], rsi
         xor     rax, rax
 
+        mov     [rdi + 16], rax
+
+        mov     [rdi + 24], rax
+
+        mov     [rdi + 32], rax
+
         ret
 
 u64toLong_adjust_neg:
@@ -198,6 +247,18 @@ u64toLong_adjust_neg:
         mov    [rdi + 8], rsi   ;
 
         mov    rsi, -1          ; all ones
+
+        mov    rax, rsi                       ; Add to q
+        adc    rax, [q + 8 ]
+        mov    [rdi + 16], rax
+
+        mov    rax, rsi                       ; Add to q
+        adc    rax, [q + 16 ]
+        mov    [rdi + 24], rax
+
+        mov    rax, rsi                       ; Add to q
+        adc    rax, [q + 24 ]
+        mov    [rdi + 32], rax
 
         ret
 
@@ -226,21 +287,30 @@ Fr_long:
         jnc     Fr_longNormal
 Fr_longMontgomery:
 
-        mov  r8, rdi
-        sub  rsp, 16
-        mov  rdi, rsp
-        push rdx
-        push r8
-        call Fr_toNormal
+        sub  rsp, 40
+        push rsi
         mov  rsi, rdi
-        pop  rdi
-        pop  rdx
+        mov  rdi, rsp
+        call Fr_toNormal
+        pop  rsi
 
 
 Fr_longNormal:
         mov     rax, [rdi + 8]
         mov     rcx, rax
         shr     rcx, 31
+        jnz     Fr_longNeg
+
+        mov     rcx, [rdi + 16]
+        test    rcx, rcx
+        jnz     Fr_longNeg
+
+        mov     rcx, [rdi + 24]
+        test    rcx, rcx
+        jnz     Fr_longNeg
+
+        mov     rcx, [rdi + 32]
+        test    rcx, rcx
         jnz     Fr_longNeg
 
         mov rsp, rbp
@@ -252,6 +322,18 @@ Fr_longNormal:
 Fr_longNeg:
         mov     rax, [rdi + 8]
         sub     rax, [q]
+        jnc     Fr_longErr
+
+        mov     rcx, [rdi + 16]
+        sbb     rcx, [q + 8]
+        jnc     Fr_longErr
+
+        mov     rcx, [rdi + 24]
+        sbb     rcx, [q + 16]
+        jnc     Fr_longErr
+
+        mov     rcx, [rdi + 32]
+        sbb     rcx, [q + 24]
         jnc     Fr_longErr
 
         mov     rcx, rax
@@ -267,6 +349,8 @@ Fr_longNeg:
 Fr_longErr:
         push    rdi
         mov     rdi, 0
+        mov     bx, 0
+        div     bx    
         pop     rdi
         mov rsp, rbp
         pop rdx
@@ -279,6 +363,8 @@ Fr_longErr:
 
 
 Fr_rawMMul:
+    push r15
+    push r14
     push r13
     push r12
     mov rcx,rdx
@@ -288,36 +374,165 @@ Fr_rawMMul:
 ; FirstLoop
     mov rdx,[rsi + 0]
     mulx rax,r11,[rcx]
-    mov r12,r10
+    mulx r8,r12,[rcx +8]
     adcx r12,rax
-    mov r13,r10
-    adcx r13,r10
+    mulx rax,r13,[rcx +16]
+    adcx r13,r8
+    mulx r8,r14,[rcx +24]
+    adcx r14,rax
+    mov r15,r10
+    adcx r15,r8
 ; SecondLoop
     mov rdx,r9
     mulx rax,rdx,r11
     mulx r8,rax,[q]
     adcx rax,r11
-    mov r11,r10
+    mulx rax,r11,[q +8]
     adcx r11,r8
     adox r11,r12
-    mov r12,r10
-    adcx r12,r10
+    mulx r8,r12,[q +16]
+    adcx r12,rax
     adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
+
+; FirstLoop
+    mov rdx,[rsi + 8]
+    mov r15,r10
+    mulx r8,rax,[rcx +0]
+    adcx r11,rax
+    adox r12,r8
+    mulx r8,rax,[rcx +8]
+    adcx r12,rax
+    adox r13,r8
+    mulx r8,rax,[rcx +16]
+    adcx r13,rax
+    adox r14,r8
+    mulx r8,rax,[rcx +24]
+    adcx r14,rax
+    adox r15,r8
+    adcx r15,r10
+; SecondLoop
+    mov rdx,r9
+    mulx rax,rdx,r11
+    mulx r8,rax,[q]
+    adcx rax,r11
+    mulx rax,r11,[q +8]
+    adcx r11,r8
+    adox r11,r12
+    mulx r8,r12,[q +16]
+    adcx r12,rax
+    adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
+
+; FirstLoop
+    mov rdx,[rsi + 16]
+    mov r15,r10
+    mulx r8,rax,[rcx +0]
+    adcx r11,rax
+    adox r12,r8
+    mulx r8,rax,[rcx +8]
+    adcx r12,rax
+    adox r13,r8
+    mulx r8,rax,[rcx +16]
+    adcx r13,rax
+    adox r14,r8
+    mulx r8,rax,[rcx +24]
+    adcx r14,rax
+    adox r15,r8
+    adcx r15,r10
+; SecondLoop
+    mov rdx,r9
+    mulx rax,rdx,r11
+    mulx r8,rax,[q]
+    adcx rax,r11
+    mulx rax,r11,[q +8]
+    adcx r11,r8
+    adox r11,r12
+    mulx r8,r12,[q +16]
+    adcx r12,rax
+    adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
+
+; FirstLoop
+    mov rdx,[rsi + 24]
+    mov r15,r10
+    mulx r8,rax,[rcx +0]
+    adcx r11,rax
+    adox r12,r8
+    mulx r8,rax,[rcx +8]
+    adcx r12,rax
+    adox r13,r8
+    mulx r8,rax,[rcx +16]
+    adcx r13,rax
+    adox r14,r8
+    mulx r8,rax,[rcx +24]
+    adcx r14,rax
+    adox r15,r8
+    adcx r15,r10
+; SecondLoop
+    mov rdx,r9
+    mulx rax,rdx,r11
+    mulx r8,rax,[q]
+    adcx rax,r11
+    mulx rax,r11,[q +8]
+    adcx r11,r8
+    adox r11,r12
+    mulx r8,r12,[q +16]
+    adcx r12,rax
+    adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
 
 ;comparison
-    test r12,r12
-jnz Fr_rawMMul_sq
+    cmp r14,[q + 24]
+    jc Fr_rawMMul_done
+    jnz Fr_rawMMul_sq
+    cmp r13,[q + 16]
+    jc Fr_rawMMul_done
+    jnz Fr_rawMMul_sq
+    cmp r12,[q + 8]
+    jc Fr_rawMMul_done
+    jnz Fr_rawMMul_sq
     cmp r11,[q + 0]
     jc Fr_rawMMul_done
     jnz Fr_rawMMul_sq
 Fr_rawMMul_sq:
     sub r11,[q +0]
+    sbb r12,[q +8]
+    sbb r13,[q +16]
+    sbb r14,[q +24]
 Fr_rawMMul_done:
     mov [rdi + 0],r11
+    mov [rdi + 8],r12
+    mov [rdi + 16],r13
+    mov [rdi + 24],r14
     pop r12
     pop r13
+    pop r14
+    pop r15
     ret
 Fr_rawMSquare:
+    push r15
+    push r14
     push r13
     push r12
     mov rcx,rdx
@@ -327,36 +542,165 @@ Fr_rawMSquare:
 ; FirstLoop
     mov rdx,[rsi + 0]
     mulx rax,r11,rdx
-    mov r12,r10
+    mulx r8,r12,[rsi +8]
     adcx r12,rax
-    mov r13,r10
-    adcx r13,r10
+    mulx rax,r13,[rsi +16]
+    adcx r13,r8
+    mulx r8,r14,[rsi +24]
+    adcx r14,rax
+    mov r15,r10
+    adcx r15,r8
 ; SecondLoop
     mov rdx,r9
     mulx rax,rdx,r11
     mulx r8,rax,[q]
     adcx rax,r11
-    mov r11,r10
+    mulx rax,r11,[q +8]
     adcx r11,r8
     adox r11,r12
-    mov r12,r10
-    adcx r12,r10
+    mulx r8,r12,[q +16]
+    adcx r12,rax
     adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
+
+; FirstLoop
+    mov rdx,[rsi + 8]
+    mov r15,r10
+    mulx r8,rax,[rsi +0]
+    adcx r11,rax
+    adox r12,r8
+    mulx r8,rax,[rsi +8]
+    adcx r12,rax
+    adox r13,r8
+    mulx r8,rax,[rsi +16]
+    adcx r13,rax
+    adox r14,r8
+    mulx r8,rax,[rsi +24]
+    adcx r14,rax
+    adox r15,r8
+    adcx r15,r10
+; SecondLoop
+    mov rdx,r9
+    mulx rax,rdx,r11
+    mulx r8,rax,[q]
+    adcx rax,r11
+    mulx rax,r11,[q +8]
+    adcx r11,r8
+    adox r11,r12
+    mulx r8,r12,[q +16]
+    adcx r12,rax
+    adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
+
+; FirstLoop
+    mov rdx,[rsi + 16]
+    mov r15,r10
+    mulx r8,rax,[rsi +0]
+    adcx r11,rax
+    adox r12,r8
+    mulx r8,rax,[rsi +8]
+    adcx r12,rax
+    adox r13,r8
+    mulx r8,rax,[rsi +16]
+    adcx r13,rax
+    adox r14,r8
+    mulx r8,rax,[rsi +24]
+    adcx r14,rax
+    adox r15,r8
+    adcx r15,r10
+; SecondLoop
+    mov rdx,r9
+    mulx rax,rdx,r11
+    mulx r8,rax,[q]
+    adcx rax,r11
+    mulx rax,r11,[q +8]
+    adcx r11,r8
+    adox r11,r12
+    mulx r8,r12,[q +16]
+    adcx r12,rax
+    adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
+
+; FirstLoop
+    mov rdx,[rsi + 24]
+    mov r15,r10
+    mulx r8,rax,[rsi +0]
+    adcx r11,rax
+    adox r12,r8
+    mulx r8,rax,[rsi +8]
+    adcx r12,rax
+    adox r13,r8
+    mulx r8,rax,[rsi +16]
+    adcx r13,rax
+    adox r14,r8
+    mulx r8,rax,[rsi +24]
+    adcx r14,rax
+    adox r15,r8
+    adcx r15,r10
+; SecondLoop
+    mov rdx,r9
+    mulx rax,rdx,r11
+    mulx r8,rax,[q]
+    adcx rax,r11
+    mulx rax,r11,[q +8]
+    adcx r11,r8
+    adox r11,r12
+    mulx r8,r12,[q +16]
+    adcx r12,rax
+    adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
 
 ;comparison
-    test r12,r12
-jnz Fr_rawMSquare_sq
+    cmp r14,[q + 24]
+    jc Fr_rawMSquare_done
+    jnz Fr_rawMSquare_sq
+    cmp r13,[q + 16]
+    jc Fr_rawMSquare_done
+    jnz Fr_rawMSquare_sq
+    cmp r12,[q + 8]
+    jc Fr_rawMSquare_done
+    jnz Fr_rawMSquare_sq
     cmp r11,[q + 0]
     jc Fr_rawMSquare_done
     jnz Fr_rawMSquare_sq
 Fr_rawMSquare_sq:
     sub r11,[q +0]
+    sbb r12,[q +8]
+    sbb r13,[q +16]
+    sbb r14,[q +24]
 Fr_rawMSquare_done:
     mov [rdi + 0],r11
+    mov [rdi + 8],r12
+    mov [rdi + 16],r13
+    mov [rdi + 24],r14
     pop r12
     pop r13
+    pop r14
+    pop r15
     ret
 Fr_rawMMul1:
+    push r15
+    push r14
     push r13
     push r12
     mov rcx,rdx
@@ -366,36 +710,120 @@ Fr_rawMMul1:
 ; FirstLoop
     mov rdx,rcx
     mulx rax,r11,[rsi]
-    mov r12,r10
+    mulx r8,r12,[rsi +8]
     adcx r12,rax
-    mov r13,r10
-    adcx r13,r10
+    mulx rax,r13,[rsi +16]
+    adcx r13,r8
+    mulx r8,r14,[rsi +24]
+    adcx r14,rax
+    mov r15,r10
+    adcx r15,r8
 ; SecondLoop
     mov rdx,r9
     mulx rax,rdx,r11
     mulx r8,rax,[q]
     adcx rax,r11
-    mov r11,r10
+    mulx rax,r11,[q +8]
     adcx r11,r8
     adox r11,r12
-    mov r12,r10
-    adcx r12,r10
+    mulx r8,r12,[q +16]
+    adcx r12,rax
     adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
+
+    mov r15,r10
+; SecondLoop
+    mov rdx,r9
+    mulx rax,rdx,r11
+    mulx r8,rax,[q]
+    adcx rax,r11
+    mulx rax,r11,[q +8]
+    adcx r11,r8
+    adox r11,r12
+    mulx r8,r12,[q +16]
+    adcx r12,rax
+    adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
+
+    mov r15,r10
+; SecondLoop
+    mov rdx,r9
+    mulx rax,rdx,r11
+    mulx r8,rax,[q]
+    adcx rax,r11
+    mulx rax,r11,[q +8]
+    adcx r11,r8
+    adox r11,r12
+    mulx r8,r12,[q +16]
+    adcx r12,rax
+    adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
+
+    mov r15,r10
+; SecondLoop
+    mov rdx,r9
+    mulx rax,rdx,r11
+    mulx r8,rax,[q]
+    adcx rax,r11
+    mulx rax,r11,[q +8]
+    adcx r11,r8
+    adox r11,r12
+    mulx r8,r12,[q +16]
+    adcx r12,rax
+    adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
 
 ;comparison
-    test r12,r12
-jnz Fr_rawMMul1_sq
+    cmp r14,[q + 24]
+    jc Fr_rawMMul1_done
+    jnz Fr_rawMMul1_sq
+    cmp r13,[q + 16]
+    jc Fr_rawMMul1_done
+    jnz Fr_rawMMul1_sq
+    cmp r12,[q + 8]
+    jc Fr_rawMMul1_done
+    jnz Fr_rawMMul1_sq
     cmp r11,[q + 0]
     jc Fr_rawMMul1_done
     jnz Fr_rawMMul1_sq
 Fr_rawMMul1_sq:
     sub r11,[q +0]
+    sbb r12,[q +8]
+    sbb r13,[q +16]
+    sbb r14,[q +24]
 Fr_rawMMul1_done:
     mov [rdi + 0],r11
+    mov [rdi + 8],r12
+    mov [rdi + 16],r13
+    mov [rdi + 24],r14
     pop r12
     pop r13
+    pop r14
+    pop r15
     ret
 Fr_rawFromMontgomery:
+    push r15
+    push r14
     push r13
     push r12
     mov rcx,rdx
@@ -404,32 +832,112 @@ Fr_rawFromMontgomery:
 
 ; FirstLoop
     mov r11,[rsi +0]
-    mov r12,r10
-    mov r13,r10
+    mov r12,[rsi +8]
+    mov r13,[rsi +16]
+    mov r14,[rsi +24]
+    mov r15,r10
 ; SecondLoop
     mov rdx,r9
     mulx rax,rdx,r11
     mulx r8,rax,[q]
     adcx rax,r11
-    mov r11,r10
+    mulx rax,r11,[q +8]
     adcx r11,r8
     adox r11,r12
-    mov r12,r10
-    adcx r12,r10
+    mulx r8,r12,[q +16]
+    adcx r12,rax
     adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
+
+    mov r15,r10
+; SecondLoop
+    mov rdx,r9
+    mulx rax,rdx,r11
+    mulx r8,rax,[q]
+    adcx rax,r11
+    mulx rax,r11,[q +8]
+    adcx r11,r8
+    adox r11,r12
+    mulx r8,r12,[q +16]
+    adcx r12,rax
+    adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
+
+    mov r15,r10
+; SecondLoop
+    mov rdx,r9
+    mulx rax,rdx,r11
+    mulx r8,rax,[q]
+    adcx rax,r11
+    mulx rax,r11,[q +8]
+    adcx r11,r8
+    adox r11,r12
+    mulx r8,r12,[q +16]
+    adcx r12,rax
+    adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
+
+    mov r15,r10
+; SecondLoop
+    mov rdx,r9
+    mulx rax,rdx,r11
+    mulx r8,rax,[q]
+    adcx rax,r11
+    mulx rax,r11,[q +8]
+    adcx r11,r8
+    adox r11,r12
+    mulx r8,r12,[q +16]
+    adcx r12,rax
+    adox r12,r13
+    mulx rax,r13,[q +24]
+    adcx r13,r8
+    adox r13,r14
+    mov r14,r10
+    adcx r14,rax
+    adox r14,r15
 
 ;comparison
-    test r12,r12
-jnz Fr_rawFromMontgomery_sq
+    cmp r14,[q + 24]
+    jc Fr_rawFromMontgomery_done
+    jnz Fr_rawFromMontgomery_sq
+    cmp r13,[q + 16]
+    jc Fr_rawFromMontgomery_done
+    jnz Fr_rawFromMontgomery_sq
+    cmp r12,[q + 8]
+    jc Fr_rawFromMontgomery_done
+    jnz Fr_rawFromMontgomery_sq
     cmp r11,[q + 0]
     jc Fr_rawFromMontgomery_done
     jnz Fr_rawFromMontgomery_sq
 Fr_rawFromMontgomery_sq:
     sub r11,[q +0]
+    sbb r12,[q +8]
+    sbb r13,[q +16]
+    sbb r14,[q +24]
 Fr_rawFromMontgomery_done:
     mov [rdi + 0],r11
+    mov [rdi + 8],r12
+    mov [rdi + 16],r13
+    mov [rdi + 24],r14
     pop r12
     pop r13
+    pop r14
+    pop r15
     ret
 
 ;;;;;;;;;;;;;;;;;;;;;;
@@ -687,7 +1195,7 @@ add_l1ms2n:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -774,7 +1282,7 @@ add_s1nl2m:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -846,7 +1354,7 @@ add_l1nl2m:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -878,7 +1386,7 @@ add_l1ml2n:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -941,10 +1449,43 @@ Fr_rawAdd:
         add rax, [rdx + 0]
         mov [rdi + 0], rax
 
+        mov rax, [rsi + 8]
+        adc rax, [rdx + 8]
+        mov [rdi + 8], rax
+
+        mov rax, [rsi + 16]
+        adc rax, [rdx + 16]
+        mov [rdi + 16], rax
+
+        mov rax, [rsi + 24]
+        adc rax, [rdx + 24]
+        mov [rdi + 24], rax
+
         jc rawAddLL_sq   ; if overflow, substract q
 
         ; Compare with q
 
+
+        cmp rax, [q + 24]
+        jc rawAddLL_done        ; q is bigget so done.
+        jnz rawAddLL_sq         ; q is lower
+
+
+        mov rax, [rdi + 16]
+
+        cmp rax, [q + 16]
+        jc rawAddLL_done        ; q is bigget so done.
+        jnz rawAddLL_sq         ; q is lower
+
+
+        mov rax, [rdi + 8]
+
+        cmp rax, [q + 8]
+        jc rawAddLL_done        ; q is bigget so done.
+        jnz rawAddLL_sq         ; q is lower
+
+
+        mov rax, [rdi + 0]
 
         cmp rax, [q + 0]
         jc rawAddLL_done        ; q is bigget so done.
@@ -955,6 +1496,15 @@ rawAddLL_sq:
 
         mov rax, [q + 0]
         sub [rdi + 0], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 8], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 24], rax
 
 rawAddLL_done:
         ret
@@ -975,9 +1525,36 @@ rawAddLS:
         add rdx, [rsi]
         mov [rdi] ,rdx
 
+        mov rdx, 0
+        adc rdx, [rsi + 8]
+        mov [rdi + 8], rdx
+
+        mov rdx, 0
+        adc rdx, [rsi + 16]
+        mov [rdi + 16], rdx
+
+        mov rdx, 0
+        adc rdx, [rsi + 24]
+        mov [rdi + 24], rdx
+
         jc rawAddLS_sq   ; if overflow, substract q
 
         ; Compare with q
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 24]
+        jc rawAddLS_done        ; q is bigget so done.
+        jnz rawAddLS_sq         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 16]
+        jc rawAddLS_done        ; q is bigget so done.
+        jnz rawAddLS_sq         ; q is lower
+
+        mov rax, [rdi + 8]
+        cmp rax, [q + 8]
+        jc rawAddLS_done        ; q is bigget so done.
+        jnz rawAddLS_sq         ; q is lower
 
         mov rax, [rdi + 0]
         cmp rax, [q + 0]
@@ -989,6 +1566,15 @@ rawAddLS_sq:
 
         mov rax, [q + 0]
         sub [rdi + 0], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 8], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 24], rax
 
 rawAddLS_done:
         ret
@@ -1105,7 +1691,7 @@ sub_l1ms2n:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -1200,7 +1786,7 @@ sub_s1nl2m:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -1272,7 +1858,7 @@ sub_l1nl2m:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -1304,7 +1890,7 @@ sub_l1ml2n:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -1367,6 +1953,18 @@ rawSubLS:
         mov [rdi] ,rax
         mov rdx, 0
 
+        mov rax, [rsi + 8]
+        sbb rax, rdx
+        mov [rdi + 8], rax
+
+        mov rax, [rsi + 16]
+        sbb rax, rdx
+        mov [rdi + 16], rax
+
+        mov rax, [rsi + 24]
+        sbb rax, rdx
+        mov [rdi + 24], rax
+
         jnc rawSubLS_done   ; if overflow, add q
 
         ; Add q
@@ -1374,6 +1972,15 @@ rawSubLS_aq:
 
         mov rax, [q + 0]
         add [rdi + 0], rax
+
+        mov rax, [q + 8]
+        adc [rdi + 8], rax
+
+        mov rax, [q + 16]
+        adc [rdi + 16], rax
+
+        mov rax, [q + 24]
+        adc [rdi + 24], rax
 
 rawSubLS_done:
         ret
@@ -1398,6 +2005,18 @@ rawSubSL:
         mov [rdi] ,rsi
 
 
+        mov rax, 0
+        sbb rax, [rdx + 8]
+        mov [rdi + 8], rax
+
+        mov rax, 0
+        sbb rax, [rdx + 16]
+        mov [rdi + 16], rax
+
+        mov rax, 0
+        sbb rax, [rdx + 24]
+        mov [rdi + 24], rax
+
         jnc rawSubSL_done   ; if overflow, add q
 
         ; Add q
@@ -1405,6 +2024,15 @@ rawSubSL_aq:
 
         mov rax, [q + 0]
         add [rdi + 0], rax
+
+        mov rax, [q + 8]
+        adc [rdi + 8], rax
+
+        mov rax, [q + 16]
+        adc [rdi + 16], rax
+
+        mov rax, [q + 24]
+        adc [rdi + 24], rax
 
 rawSubSL_done:
         ret
@@ -1430,6 +2058,18 @@ Fr_rawSub:
         sub rax, [rdx + 0]
         mov [rdi + 0], rax
 
+        mov rax, [rsi + 8]
+        sbb rax, [rdx + 8]
+        mov [rdi + 8], rax
+
+        mov rax, [rsi + 16]
+        sbb rax, [rdx + 16]
+        mov [rdi + 16], rax
+
+        mov rax, [rsi + 24]
+        sbb rax, [rdx + 24]
+        mov [rdi + 24], rax
+
         jnc rawSubLL_done   ; if overflow, add q
 
         ; Add q
@@ -1437,6 +2077,15 @@ rawSubLL_aq:
 
         mov rax, [q + 0]
         add [rdi + 0], rax
+
+        mov rax, [q + 8]
+        adc [rdi + 8], rax
+
+        mov rax, [q + 16]
+        adc [rdi + 16], rax
+
+        mov rax, [q + 24]
+        adc [rdi + 24], rax
 
 rawSubLL_done:
         ret
@@ -1459,12 +2108,36 @@ rawNegLS:
         sub rax, rdx
         mov [rdi], rax
 
+        mov rax, [q + 8 ]
+        sbb rax, 0
+        mov [rdi + 8], rax
+
+        mov rax, [q + 16 ]
+        sbb rax, 0
+        mov [rdi + 16], rax
+
+        mov rax, [q + 24 ]
+        sbb rax, 0
+        mov [rdi + 24], rax
+
         setc dl
 
 
         mov rax, [rdi + 0 ]
         sub rax, [rsi + 0]
         mov [rdi + 0], rax
+
+        mov rax, [rdi + 8 ]
+        sbb rax, [rsi + 8]
+        mov [rdi + 8], rax
+
+        mov rax, [rdi + 16 ]
+        sbb rax, [rsi + 16]
+        mov [rdi + 16], rax
+
+        mov rax, [rdi + 24 ]
+        sbb rax, [rsi + 24]
+        mov [rdi + 24], rax
 
 
         setc dh
@@ -1475,6 +2148,15 @@ rawNegLS:
 
         mov rax, [q + 0]
         add [rdi + 0], rax
+
+        mov rax, [q + 8]
+        adc [rdi + 8], rax
+
+        mov rax, [q + 16]
+        adc [rdi + 16], rax
+
+        mov rax, [q + 24]
+        adc [rdi + 24], rax
 
 
 rawNegSL_done:
@@ -1549,9 +2231,24 @@ Fr_rawNeg:
         cmp [rsi + 0], rax
         jnz doNegate
 
+        cmp [rsi + 8], rax
+        jnz doNegate
+
+        cmp [rsi + 16], rax
+        jnz doNegate
+
+        cmp [rsi + 24], rax
+        jnz doNegate
+
         ; it's zero so just set to zero
 
         mov [rdi + 0], rax
+
+        mov [rdi + 8], rax
+
+        mov [rdi + 16], rax
+
+        mov [rdi + 24], rax
 
         ret
 doNegate:
@@ -1559,6 +2256,18 @@ doNegate:
         mov rax, [q + 0]
         sub rax, [rsi + 0]
         mov [rdi + 0], rax
+
+        mov rax, [q + 8]
+        sbb rax, [rsi + 8]
+        mov [rdi + 8], rax
+
+        mov rax, [q + 16]
+        sbb rax, [rsi + 16]
+        mov [rdi + 16], rax
+
+        mov rax, [q + 24]
+        sbb rax, [rsi + 24]
+        mov [rdi + 24], rax
 
         ret
 
@@ -2052,7 +2761,7 @@ tmp_13:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -2064,7 +2773,7 @@ tmp_13:
 
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -2078,15 +2787,45 @@ tmp_13:
         mov rax, [rsi + 8]
         and rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        and rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        and rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        and rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_15        ; q is bigget so done.
+        jnz tmp_14         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_15        ; q is bigget so done.
+        jnz tmp_14         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_15        ; q is bigget so done.
+        jnz tmp_14         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2098,6 +2837,15 @@ tmp_14:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_15:
 
@@ -2133,11 +2881,43 @@ and_l1ns2:
         and rax, [rsi +8]
         mov    [rdi+8], rax
 
+        xor    rax, rax
+        and rax, [rsi + 16];
+
+        mov    [rdi + 16 ], rax;
+
+        xor    rax, rax
+        and rax, [rsi + 24];
+
+        mov    [rdi + 24 ], rax;
+
+        xor    rax, rax
+        and rax, [rsi + 32];
+
+        and    rax, [lboMask] ;
+
+        mov    [rdi + 32 ], rax;
+
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_18        ; q is bigget so done.
+        jnz tmp_17         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_18        ; q is bigget so done.
+        jnz tmp_17         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_18        ; q is bigget so done.
+        jnz tmp_17         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2150,6 +2930,15 @@ tmp_17:
         mov rax, [q + 0]
         sub [rdi + 8], rax
 
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
+
 tmp_18:
 
         mov rsp, rbp
@@ -2161,7 +2950,7 @@ tmp_18:
 tmp_16:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -2179,15 +2968,45 @@ tmp_16:
         mov rax, [rsi + 8]
         and rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        and rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        and rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        and rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_20        ; q is bigget so done.
+        jnz tmp_19         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_20        ; q is bigget so done.
+        jnz tmp_19         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_20        ; q is bigget so done.
+        jnz tmp_19         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2199,6 +3018,15 @@ tmp_19:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_20:
 
@@ -2217,7 +3045,7 @@ and_l1ms2:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -2235,11 +3063,43 @@ and_l1ms2:
         and rax, [rsi +8]
         mov    [rdi+8], rax
 
+        xor    rax, rax
+        and rax, [rsi + 16];
+
+        mov    [rdi + 16 ], rax;
+
+        xor    rax, rax
+        and rax, [rsi + 24];
+
+        mov    [rdi + 24 ], rax;
+
+        xor    rax, rax
+        and rax, [rsi + 32];
+
+        and    rax, [lboMask] ;
+
+        mov    [rdi + 32 ], rax;
+
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_23        ; q is bigget so done.
+        jnz tmp_22         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_23        ; q is bigget so done.
+        jnz tmp_22         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_23        ; q is bigget so done.
+        jnz tmp_22         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2252,6 +3112,15 @@ tmp_22:
         mov rax, [q + 0]
         sub [rdi + 8], rax
 
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
+
 tmp_23:
 
         mov rsp, rbp
@@ -2263,7 +3132,7 @@ tmp_23:
 tmp_21:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -2281,15 +3150,45 @@ tmp_21:
         mov rax, [rsi + 8]
         and rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        and rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        and rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        and rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_25        ; q is bigget so done.
+        jnz tmp_24         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_25        ; q is bigget so done.
+        jnz tmp_24         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_25        ; q is bigget so done.
+        jnz tmp_24         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2301,6 +3200,15 @@ tmp_24:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_25:
 
@@ -2329,11 +3237,43 @@ and_s1l2n:
         and rax, [rdx +8]
         mov    [rdi+8], rax
 
+        xor    rax, rax
+        and rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        xor    rax, rax
+        and rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        xor    rax, rax
+        and rax, [rdx + 32]
+
+        and    rax, [lboMask]
+
+        mov    [rdi + 32 ], rax
+
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_28        ; q is bigget so done.
+        jnz tmp_27         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_28        ; q is bigget so done.
+        jnz tmp_27         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_28        ; q is bigget so done.
+        jnz tmp_27         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2346,6 +3286,15 @@ tmp_27:
         mov rax, [q + 0]
         sub [rdi + 8], rax
 
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
+
 tmp_28:
 
         mov rsp, rbp
@@ -2357,7 +3306,7 @@ tmp_28:
 tmp_26:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -2374,15 +3323,45 @@ tmp_26:
         mov rax, [rsi + 8]
         and rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        and rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        and rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        and rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_30        ; q is bigget so done.
+        jnz tmp_29         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_30        ; q is bigget so done.
+        jnz tmp_29         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_30        ; q is bigget so done.
+        jnz tmp_29         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2394,6 +3373,15 @@ tmp_29:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_30:
 
@@ -2412,7 +3400,7 @@ and_s1l2m:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -2430,11 +3418,43 @@ and_s1l2m:
         and rax, [rdx +8]
         mov    [rdi+8], rax
 
+        xor    rax, rax
+        and rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        xor    rax, rax
+        and rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        xor    rax, rax
+        and rax, [rdx + 32]
+
+        and    rax, [lboMask]
+
+        mov    [rdi + 32 ], rax
+
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_33        ; q is bigget so done.
+        jnz tmp_32         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_33        ; q is bigget so done.
+        jnz tmp_32         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_33        ; q is bigget so done.
+        jnz tmp_32         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2447,6 +3467,15 @@ tmp_32:
         mov rax, [q + 0]
         sub [rdi + 8], rax
 
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
+
 tmp_33:
 
         mov rsp, rbp
@@ -2458,7 +3487,7 @@ tmp_33:
 tmp_31:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -2475,15 +3504,45 @@ tmp_31:
         mov rax, [rsi + 8]
         and rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        and rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        and rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        and rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_35        ; q is bigget so done.
+        jnz tmp_34         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_35        ; q is bigget so done.
+        jnz tmp_34         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_35        ; q is bigget so done.
+        jnz tmp_34         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2495,6 +3554,15 @@ tmp_34:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_35:
 
@@ -2522,15 +3590,45 @@ and_l1nl2n:
         mov rax, [rsi + 8]
         and rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        and rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        and rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        and rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_37        ; q is bigget so done.
+        jnz tmp_36         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_37        ; q is bigget so done.
+        jnz tmp_36         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_37        ; q is bigget so done.
+        jnz tmp_36         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2542,6 +3640,15 @@ tmp_36:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_37:
 
@@ -2558,7 +3665,7 @@ and_l1nl2m:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -2573,15 +3680,45 @@ and_l1nl2m:
         mov rax, [rsi + 8]
         and rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        and rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        and rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        and rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_39        ; q is bigget so done.
+        jnz tmp_38         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_39        ; q is bigget so done.
+        jnz tmp_38         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_39        ; q is bigget so done.
+        jnz tmp_38         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2593,6 +3730,15 @@ tmp_38:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_39:
 
@@ -2612,7 +3758,7 @@ and_l1ml2n:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -2626,15 +3772,45 @@ and_l1ml2n:
         mov rax, [rsi + 8]
         and rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        and rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        and rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        and rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_41        ; q is bigget so done.
+        jnz tmp_40         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_41        ; q is bigget so done.
+        jnz tmp_40         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_41        ; q is bigget so done.
+        jnz tmp_40         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2646,6 +3822,15 @@ tmp_40:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_41:
 
@@ -2662,7 +3847,7 @@ and_l1ml2m:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -2673,7 +3858,7 @@ and_l1ml2m:
 
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -2688,15 +3873,45 @@ and_l1ml2m:
         mov rax, [rsi + 8]
         and rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        and rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        and rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        and rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_43        ; q is bigget so done.
+        jnz tmp_42         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_43        ; q is bigget so done.
+        jnz tmp_42         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_43        ; q is bigget so done.
+        jnz tmp_42         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2708,6 +3923,15 @@ tmp_42:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_43:
 
@@ -2766,7 +3990,7 @@ tmp_44:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -2778,7 +4002,7 @@ tmp_44:
 
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -2792,15 +4016,45 @@ tmp_44:
         mov rax, [rsi + 8]
         or rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        or rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        or rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        or rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_46        ; q is bigget so done.
+        jnz tmp_45         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_46        ; q is bigget so done.
+        jnz tmp_45         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_46        ; q is bigget so done.
+        jnz tmp_45         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2812,6 +4066,15 @@ tmp_45:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_46:
 
@@ -2847,11 +4110,43 @@ or_l1ns2:
         or rax, [rsi +8]
         mov    [rdi+8], rax
 
+        xor    rax, rax
+        or rax, [rsi + 16];
+
+        mov    [rdi + 16 ], rax;
+
+        xor    rax, rax
+        or rax, [rsi + 24];
+
+        mov    [rdi + 24 ], rax;
+
+        xor    rax, rax
+        or rax, [rsi + 32];
+
+        and    rax, [lboMask] ;
+
+        mov    [rdi + 32 ], rax;
+
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_49        ; q is bigget so done.
+        jnz tmp_48         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_49        ; q is bigget so done.
+        jnz tmp_48         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_49        ; q is bigget so done.
+        jnz tmp_48         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2864,6 +4159,15 @@ tmp_48:
         mov rax, [q + 0]
         sub [rdi + 8], rax
 
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
+
 tmp_49:
 
         mov rsp, rbp
@@ -2875,7 +4179,7 @@ tmp_49:
 tmp_47:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -2893,15 +4197,45 @@ tmp_47:
         mov rax, [rsi + 8]
         or rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        or rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        or rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        or rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_51        ; q is bigget so done.
+        jnz tmp_50         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_51        ; q is bigget so done.
+        jnz tmp_50         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_51        ; q is bigget so done.
+        jnz tmp_50         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2913,6 +4247,15 @@ tmp_50:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_51:
 
@@ -2931,7 +4274,7 @@ or_l1ms2:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -2949,11 +4292,43 @@ or_l1ms2:
         or rax, [rsi +8]
         mov    [rdi+8], rax
 
+        xor    rax, rax
+        or rax, [rsi + 16];
+
+        mov    [rdi + 16 ], rax;
+
+        xor    rax, rax
+        or rax, [rsi + 24];
+
+        mov    [rdi + 24 ], rax;
+
+        xor    rax, rax
+        or rax, [rsi + 32];
+
+        and    rax, [lboMask] ;
+
+        mov    [rdi + 32 ], rax;
+
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_54        ; q is bigget so done.
+        jnz tmp_53         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_54        ; q is bigget so done.
+        jnz tmp_53         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_54        ; q is bigget so done.
+        jnz tmp_53         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -2966,6 +4341,15 @@ tmp_53:
         mov rax, [q + 0]
         sub [rdi + 8], rax
 
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
+
 tmp_54:
 
         mov rsp, rbp
@@ -2977,7 +4361,7 @@ tmp_54:
 tmp_52:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -2995,15 +4379,45 @@ tmp_52:
         mov rax, [rsi + 8]
         or rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        or rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        or rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        or rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_56        ; q is bigget so done.
+        jnz tmp_55         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_56        ; q is bigget so done.
+        jnz tmp_55         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_56        ; q is bigget so done.
+        jnz tmp_55         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3015,6 +4429,15 @@ tmp_55:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_56:
 
@@ -3043,11 +4466,43 @@ or_s1l2n:
         or rax, [rdx +8]
         mov    [rdi+8], rax
 
+        xor    rax, rax
+        or rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        xor    rax, rax
+        or rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        xor    rax, rax
+        or rax, [rdx + 32]
+
+        and    rax, [lboMask]
+
+        mov    [rdi + 32 ], rax
+
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_59        ; q is bigget so done.
+        jnz tmp_58         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_59        ; q is bigget so done.
+        jnz tmp_58         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_59        ; q is bigget so done.
+        jnz tmp_58         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3060,6 +4515,15 @@ tmp_58:
         mov rax, [q + 0]
         sub [rdi + 8], rax
 
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
+
 tmp_59:
 
         mov rsp, rbp
@@ -3071,7 +4535,7 @@ tmp_59:
 tmp_57:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -3088,15 +4552,45 @@ tmp_57:
         mov rax, [rsi + 8]
         or rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        or rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        or rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        or rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_61        ; q is bigget so done.
+        jnz tmp_60         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_61        ; q is bigget so done.
+        jnz tmp_60         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_61        ; q is bigget so done.
+        jnz tmp_60         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3108,6 +4602,15 @@ tmp_60:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_61:
 
@@ -3126,7 +4629,7 @@ or_s1l2m:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -3144,11 +4647,43 @@ or_s1l2m:
         or rax, [rdx +8]
         mov    [rdi+8], rax
 
+        xor    rax, rax
+        or rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        xor    rax, rax
+        or rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        xor    rax, rax
+        or rax, [rdx + 32]
+
+        and    rax, [lboMask]
+
+        mov    [rdi + 32 ], rax
+
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_64        ; q is bigget so done.
+        jnz tmp_63         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_64        ; q is bigget so done.
+        jnz tmp_63         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_64        ; q is bigget so done.
+        jnz tmp_63         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3161,6 +4696,15 @@ tmp_63:
         mov rax, [q + 0]
         sub [rdi + 8], rax
 
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
+
 tmp_64:
 
         mov rsp, rbp
@@ -3172,7 +4716,7 @@ tmp_64:
 tmp_62:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -3189,15 +4733,45 @@ tmp_62:
         mov rax, [rsi + 8]
         or rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        or rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        or rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        or rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_66        ; q is bigget so done.
+        jnz tmp_65         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_66        ; q is bigget so done.
+        jnz tmp_65         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_66        ; q is bigget so done.
+        jnz tmp_65         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3209,6 +4783,15 @@ tmp_65:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_66:
 
@@ -3236,15 +4819,45 @@ or_l1nl2n:
         mov rax, [rsi + 8]
         or rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        or rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        or rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        or rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_68        ; q is bigget so done.
+        jnz tmp_67         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_68        ; q is bigget so done.
+        jnz tmp_67         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_68        ; q is bigget so done.
+        jnz tmp_67         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3256,6 +4869,15 @@ tmp_67:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_68:
 
@@ -3272,7 +4894,7 @@ or_l1nl2m:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -3287,15 +4909,45 @@ or_l1nl2m:
         mov rax, [rsi + 8]
         or rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        or rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        or rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        or rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_70        ; q is bigget so done.
+        jnz tmp_69         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_70        ; q is bigget so done.
+        jnz tmp_69         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_70        ; q is bigget so done.
+        jnz tmp_69         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3307,6 +4959,15 @@ tmp_69:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_70:
 
@@ -3326,7 +4987,7 @@ or_l1ml2n:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -3340,15 +5001,45 @@ or_l1ml2n:
         mov rax, [rsi + 8]
         or rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        or rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        or rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        or rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_72        ; q is bigget so done.
+        jnz tmp_71         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_72        ; q is bigget so done.
+        jnz tmp_71         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_72        ; q is bigget so done.
+        jnz tmp_71         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3360,6 +5051,15 @@ tmp_71:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_72:
 
@@ -3376,7 +5076,7 @@ or_l1ml2m:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -3387,7 +5087,7 @@ or_l1ml2m:
 
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -3402,15 +5102,45 @@ or_l1ml2m:
         mov rax, [rsi + 8]
         or rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        or rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        or rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        or rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_74        ; q is bigget so done.
+        jnz tmp_73         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_74        ; q is bigget so done.
+        jnz tmp_73         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_74        ; q is bigget so done.
+        jnz tmp_73         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3422,6 +5152,15 @@ tmp_73:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_74:
 
@@ -3480,7 +5219,7 @@ tmp_75:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -3492,7 +5231,7 @@ tmp_75:
 
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -3506,15 +5245,45 @@ tmp_75:
         mov rax, [rsi + 8]
         xor rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        xor rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        xor rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        xor rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_77        ; q is bigget so done.
+        jnz tmp_76         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_77        ; q is bigget so done.
+        jnz tmp_76         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_77        ; q is bigget so done.
+        jnz tmp_76         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3526,6 +5295,15 @@ tmp_76:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_77:
 
@@ -3561,11 +5339,43 @@ xor_l1ns2:
         xor rax, [rsi +8]
         mov    [rdi+8], rax
 
+        xor    rax, rax
+        xor rax, [rsi + 16];
+
+        mov    [rdi + 16 ], rax;
+
+        xor    rax, rax
+        xor rax, [rsi + 24];
+
+        mov    [rdi + 24 ], rax;
+
+        xor    rax, rax
+        xor rax, [rsi + 32];
+
+        and    rax, [lboMask] ;
+
+        mov    [rdi + 32 ], rax;
+
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_80        ; q is bigget so done.
+        jnz tmp_79         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_80        ; q is bigget so done.
+        jnz tmp_79         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_80        ; q is bigget so done.
+        jnz tmp_79         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3578,6 +5388,15 @@ tmp_79:
         mov rax, [q + 0]
         sub [rdi + 8], rax
 
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
+
 tmp_80:
 
         mov rsp, rbp
@@ -3589,7 +5408,7 @@ tmp_80:
 tmp_78:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -3607,15 +5426,45 @@ tmp_78:
         mov rax, [rsi + 8]
         xor rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        xor rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        xor rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        xor rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_82        ; q is bigget so done.
+        jnz tmp_81         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_82        ; q is bigget so done.
+        jnz tmp_81         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_82        ; q is bigget so done.
+        jnz tmp_81         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3627,6 +5476,15 @@ tmp_81:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_82:
 
@@ -3645,7 +5503,7 @@ xor_l1ms2:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -3663,11 +5521,43 @@ xor_l1ms2:
         xor rax, [rsi +8]
         mov    [rdi+8], rax
 
+        xor    rax, rax
+        xor rax, [rsi + 16];
+
+        mov    [rdi + 16 ], rax;
+
+        xor    rax, rax
+        xor rax, [rsi + 24];
+
+        mov    [rdi + 24 ], rax;
+
+        xor    rax, rax
+        xor rax, [rsi + 32];
+
+        and    rax, [lboMask] ;
+
+        mov    [rdi + 32 ], rax;
+
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_85        ; q is bigget so done.
+        jnz tmp_84         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_85        ; q is bigget so done.
+        jnz tmp_84         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_85        ; q is bigget so done.
+        jnz tmp_84         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3680,6 +5570,15 @@ tmp_84:
         mov rax, [q + 0]
         sub [rdi + 8], rax
 
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
+
 tmp_85:
 
         mov rsp, rbp
@@ -3691,7 +5590,7 @@ tmp_85:
 tmp_83:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -3709,15 +5608,45 @@ tmp_83:
         mov rax, [rsi + 8]
         xor rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        xor rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        xor rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        xor rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_87        ; q is bigget so done.
+        jnz tmp_86         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_87        ; q is bigget so done.
+        jnz tmp_86         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_87        ; q is bigget so done.
+        jnz tmp_86         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3729,6 +5658,15 @@ tmp_86:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_87:
 
@@ -3757,11 +5695,43 @@ xor_s1l2n:
         xor rax, [rdx +8]
         mov    [rdi+8], rax
 
+        xor    rax, rax
+        xor rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        xor    rax, rax
+        xor rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        xor    rax, rax
+        xor rax, [rdx + 32]
+
+        and    rax, [lboMask]
+
+        mov    [rdi + 32 ], rax
+
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_90        ; q is bigget so done.
+        jnz tmp_89         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_90        ; q is bigget so done.
+        jnz tmp_89         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_90        ; q is bigget so done.
+        jnz tmp_89         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3774,6 +5744,15 @@ tmp_89:
         mov rax, [q + 0]
         sub [rdi + 8], rax
 
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
+
 tmp_90:
 
         mov rsp, rbp
@@ -3785,7 +5764,7 @@ tmp_90:
 tmp_88:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -3802,15 +5781,45 @@ tmp_88:
         mov rax, [rsi + 8]
         xor rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        xor rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        xor rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        xor rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_92        ; q is bigget so done.
+        jnz tmp_91         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_92        ; q is bigget so done.
+        jnz tmp_91         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_92        ; q is bigget so done.
+        jnz tmp_91         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3822,6 +5831,15 @@ tmp_91:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_92:
 
@@ -3840,7 +5858,7 @@ xor_s1l2m:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -3858,11 +5876,43 @@ xor_s1l2m:
         xor rax, [rdx +8]
         mov    [rdi+8], rax
 
+        xor    rax, rax
+        xor rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        xor    rax, rax
+        xor rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        xor    rax, rax
+        xor rax, [rdx + 32]
+
+        and    rax, [lboMask]
+
+        mov    [rdi + 32 ], rax
+
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_95        ; q is bigget so done.
+        jnz tmp_94         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_95        ; q is bigget so done.
+        jnz tmp_94         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_95        ; q is bigget so done.
+        jnz tmp_94         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3875,6 +5925,15 @@ tmp_94:
         mov rax, [q + 0]
         sub [rdi + 8], rax
 
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
+
 tmp_95:
 
         mov rsp, rbp
@@ -3886,7 +5945,7 @@ tmp_95:
 tmp_93:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -3903,15 +5962,45 @@ tmp_93:
         mov rax, [rsi + 8]
         xor rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        xor rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        xor rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        xor rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_97        ; q is bigget so done.
+        jnz tmp_96         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_97        ; q is bigget so done.
+        jnz tmp_96         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_97        ; q is bigget so done.
+        jnz tmp_96         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3923,6 +6012,15 @@ tmp_96:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_97:
 
@@ -3950,15 +6048,45 @@ xor_l1nl2n:
         mov rax, [rsi + 8]
         xor rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        xor rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        xor rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        xor rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_99        ; q is bigget so done.
+        jnz tmp_98         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_99        ; q is bigget so done.
+        jnz tmp_98         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_99        ; q is bigget so done.
+        jnz tmp_98         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -3970,6 +6098,15 @@ tmp_98:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_99:
 
@@ -3986,7 +6123,7 @@ xor_l1nl2m:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -4001,15 +6138,45 @@ xor_l1nl2m:
         mov rax, [rsi + 8]
         xor rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        xor rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        xor rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        xor rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_101        ; q is bigget so done.
+        jnz tmp_100         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_101        ; q is bigget so done.
+        jnz tmp_100         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_101        ; q is bigget so done.
+        jnz tmp_100         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -4021,6 +6188,15 @@ tmp_100:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_101:
 
@@ -4040,7 +6216,7 @@ xor_l1ml2n:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -4054,15 +6230,45 @@ xor_l1ml2n:
         mov rax, [rsi + 8]
         xor rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        xor rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        xor rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        xor rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_103        ; q is bigget so done.
+        jnz tmp_102         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_103        ; q is bigget so done.
+        jnz tmp_102         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_103        ; q is bigget so done.
+        jnz tmp_102         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -4074,6 +6280,15 @@ tmp_102:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_103:
 
@@ -4090,7 +6305,7 @@ xor_l1ml2m:
         mov [rdi+4], r11d
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -4101,7 +6316,7 @@ xor_l1ml2m:
 
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -4116,15 +6331,45 @@ xor_l1ml2m:
         mov rax, [rsi + 8]
         xor rax, [rdx + 8]
 
+        mov    [rdi + 8 ], rax
+
+        mov rax, [rsi + 16]
+        xor rax, [rdx + 16]
+
+        mov    [rdi + 16 ], rax
+
+        mov rax, [rsi + 24]
+        xor rax, [rdx + 24]
+
+        mov    [rdi + 24 ], rax
+
+        mov rax, [rsi + 32]
+        xor rax, [rdx + 32]
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8 ], rax
+        mov    [rdi + 32 ], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_105        ; q is bigget so done.
+        jnz tmp_104         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_105        ; q is bigget so done.
+        jnz tmp_104         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_105        ; q is bigget so done.
+        jnz tmp_104         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -4136,6 +6381,15 @@ tmp_104:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_105:
 
@@ -4173,7 +6427,7 @@ Fr_bnot:
 bnot_s:
         
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -4191,7 +6445,7 @@ bnot_l1:
 bnot_l1m:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -4206,15 +6460,45 @@ bnot_l1n:
         mov    rax, [rsi + 8]
         not    rax
 
+        mov    [rdi + 8], rax
+
+        mov    rax, [rsi + 16]
+        not    rax
+
+        mov    [rdi + 16], rax
+
+        mov    rax, [rsi + 24]
+        not    rax
+
+        mov    [rdi + 24], rax
+
+        mov    rax, [rsi + 32]
+        not    rax
+
         and    rax, [lboMask]
 
-        mov    [rdi + 8], rax
+        mov    [rdi + 32], rax
 
 
         
         
 
         ; Compare with q
+
+        mov rax, [rdi + 32]
+        cmp rax, [q + 24]
+        jc tmp_107        ; q is bigget so done.
+        jnz tmp_106         ; q is lower
+
+        mov rax, [rdi + 24]
+        cmp rax, [q + 16]
+        jc tmp_107        ; q is bigget so done.
+        jnz tmp_106         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 8]
+        jc tmp_107        ; q is bigget so done.
+        jnz tmp_106         ; q is lower
 
         mov rax, [rdi + 8]
         cmp rax, [q + 0]
@@ -4226,6 +6510,15 @@ tmp_106:
 
         mov rax, [q + 0]
         sub [rdi + 8], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 24], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 32], rax
 
 tmp_107:
 
@@ -4253,7 +6546,7 @@ rawShr:
         cmp rdx, 0
         je Fr_rawCopy
 
-        cmp rdx, 64
+        cmp rdx, 254
         jae Fr_rawZero
 
 rawShr_nz:
@@ -4274,7 +6567,7 @@ rawShr_nz:
         not r10
 
 
-        cmp r8, 0
+        cmp r8, 3
         jae rawShr_if2_0
 
         mov rax, [rsi + r8*8 + 0 ]
@@ -4303,12 +6596,99 @@ rawShr_else_0:
         mov [rdi + 0], rax
 rawShr_endif_0:
 
+        cmp r8, 2
+        jae rawShr_if2_1
+
+        mov rax, [rsi + r8*8 + 8 ]
+        shr rax, cl
+        and rax, r9
+        mov r11, [rsi + r8*8 + 16 ]
+        rol cx, 8
+        shl r11, cl
+        rol cx, 8
+        and r11, r10
+        or rax, r11
+        mov [rdi + 8], rax
+
+        jmp rawShr_endif_1
+rawShr_if2_1:
+        jne rawShr_else_1
+
+        mov rax, [rsi + r8*8 + 8 ]
+        shr rax, cl
+        and rax, r9
+        mov [rdi + 8], rax
+
+        jmp rawShr_endif_1
+rawShr_else_1:
+        xor  rax, rax
+        mov [rdi + 8], rax
+rawShr_endif_1:
+
+        cmp r8, 1
+        jae rawShr_if2_2
+
+        mov rax, [rsi + r8*8 + 16 ]
+        shr rax, cl
+        and rax, r9
+        mov r11, [rsi + r8*8 + 24 ]
+        rol cx, 8
+        shl r11, cl
+        rol cx, 8
+        and r11, r10
+        or rax, r11
+        mov [rdi + 16], rax
+
+        jmp rawShr_endif_2
+rawShr_if2_2:
+        jne rawShr_else_2
+
+        mov rax, [rsi + r8*8 + 16 ]
+        shr rax, cl
+        and rax, r9
+        mov [rdi + 16], rax
+
+        jmp rawShr_endif_2
+rawShr_else_2:
+        xor  rax, rax
+        mov [rdi + 16], rax
+rawShr_endif_2:
+
+        cmp r8, 0
+        jae rawShr_if2_3
+
+        mov rax, [rsi + r8*8 + 24 ]
+        shr rax, cl
+        and rax, r9
+        mov r11, [rsi + r8*8 + 32 ]
+        rol cx, 8
+        shl r11, cl
+        rol cx, 8
+        and r11, r10
+        or rax, r11
+        mov [rdi + 24], rax
+
+        jmp rawShr_endif_3
+rawShr_if2_3:
+        jne rawShr_else_3
+
+        mov rax, [rsi + r8*8 + 24 ]
+        shr rax, cl
+        and rax, r9
+        mov [rdi + 24], rax
+
+        jmp rawShr_endif_3
+rawShr_else_3:
+        xor  rax, rax
+        mov [rdi + 24], rax
+rawShr_endif_3:
+
 
         ret
 
 rawShr_aligned:
 
-        cmp r8, 0
+        cmp r8, 3
         ja rawShr_if3_0
         mov rax, [rsi + r8*8 + 0 ]
         mov [rdi + 0], rax
@@ -4317,6 +6697,36 @@ rawShr_if3_0:
         xor rax, rax
         mov [rdi + 0], rax
 rawShr_endif3_0:
+
+        cmp r8, 2
+        ja rawShr_if3_1
+        mov rax, [rsi + r8*8 + 8 ]
+        mov [rdi + 8], rax
+        jmp rawShr_endif3_1
+rawShr_if3_1:
+        xor rax, rax
+        mov [rdi + 8], rax
+rawShr_endif3_1:
+
+        cmp r8, 1
+        ja rawShr_if3_2
+        mov rax, [rsi + r8*8 + 16 ]
+        mov [rdi + 16], rax
+        jmp rawShr_endif3_2
+rawShr_if3_2:
+        xor rax, rax
+        mov [rdi + 16], rax
+rawShr_endif3_2:
+
+        cmp r8, 0
+        ja rawShr_if3_3
+        mov rax, [rsi + r8*8 + 24 ]
+        mov [rdi + 24], rax
+        jmp rawShr_endif3_3
+rawShr_if3_3:
+        xor rax, rax
+        mov [rdi + 24], rax
+rawShr_endif3_3:
 
         ret
 
@@ -4336,7 +6746,7 @@ rawShl:
         cmp rdx, 0
         je Fr_rawCopy
         
-        cmp rdx, 64
+        cmp rdx, 254
         jae Fr_rawZero
 
         mov r8, rdx
@@ -4360,6 +6770,109 @@ rawShl:
         sub rdx, rax
 
 
+        cmp r8, 3
+        jae rawShl_if2_3
+
+        mov rax, [rdx + 24 ]
+        shl rax, cl
+        and rax, r9
+        mov r11, [rdx + 16 ]
+        rol cx, 8
+        shr r11, cl
+        rol cx, 8
+        and r11, r10
+        or rax, r11
+
+        and rax, [lboMask]
+
+        
+        mov [rdi + 24], rax
+
+        jmp rawShl_endif_3
+rawShl_if2_3:
+        jne rawShl_else_3
+
+        mov rax, [rdx + 24 ]
+        shl rax, cl
+        and rax, r9
+
+        and rax, [lboMask]
+
+        
+        mov [rdi + 24], rax
+
+        jmp rawShl_endif_3
+rawShl_else_3:
+        xor rax, rax
+        mov [rdi + 24], rax
+rawShl_endif_3:
+
+        cmp r8, 2
+        jae rawShl_if2_2
+
+        mov rax, [rdx + 16 ]
+        shl rax, cl
+        and rax, r9
+        mov r11, [rdx + 8 ]
+        rol cx, 8
+        shr r11, cl
+        rol cx, 8
+        and r11, r10
+        or rax, r11
+
+        
+        mov [rdi + 16], rax
+
+        jmp rawShl_endif_2
+rawShl_if2_2:
+        jne rawShl_else_2
+
+        mov rax, [rdx + 16 ]
+        shl rax, cl
+        and rax, r9
+
+        
+        mov [rdi + 16], rax
+
+        jmp rawShl_endif_2
+rawShl_else_2:
+        xor rax, rax
+        mov [rdi + 16], rax
+rawShl_endif_2:
+
+        cmp r8, 1
+        jae rawShl_if2_1
+
+        mov rax, [rdx + 8 ]
+        shl rax, cl
+        and rax, r9
+        mov r11, [rdx + 0 ]
+        rol cx, 8
+        shr r11, cl
+        rol cx, 8
+        and r11, r10
+        or rax, r11
+
+        
+        mov [rdi + 8], rax
+
+        jmp rawShl_endif_1
+rawShl_if2_1:
+        jne rawShl_else_1
+
+        mov rax, [rdx + 8 ]
+        shl rax, cl
+        and rax, r9
+
+        
+        mov [rdi + 8], rax
+
+        jmp rawShl_endif_1
+rawShl_else_1:
+        xor rax, rax
+        mov [rdi + 8], rax
+rawShl_endif_1:
+
         cmp r8, 0
         jae rawShl_if2_0
 
@@ -4373,8 +6886,6 @@ rawShl:
         and r11, r10
         or rax, r11
 
-        and rax, [lboMask]
-
         
         mov [rdi + 0], rax
 
@@ -4385,8 +6896,6 @@ rawShl_if2_0:
         mov rax, [rdx + 0 ]
         shl rax, cl
         and rax, r9
-
-        and rax, [lboMask]
 
         
         mov [rdi + 0], rax
@@ -4404,6 +6913,21 @@ rawShl_endif_0:
 
         ; Compare with q
 
+        mov rax, [rdi + 24]
+        cmp rax, [q + 24]
+        jc tmp_109        ; q is bigget so done.
+        jnz tmp_108         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 16]
+        jc tmp_109        ; q is bigget so done.
+        jnz tmp_108         ; q is lower
+
+        mov rax, [rdi + 8]
+        cmp rax, [q + 8]
+        jc tmp_109        ; q is bigget so done.
+        jnz tmp_108         ; q is lower
+
         mov rax, [rdi + 0]
         cmp rax, [q + 0]
         jc tmp_109        ; q is bigget so done.
@@ -4414,6 +6938,15 @@ tmp_108:
 
         mov rax, [q + 0]
         sub [rdi + 0], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 8], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 24], rax
 
 tmp_109:
 
@@ -4426,11 +6959,44 @@ rawShl_aligned:
         sub rdx, rax
 
 
+        cmp r8, 3
+        ja rawShl_if3_3
+        mov rax, [rdx + 24 ]
+
+        and rax, [lboMask]
+        
+        mov [rdi + 24], rax
+        jmp rawShl_endif3_3
+rawShl_if3_3:
+        xor rax, rax 
+        mov [rdi + 24], rax
+rawShl_endif3_3:
+
+        cmp r8, 2
+        ja rawShl_if3_2
+        mov rax, [rdx + 16 ]
+        
+        mov [rdi + 16], rax
+        jmp rawShl_endif3_2
+rawShl_if3_2:
+        xor rax, rax 
+        mov [rdi + 16], rax
+rawShl_endif3_2:
+
+        cmp r8, 1
+        ja rawShl_if3_1
+        mov rax, [rdx + 8 ]
+        
+        mov [rdi + 8], rax
+        jmp rawShl_endif3_1
+rawShl_if3_1:
+        xor rax, rax 
+        mov [rdi + 8], rax
+rawShl_endif3_1:
+
         cmp r8, 0
         ja rawShl_if3_0
         mov rax, [rdx + 0 ]
-
-        and rax, [lboMask]
         
         mov [rdi + 0], rax
         jmp rawShl_endif3_0
@@ -4445,6 +7011,21 @@ rawShl_endif3_0:
 
         ; Compare with q
 
+        mov rax, [rdi + 24]
+        cmp rax, [q + 24]
+        jc tmp_111        ; q is bigget so done.
+        jnz tmp_110         ; q is lower
+
+        mov rax, [rdi + 16]
+        cmp rax, [q + 16]
+        jc tmp_111        ; q is bigget so done.
+        jnz tmp_110         ; q is lower
+
+        mov rax, [rdi + 8]
+        cmp rax, [q + 8]
+        jc tmp_111        ; q is bigget so done.
+        jnz tmp_110         ; q is lower
+
         mov rax, [rdi + 0]
         cmp rax, [q + 0]
         jc tmp_111        ; q is bigget so done.
@@ -4455,6 +7036,15 @@ tmp_110:
 
         mov rax, [q + 0]
         sub [rdi + 0], rax
+
+        mov rax, [q + 8]
+        sbb [rdi + 8], rax
+
+        mov rax, [q + 16]
+        sbb [rdi + 16], rax
+
+        mov rax, [q + 24]
+        sbb [rdi + 24], rax
 
 tmp_111:
 
@@ -4497,7 +7087,7 @@ Fr_shr:
         jnc     tmp_113
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -4509,9 +7099,18 @@ Fr_shr:
 
 tmp_113:
         mov rcx, [rdx + 8]
-        cmp rcx, 64
+        cmp rcx, 254
         jae  tmp_114
         xor rax, rax
+        
+        cmp [rdx + 16], rax
+        jnz tmp_114
+        
+        cmp [rdx + 24], rax
+        jnz tmp_114
+        
+        cmp [rdx + 32], rax
+        jnz tmp_114
         
         mov rdx, rcx
         jmp do_shr
@@ -4519,10 +7118,22 @@ tmp_113:
 tmp_114:
         mov rcx, [q]
         sub rcx, [rdx+8]
-        cmp rcx, 64
+        cmp rcx, 254
         jae  setzero
         mov rax, [q]
         sub rax, [rdx+8]
+        
+        mov rax, [q+ 8] 
+        sbb rax, [rdx + 16]
+        jnz setzero
+        
+        mov rax, [q+ 16] 
+        sbb rax, [rdx + 24]
+        jnz setzero
+        
+        mov rax, [q+ 24] 
+        sbb rax, [rdx + 32]
+        jnz setzero
         
         mov rdx, rcx
         jmp do_shl
@@ -4530,13 +7141,13 @@ tmp_114:
 tmp_112:
         cmp ecx, 0
         jl  tmp_115
-        cmp ecx, 64
+        cmp ecx, 254
         jae  setzero
         movsx rdx, ecx 
         jmp do_shr
 tmp_115:
         neg ecx
-        cmp ecx, 64
+        cmp ecx, 254
         jae  setzero
         movsx rdx, ecx 
         jmp do_shl
@@ -4575,7 +7186,7 @@ Fr_shl:
         jnc     tmp_117
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -4587,9 +7198,18 @@ Fr_shl:
 
 tmp_117:
         mov rcx, [rdx + 8]
-        cmp rcx, 64
+        cmp rcx, 254
         jae  tmp_118
         xor rax, rax
+        
+        cmp [rdx + 16], rax
+        jnz tmp_118
+        
+        cmp [rdx + 24], rax
+        jnz tmp_118
+        
+        cmp [rdx + 32], rax
+        jnz tmp_118
         
         mov rdx, rcx
         jmp do_shl
@@ -4597,10 +7217,22 @@ tmp_117:
 tmp_118:
         mov rcx, [q]
         sub rcx, [rdx+8]
-        cmp rcx, 64
+        cmp rcx, 254
         jae  setzero
         mov rax, [q]
         sub rax, [rdx+8]
+        
+        mov rax, [q+ 8] 
+        sbb rax, [rdx + 16]
+        jnz setzero
+        
+        mov rax, [q+ 16] 
+        sbb rax, [rdx + 24]
+        jnz setzero
+        
+        mov rax, [q+ 24] 
+        sbb rax, [rdx + 32]
+        jnz setzero
         
         mov rdx, rcx
         jmp do_shr
@@ -4608,13 +7240,13 @@ tmp_118:
 tmp_116:
         cmp ecx, 0
         jl  tmp_119
-        cmp ecx, 64
+        cmp ecx, 254
         jae  setzero
         movsx rdx, ecx 
         jmp do_shl
 tmp_119:
         neg ecx
-        cmp ecx, 64
+        cmp ecx, 254
         jae  setzero
         movsx rdx, ecx 
         jmp do_shr
@@ -4654,7 +7286,7 @@ do_shls:
 do_shlcl:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -4670,7 +7302,7 @@ do_shll:
         jnc     do_shlln
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -4723,7 +7355,7 @@ do_shrs:
 do_shrcl:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -4738,7 +7370,7 @@ do_shrl:
         jnc     do_shrln
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -4815,7 +7447,7 @@ rgt_l1s2:
 rgt_l1ns2:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -4830,7 +7462,7 @@ rgt_l1ns2:
 rgt_l1ms2:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -4842,7 +7474,7 @@ rgt_l1ms2:
 
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -4861,7 +7493,7 @@ rgt_s1l2:
 rgt_s1l2n:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -4875,7 +7507,7 @@ rgt_s1l2n:
 rgt_s1l2m:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -4886,7 +7518,7 @@ rgt_s1l2m:
 
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -4911,7 +7543,7 @@ rgt_l1nl2n:
 rgt_l1nl2m:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -4929,7 +7561,7 @@ rgt_l1ml2:
 rgt_l1ml2n:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -4943,7 +7575,7 @@ rgt_l1ml2n:
 rgt_l1ml2m:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -4954,7 +7586,7 @@ rgt_l1ml2m:
 
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -4974,6 +7606,27 @@ rgt_l1ml2m:
 rgtL1L2:
 
 
+        mov     rax, [rsi + 32]
+        cmp     [half + 24], rax     ; comare with (q-1)/2
+        jc rgtl1l2_n1                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rgtl1l2_p1                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
+        mov     rax, [rsi + 24]
+        cmp     [half + 16], rax     ; comare with (q-1)/2
+        jc rgtl1l2_n1                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rgtl1l2_p1                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
+        mov     rax, [rsi + 16]
+        cmp     [half + 8], rax     ; comare with (q-1)/2
+        jc rgtl1l2_n1                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rgtl1l2_p1                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
         mov     rax, [rsi + 8]
         cmp     [half + 0], rax     ; comare with (q-1)/2
         jc rgtl1l2_n1                           ; half<rax => e1-e2 is neg => e1 < e2
@@ -4983,6 +7636,27 @@ rgtL1L2:
 
 
 rgtl1l2_p1:
+
+
+        mov     rax, [rdx + 32]
+        cmp     [half + 24], rax     ; comare with (q-1)/2
+        jc rgt_ret1                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rgtRawL1L2                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
+        mov     rax, [rdx + 24]
+        cmp     [half + 16], rax     ; comare with (q-1)/2
+        jc rgt_ret1                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rgtRawL1L2                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
+        mov     rax, [rdx + 16]
+        cmp     [half + 8], rax     ; comare with (q-1)/2
+        jc rgt_ret1                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rgtRawL1L2                       ; half>rax => e1 -e2 is pos => e1 > e2
 
 
         mov     rax, [rdx + 8]
@@ -4997,6 +7671,27 @@ rgtl1l2_p1:
 rgtl1l2_n1:
 
 
+        mov     rax, [rdx + 32]
+        cmp     [half + 24], rax     ; comare with (q-1)/2
+        jc rgtRawL1L2                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rgt_ret0                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
+        mov     rax, [rdx + 24]
+        cmp     [half + 16], rax     ; comare with (q-1)/2
+        jc rgtRawL1L2                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rgt_ret0                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
+        mov     rax, [rdx + 16]
+        cmp     [half + 8], rax     ; comare with (q-1)/2
+        jc rgtRawL1L2                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rgt_ret0                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
         mov     rax, [rdx + 8]
         cmp     [half + 0], rax     ; comare with (q-1)/2
         jc rgtRawL1L2                           ; half<rax => e1-e2 is neg => e1 < e2
@@ -5008,6 +7703,27 @@ rgtl1l2_n1:
 
 
 rgtRawL1L2:
+
+        mov     rax, [rsi + 32]
+        cmp     [rdx + 32], rax     ; comare with (q-1)/2
+        jc rgt_ret1                      ; rsi<rdx => 1st > 2nd
+
+        jnz rgt_ret0
+
+
+        mov     rax, [rsi + 24]
+        cmp     [rdx + 24], rax     ; comare with (q-1)/2
+        jc rgt_ret1                      ; rsi<rdx => 1st > 2nd
+
+        jnz rgt_ret0
+
+
+        mov     rax, [rsi + 16]
+        cmp     [rdx + 16], rax     ; comare with (q-1)/2
+        jc rgt_ret1                      ; rsi<rdx => 1st > 2nd
+
+        jnz rgt_ret0
+
 
         mov     rax, [rsi + 8]
         cmp     [rdx + 8], rax     ; comare with (q-1)/2
@@ -5072,7 +7788,7 @@ rlt_l1s2:
 rlt_l1ns2:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -5087,7 +7803,7 @@ rlt_l1ns2:
 rlt_l1ms2:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -5099,7 +7815,7 @@ rlt_l1ms2:
 
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -5118,7 +7834,7 @@ rlt_s1l2:
 rlt_s1l2n:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -5132,7 +7848,7 @@ rlt_s1l2n:
 rlt_s1l2m:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -5143,7 +7859,7 @@ rlt_s1l2m:
 
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -5168,7 +7884,7 @@ rlt_l1nl2n:
 rlt_l1nl2m:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -5186,7 +7902,7 @@ rlt_l1ml2:
 rlt_l1ml2n:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -5200,7 +7916,7 @@ rlt_l1ml2n:
 rlt_l1ml2m:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -5211,7 +7927,7 @@ rlt_l1ml2m:
 
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -5231,6 +7947,27 @@ rlt_l1ml2m:
 rltL1L2:
 
 
+        mov     rax, [rsi + 32]
+        cmp     [half + 24], rax     ; comare with (q-1)/2
+        jc rltl1l2_n1                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rltl1l2_p1                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
+        mov     rax, [rsi + 24]
+        cmp     [half + 16], rax     ; comare with (q-1)/2
+        jc rltl1l2_n1                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rltl1l2_p1                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
+        mov     rax, [rsi + 16]
+        cmp     [half + 8], rax     ; comare with (q-1)/2
+        jc rltl1l2_n1                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rltl1l2_p1                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
         mov     rax, [rsi + 8]
         cmp     [half + 0], rax     ; comare with (q-1)/2
         jc rltl1l2_n1                           ; half<rax => e1-e2 is neg => e1 < e2
@@ -5240,6 +7977,27 @@ rltL1L2:
 
 
 rltl1l2_p1:
+
+
+        mov     rax, [rdx + 32]
+        cmp     [half + 24], rax     ; comare with (q-1)/2
+        jc rlt_ret0                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rltRawL1L2                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
+        mov     rax, [rdx + 24]
+        cmp     [half + 16], rax     ; comare with (q-1)/2
+        jc rlt_ret0                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rltRawL1L2                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
+        mov     rax, [rdx + 16]
+        cmp     [half + 8], rax     ; comare with (q-1)/2
+        jc rlt_ret0                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rltRawL1L2                       ; half>rax => e1 -e2 is pos => e1 > e2
 
 
         mov     rax, [rdx + 8]
@@ -5254,6 +8012,27 @@ rltl1l2_p1:
 rltl1l2_n1:
 
 
+        mov     rax, [rdx + 32]
+        cmp     [half + 24], rax     ; comare with (q-1)/2
+        jc rltRawL1L2                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rlt_ret1                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
+        mov     rax, [rdx + 24]
+        cmp     [half + 16], rax     ; comare with (q-1)/2
+        jc rltRawL1L2                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rlt_ret1                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
+        mov     rax, [rdx + 16]
+        cmp     [half + 8], rax     ; comare with (q-1)/2
+        jc rltRawL1L2                           ; half<rax => e1-e2 is neg => e1 < e2
+
+        jnz rlt_ret1                       ; half>rax => e1 -e2 is pos => e1 > e2
+
+
         mov     rax, [rdx + 8]
         cmp     [half + 0], rax     ; comare with (q-1)/2
         jc rltRawL1L2                           ; half<rax => e1-e2 is neg => e1 < e2
@@ -5265,6 +8044,21 @@ rltl1l2_n1:
 
 
 rltRawL1L2:
+
+        mov     rax, [rsi + 32]
+        cmp     [rdx + 32], rax     ; comare with (q-1)/2
+        jc rlt_ret0                      ; rsi<rdx => 1st > 2nd
+        jnz rlt_ret1
+
+        mov     rax, [rsi + 24]
+        cmp     [rdx + 24], rax     ; comare with (q-1)/2
+        jc rlt_ret0                      ; rsi<rdx => 1st > 2nd
+        jnz rlt_ret1
+
+        mov     rax, [rsi + 16]
+        cmp     [rdx + 16], rax     ; comare with (q-1)/2
+        jc rlt_ret0                      ; rsi<rdx => 1st > 2nd
+        jnz rlt_ret1
 
         mov     rax, [rsi + 8]
         cmp     [rdx + 8], rax     ; comare with (q-1)/2
@@ -5329,7 +8123,7 @@ req_l1s2:
 req_l1ns2:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -5344,7 +8138,7 @@ req_l1ns2:
 req_l1ms2:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -5364,7 +8158,7 @@ req_s1l2:
 req_s1l2n:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -5378,7 +8172,7 @@ req_s1l2n:
 req_s1l2m:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -5402,7 +8196,7 @@ req_l1nl2n:
 req_l1nl2m:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rdx
         push r8
@@ -5419,7 +8213,7 @@ req_l1ml2:
 req_l1ml2n:
 
         mov  r8, rdi
-        sub  rsp, 16
+        sub  rsp, 40
         mov  rdi, rsp
         push rsi
         mov  rsi, rdx
@@ -5443,6 +8237,18 @@ reqL1L2:
 
         mov     rax, [rsi + 8]
         cmp     [rdx + 8], rax
+        jne     req_ret0                      ; rsi<rdi => 1st > 2nd
+
+        mov     rax, [rsi + 16]
+        cmp     [rdx + 16], rax
+        jne     req_ret0                      ; rsi<rdi => 1st > 2nd
+
+        mov     rax, [rsi + 24]
+        cmp     [rdx + 24], rax
+        jne     req_ret0                      ; rsi<rdi => 1st > 2nd
+
+        mov     rax, [rsi + 32]
+        cmp     [rdx + 32], rax
         jne     req_ret0                      ; rsi<rdi => 1st > 2nd
 
 
@@ -5582,6 +8388,18 @@ Fr_rawIsEq:
         cmp     [rdi + 0], rax
         jne     rawIsEq_ret0
 
+        mov     rax, [rsi + 8]
+        cmp     [rdi + 8], rax
+        jne     rawIsEq_ret0
+
+        mov     rax, [rsi + 16]
+        cmp     [rdi + 16], rax
+        jne     rawIsEq_ret0
+
+        mov     rax, [rsi + 24]
+        cmp     [rdi + 24], rax
+        jne     rawIsEq_ret0
+
 rawIsEq_ret1:
         mov    rax, 1
         ret
@@ -5604,6 +8422,15 @@ rawIsEq_ret0:
 Fr_rawIsZero:
 
         cmp     qword [rdi + 0], $0
+        jne     rawIsZero_ret0
+
+        cmp     qword [rdi + 8], $0
+        jne     rawIsZero_ret0
+
+        cmp     qword [rdi + 16], $0
+        jne     rawIsZero_ret0
+
+        cmp     qword [rdi + 24], $0
         jne     rawIsZero_ret0
 
 
@@ -5657,6 +8484,18 @@ tmp_120:
     test    rax, rax
     jnz     retOne_121
 
+    mov     rax, [rsi + 16]
+    test    rax, rax
+    jnz     retOne_121
+
+    mov     rax, [rsi + 24]
+    test    rax, rax
+    jnz     retOne_121
+
+    mov     rax, [rsi + 32]
+    test    rax, rax
+    jnz     retOne_121
+
 
 retZero_122:
     mov     qword r8, 0
@@ -5684,6 +8523,18 @@ done_123:
 tmp_124:
 
     mov     rax, [rdx + 8]
+    test    rax, rax
+    jnz     retOne_125
+
+    mov     rax, [rdx + 16]
+    test    rax, rax
+    jnz     retOne_125
+
+    mov     rax, [rdx + 24]
+    test    rax, rax
+    jnz     retOne_125
+
+    mov     rax, [rdx + 32]
     test    rax, rax
     jnz     retOne_125
 
@@ -5734,6 +8585,18 @@ tmp_128:
     test    rax, rax
     jnz     retOne_129
 
+    mov     rax, [rsi + 16]
+    test    rax, rax
+    jnz     retOne_129
+
+    mov     rax, [rsi + 24]
+    test    rax, rax
+    jnz     retOne_129
+
+    mov     rax, [rsi + 32]
+    test    rax, rax
+    jnz     retOne_129
+
 
 retZero_130:
     mov     qword r8, 0
@@ -5761,6 +8624,18 @@ done_131:
 tmp_132:
 
     mov     rax, [rdx + 8]
+    test    rax, rax
+    jnz     retOne_133
+
+    mov     rax, [rdx + 16]
+    test    rax, rax
+    jnz     retOne_133
+
+    mov     rax, [rdx + 24]
+    test    rax, rax
+    jnz     retOne_133
+
+    mov     rax, [rdx + 32]
     test    rax, rax
     jnz     retOne_133
 
@@ -5807,6 +8682,18 @@ Fr_lnot:
 tmp_136:
 
     mov     rax, [rsi + 8]
+    test    rax, rax
+    jnz     retOne_137
+
+    mov     rax, [rsi + 16]
+    test    rax, rax
+    jnz     retOne_137
+
+    mov     rax, [rsi + 24]
+    test    rax, rax
+    jnz     retOne_137
+
+    mov     rax, [rsi + 32]
     test    rax, rax
     jnz     retOne_137
 
@@ -5861,6 +8748,18 @@ tmp_140:
     test    rax, rax
     jnz     retOne_141
 
+    mov     rax, [rdi + 16]
+    test    rax, rax
+    jnz     retOne_141
+
+    mov     rax, [rdi + 24]
+    test    rax, rax
+    jnz     retOne_141
+
+    mov     rax, [rdi + 32]
+    test    rax, rax
+    jnz     retOne_141
+
 
 retZero_142:
     mov     qword rax, 0
@@ -5882,14 +8781,14 @@ Fr_q:
         dd      0
         dd      0x80000000
 Fr_rawq:
-q       dq      0xffffffff00000001
-half    dq      0x7fffffff80000000
-R2      dq      0xfffffffe00000001
+q       dq      0x43e1f593f0000001,0x2833e84879b97091,0xb85045b68181585d,0x30644e72e131a029
+half    dq      0xa1f0fac9f8000000,0x9419f4243cdcb848,0xdc2822db40c0ac2e,0x183227397098d014
+R2      dq      0x1bb8e645ae216da7,0x53fe3ab1e35c59e3,0x8c49833d53bb8085,0x0216d0b17f4e44a5
 Fr_R3:
         dd      0
         dd      0x80000000
 Fr_rawR3:
-R3      dq      0x0000000000000001
-lboMask dq      0xffffffffffffffff
-np      dq      0xfffffffeffffffff
+R3      dq      0x5e94d8e1b4bf0040,0x2a489cbe1cfbb6b8,0x893cc664a19fcfed,0x0cf8594b7fcc657c
+lboMask dq      0x3fffffffffffffff
+np      dq      0xc2e1f593efffffff
 
