@@ -222,7 +222,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             verifierInfoFinal,
         } = await genFinalSetup(buildDir, setupOptions, finalSettings, globalInfo, globalConstraints, 18);
         
-        if(proofManagerConfig.setup.genAggregationSetup) {
+        if(proofManagerConfig.setup.genFinalSnarkSetup) {
             await genFinalSnarkSetup(
                 buildDir, setupOptions, globalInfo, constRootFinal, [],
                 starkInfoFinal, verifierInfoFinal,
