@@ -31,13 +31,15 @@ Circom_Circuit* loadCircuit(std::string const &datFileName) {
     dsize = get_size_of_witness()*sizeof(u64);
     memcpy((void *)(circuit->witness2SignalList), (void *)(bdata+inisize), dsize);
 
-    circuit->circuitConstants = new FrElement[get_size_of_constants()];
+    /* in 64 bit constants are not in a map
+    circuit->circuitConstants = new u64[get_size_of_constants()];
     if (get_size_of_constants()>0) {
       inisize += dsize;
-      dsize = get_size_of_constants()*sizeof(FrElement);
+      dsize = get_size_of_constants()*sizeof(u64);
       memcpy((void *)(circuit->circuitConstants), (void *)(bdata+inisize), dsize);
     }
-
+    */
+    
     std::map<u32,IOFieldDefPair> templateInsId2IOSignalInfo1;
     IOFieldDefPair* busInsId2FieldInfo1;
     if (get_size_of_io_map()>0) {
@@ -125,9 +127,9 @@ bool check_valid_number(std::string & s, uint base){
   return is_valid;
 }
 
-void json2FrElements (json val, std::vector<FrElement> & vval){
+void json2FrElements (json val, std::vector<u64> & vval){
   if (!val.is_array()) {
-    FrElement v;
+    u64 v;
     std::string s_aux, s;
     uint base;
     if (val.is_string()) {
@@ -162,8 +164,7 @@ void json2FrElements (json val, std::vector<FrElement> & vval){
         errStrStream << "Invalid JSON type\n";
 	      throw std::runtime_error(errStrStream.str() );
     }
-    Fr_str2element (&v, s.c_str(), base);
-    vval.push_back(v);
+    vval.push_back(strtoull(s.c_str(), NULL, base));
   } else {
     for (uint i = 0; i < val.size(); i++) {
       json2FrElements (val[i], vval);
@@ -231,7 +232,7 @@ void loadJsonImpl(Circom_CalcWit *ctx, json &j) {
   for (json::iterator it = j.begin(); it != j.end(); ++it) {
     // std::cout << it.key() << " => " << it.value() << '\n';
     u64 h = fnv1a(it.key());
-    std::vector<FrElement> v;
+    std::vector<u64> v;
     json2FrElements(it.value(),v);
     uint signalSize = ctx->getInputSignalSize(h);
     if (v.size() < signalSize) {
@@ -248,7 +249,7 @@ void loadJsonImpl(Circom_CalcWit *ctx, json &j) {
       try {
 	// std::cout << it.key() << "," << i << " => " << Fr_element2str(&(v[i])) << '\n';
 	ctx->setInputSignal(h,i,v[i]);
-      } catch (const std::runtime_error &e) {
+      } catch (std::runtime_error e) {
 	std::ostringstream errStrStream;
 	errStrStream << "Error setting signal: " << it.key() << "\n" << e.what();
 	throw std::runtime_error(errStrStream.str() );
@@ -273,7 +274,7 @@ void freeCircuit(Circom_Circuit *circuit)
 {
   delete[] circuit->InputHashMap;
   delete[] circuit->witness2SignalList;
-  delete[] circuit->circuitConstants;
+  // delete[] circuit->circuitConstants;
   delete circuit;
 }
 
@@ -304,10 +305,7 @@ extern "C" __attribute__((visibility("default"))) void getWitness(void *zkin, ch
     uint64_t sizeWitness = get_size_of_witness();
     for (uint64_t i = 0; i < sizeWitness; i++)
     {
-      FrElement aux;
-      ctx->getWitness(i, &aux);
-      Fr_toLongNormal(&aux, &aux);
-      witness[i] = aux.longVal[0];
+      ctx->getWitness(i, witness[i]);
     }
     
     delete ctx;
