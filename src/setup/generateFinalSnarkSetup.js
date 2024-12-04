@@ -40,7 +40,8 @@ module.exports.genFinalSnarkSetup = async function genFinalSnarkSetup(buildDir, 
  
     // Compile circom
     console.log("Compiling " + template + "...");
-    const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks --inspect --wasm --c --verbose -l ${starkRecurserCircuits} -l ${circuitsGLPath} ${buildDir}/circom/${template}.circom -o ${buildDir}/build`;
+    const circomExecFile = path.resolve(__dirname, '../../../', 'circom_efficient_witness_computation/target/release/circom');
+    const compileRecursiveCommand = `${circomExecFile} --O1 --r1cs --prime goldilocks --inspect --wasm --c --verbose -l ${starkRecurserCircuits} -l ${circuitsGLPath} ${buildDir}/circom/${template}.circom -o ${buildDir}/build`;
     await exec(compileRecursiveCommand);
  
     console.log("Copying circom files...");

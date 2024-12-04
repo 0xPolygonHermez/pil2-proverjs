@@ -27,16 +27,16 @@ Circom_CalcWit::Circom_CalcWit (Circom_Circuit *aCircuit, uint maxTh) {
   circuit = aCircuit;
   inputSignalAssignedCounter = get_main_input_signal_no();
   inputSignalAssigned = new bool[inputSignalAssignedCounter];
-  for (unsigned int i = 0; i< inputSignalAssignedCounter; i++) {
+  for (int i = 0; i< inputSignalAssignedCounter; i++) {
     inputSignalAssigned[i] = false;
   }
-  signalValues = new FrElement[get_total_signal_no()];
-  Fr_str2element(&signalValues[0], "1", 10);
+  signalValues = new u64[get_total_signal_no()];
+  signalValues[0] = 1;
   componentMemory = new Circom_Component[get_number_of_components()];
-  circuitConstants = circuit ->circuitConstants;
+  // circuitConstants = circuit ->circuitConstants;
   templateInsId2IOSignalInfo = circuit -> templateInsId2IOSignalInfo;
   busInsId2FieldInfo = circuit -> busInsId2FieldInfo;
-  
+
   maxThread = maxTh;
 
   // parallelism
@@ -74,7 +74,7 @@ void Circom_CalcWit::tryRunCircuit(){
   }
 }
 
-void Circom_CalcWit::setInputSignal(u64 h, uint i,  FrElement & val){
+void Circom_CalcWit::setInputSignal(u64 h, uint i,  u64 & val){
   if (inputSignalAssignedCounter == 0) {
     fprintf(stderr, "No more signals to be assigned\n");
     assert(false);

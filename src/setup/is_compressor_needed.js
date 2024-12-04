@@ -36,7 +36,8 @@ module.exports.isCompressorNeeded = async function isCompressorNeeded(constRoot,
     );
     
     const circuitsGLPath = path.resolve(__dirname, '../../', 'node_modules/stark-recurser/src/pil2circom/circuits.gl');
-    const compileRecursiveCommand = `circom --O1 --r1cs --prime goldilocks -l ${circuitsGLPath} ${tmpCircomFilename} -o ${tempDir}`;
+    const circomExecFile = path.resolve(__dirname, '../../../', 'circom_efficient_witness_computation/target/release/circom');
+    const compileRecursiveCommand = `${circomExecFile} --O1 --r1cs --prime goldilocks -l ${circuitsGLPath} ${tmpCircomFilename} -o ${tempDir}`;
     console.log(compileRecursiveCommand);
     await execPromise(compileRecursiveCommand, { cwd: tempDir });
     
