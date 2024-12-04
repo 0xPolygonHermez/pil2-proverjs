@@ -42,13 +42,14 @@ async function run() {
 
     if(!proofs.length) throw new Error("No proof was found with name " + template);
 
-    const globalConstraints = JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, "pilout.globalConstraints.json")));
-
-    const airoutInfo = {...globalInfo, globalConstraints};
+    let airoutInfo = {...globalInfo};
     
     const setups = [];
     
     if(!template) {
+        const globalConstraints = JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, "pilout.globalConstraints.json")));
+        airoutInfo.globalConstraints = globalConstraints;
+
         for(let i = 0; i < globalInfo.airs.length; ++i) {
             const setupsAir = [];
             for(let j = 0; j < globalInfo.airs[i].length; ++j) {
@@ -70,6 +71,7 @@ async function run() {
             setups.push(setupsAir);
         }
     } else {
+        airoutInfo.globalConstraints = [];
         setups.push([{
             starkInfo: JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, globalInfo.name, template, `${template}.starkinfo.json`), "utf8")),
             verifierInfo: JSON.parse(await fs.promises.readFile(path.join(argv.provingkey, globalInfo.name, template, `${template}.verifierinfo.json`), "utf8")),
