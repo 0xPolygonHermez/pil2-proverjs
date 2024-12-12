@@ -53,7 +53,7 @@ module.exports.getAllOperations = function getAllOperations() {
     const possibleDestinationsDim3 = [ "tmp3" ];
 
     const possibleSrcDim1 = [ "commit1", "tmp1", "public", "number", "airvalue1" ];
-    const possibleSrcDim3 = [ "commit3", "tmp3", "challenge", "airgroupvalue", "airvalue3" ];
+    const possibleSrcDim3 = [ "commit3", "tmp3", "challenge", "airgroupvalue", "airvalue3", "proofvalue" ];
 
     // Dim1 destinations
     for(let j = 0; j < possibleDestinationsDim1.length; j++) {

@@ -210,7 +210,7 @@ module.exports.calculateExpDeg = function calculateExpDeg(expressions, exp, imEx
         return deg;
     } else if (["x", "const", "cm", "custom"].includes(exp.op) || (exp.op === "Zi" && exp.boundary !== "everyRow")) {
         return 1;
-    } else if (["number", "public", "challenge", "eval", "airgroupvalue", "airvalue"].includes(exp.op) || (exp.op === "Zi" && exp.boundary === "everyRow")) {
+    } else if (["number", "public", "challenge", "eval", "airgroupvalue", "airvalue", "proofvalue"].includes(exp.op) || (exp.op === "Zi" && exp.boundary === "everyRow")) {
         return 0;
     } else if(exp.op === "neg") {
         return calculateExpDeg(expressions, exp.values[0], imExps, cacheValues);

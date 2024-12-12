@@ -274,6 +274,8 @@ module.exports.printExpressions = function printExpressions(res, exp, expression
         return "x";
     } else if (exp.op === "Zi") {
         return "zh";
+    } else if (exp.op === "proofvalue") {
+        return res.proofValuesMap[exp.id].name;;
     } else throw new Error("Unknown op: " + exp.op);
 }
 
@@ -340,12 +342,12 @@ module.exports.formatSymbols = function formatSymbols(pilout, global = false) {
             if(!s.dim) {
                 return {
                     name: s.name,
-                    type: "proofValue",
+                    type: "proofvalue",
                     id: s.id,
                 }
             } else {
                 const multiArraySymbols = [];
-                generateMultiArraySymbols(multiArraySymbols, [], s, "proofValue", undefined, 3, s.id, 0);
+                generateMultiArraySymbols(multiArraySymbols, [], s, "proofvalue", undefined, 3, s.id, 0);
                 return multiArraySymbols;
             }
         } else if(s.type === piloutTypes.CHALLENGE) {

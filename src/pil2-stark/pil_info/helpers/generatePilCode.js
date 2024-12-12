@@ -81,7 +81,7 @@ function processHintFieldValue(values, res, expressions, global, pos = []) {
             } else if (["cm", "custom", "const"].includes(field.op)) {
                 const primeIndex = res.openingPoints.findIndex(p => p === field.rowOffset);
                 processedField = { ...field, rowOffsetIndex: primeIndex, pos: currentPos };
-            } else if (["challenge", "public", "airgroupvalue", "airvalue","number", "string"].includes(field.op)) {
+            } else if (["challenge", "public", "airgroupvalue", "airvalue","number", "string", "proofvalue"].includes(field.op)) {
                 processedField = { ...field, pos: currentPos };
             } else {
                 throw new Error("Invalid hint op: " + field.op);

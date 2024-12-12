@@ -163,7 +163,11 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
             "            for(uint64_t o = 0; o < nOpenings; ++o) {",
             "                for(uint64_t j = 0; j < nrowsPack; ++j) {",
             "                    uint64_t l = (row + j + nextStrides[o]) % domainSize;",
-            "                    bufferT[nrowsPack*o + j] = params.pols[offsetsStages[stage] + l * nColsStages[stage] + stagePos + d];",
+            "                    if(stage == 1 && !domainExtended) {",
+            "                        bufferT[nrowsPack*o + j] = params.trace[l * nColsStages[stage] + stagePos + d];",
+            "                    } else {",
+            "                        bufferT[nrowsPack*o + j] = params.pols[offsetsStages[stage] + l * nColsStages[stage] + stagePos + d];",
+            "                    }",
             "                }",
             `                Goldilocks::${avxLoad}(bufferT_[nColsStagesAcc[ns*o + stage] + (stagePos + d)], &bufferT[nrowsPack*o]);`,
             "            }",
@@ -278,7 +282,11 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
             "            for(uint64_t o = 0; o < nOpenings; ++o) {",
             "                for(uint64_t j = 0; j < nrowsPack; ++j) {",
             "                    uint64_t l = (row + j + nextStrides[o]) % domainSize;",
-            "                    bufferT_[(nColsStagesAcc[ns*o + stage] + (stagePos + d))*nrowsPack + j] = params.pols[offsetsStages[stage] + l * nColsStages[stage] + stagePos + d];",
+            "                    if(stage == 1 && !domainExtended) {",
+            "                        bufferT_[(nColsStagesAcc[ns*o + stage] + (stagePos + d))*nrowsPack + j] = params.trace[l * nColsStages[stage] + stagePos + d];",
+            "                    } else {",
+            "                        bufferT_[(nColsStagesAcc[ns*o + stage] + (stagePos + d))*nrowsPack + j] = params.pols[offsetsStages[stage] + l * nColsStages[stage] + stagePos + d];",
+            "                    }",
             "                }",
             "            }",
             "        }",
@@ -330,7 +338,7 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
             "        }",
             "    } else {",
             "        for(uint64_t j = 0; j < nrowsPack; ++j) {",
-            "            bufferT_[(nColsStagesAcc[ns*nOpenings])*nrowsPack + j] = setupCtx.proverHelpers.x[row + j];",
+            "            bufferT_[(nColsStagesAcc[ns*nOpenings])*nrowsPack + j] = setupCtx.proverHelpers.x_n[row + j];",
             "        }",
             "    }",
             "}\n",
@@ -338,13 +346,21 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
     }
     
     parserCPP.push(...[
-        `inline void copyPolynomial(${isAvx ? avxTypeElement : "Goldilocks::Element"}* destVals, bool inverse, uint64_t dim, ${isAvx ? avxTypeElement : "Goldilocks::Element"}* tmp) {`,
+        `inline void copyPolynomial(${isAvx ? avxTypeElement : "Goldilocks::Element"}* destVals, bool inverse${!isAvx ? ", bool batch" :""}, uint64_t dim, ${isAvx ? avxTypeElement : "Goldilocks::Element"}* tmp) {`,
         "    if(dim == 1) {",
         "        if(inverse) {",
     ]);
 
     if(!isAvx) {
-        parserCPP.push("            Goldilocks::batchInverse(&destVals[0], &tmp[0], nrowsPack);");
+        parserCPP.push(...[
+            "            if(batch) {",
+            "                Goldilocks::batchInverse(&destVals[0], &tmp[0], nrowsPack);",
+            "            } else {",
+            "                for(uint64_t i = 0; i < nrowsPack; ++i) {",
+            "                    Goldilocks::inv(destVals[i], tmp[i]);",
+            "                }",
+            "            }",
+        ])
     } else {
         parserCPP.push(...[
             "            Goldilocks::Element buff[nrowsPack];",
@@ -364,7 +380,21 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
         `            Goldilocks::${isAvx ? avxStore : "copy_pack"}(${!isAvx ? "nrowsPack," : ""} &buff[0], uint64_t(FIELD_EXTENSION), ${!isAvx ? "&tmp[0]" : "tmp[0]"});`,
         `            Goldilocks::${isAvx ? avxStore : "copy_pack"}(${!isAvx ? "nrowsPack," : ""} &buff[1], uint64_t(FIELD_EXTENSION), ${!isAvx ? "&tmp[nrowsPack]" : "tmp[1]"});`,
         `            Goldilocks::${isAvx ? avxStore : "copy_pack"}(${!isAvx ? "nrowsPack," : ""} &buff[2], uint64_t(FIELD_EXTENSION), ${!isAvx ? "&tmp[2*nrowsPack]" : "tmp[2]"});`,
-        "            Goldilocks3::batchInverse((Goldilocks3::Element *)buff, (Goldilocks3::Element *)buff, nrowsPack);",
+    ]);
+    if(isAvx) {
+        parserCPP.push("            Goldilocks3::batchInverse((Goldilocks3::Element *)buff, (Goldilocks3::Element *)buff, nrowsPack);");
+    } else {
+        parserCPP.push(...[
+            "            if(batch) {",
+            "                Goldilocks3::batchInverse((Goldilocks3::Element *)buff, (Goldilocks3::Element *)buff, nrowsPack);",
+            "            } else {",
+            "                for(uint64_t i = 0; i < nrowsPack; ++i) {",
+            "                    Goldilocks3::inv((Goldilocks3::Element &)buff[i*FIELD_EXTENSION], (Goldilocks3::Element &)buff[i*FIELD_EXTENSION]);",
+            "                }",
+            "            }",
+        ])
+    }
+    parserCPP.push(...[    
         `            Goldilocks::${isAvx ? avxLoad : "copy_pack"}(${!isAvx ? "nrowsPack, &destVals[0]" : "destVals[0]"}, &buff[0], uint64_t(FIELD_EXTENSION));`,
         `            Goldilocks::${isAvx ? avxLoad : "copy_pack"}(${!isAvx ? "nrowsPack, &destVals[nrowsPack]" : "destVals[1]"}, &buff[1], uint64_t(FIELD_EXTENSION));`,
         `            Goldilocks::${isAvx ? avxLoad : "copy_pack"}(${!isAvx ? "nrowsPack, &destVals[2*nrowsPack]" : "destVals[2]"}, &buff[2], uint64_t(FIELD_EXTENSION));`,
@@ -379,92 +409,72 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
 
     if(isAvx) {
         parserCPP.push(...[
+            `inline void multiplyPolynomials(Dest &dest, ${avxTypeElement}* destVals) {`,
+            "    if(dest.dim == 1) {",
+            `        Goldilocks::op_${parserType}(2, destVals[0], destVals[0], destVals[FIELD_EXTENSION]);`,
+            "    } else {",
+            `        ${avxTypeElement} vals3[FIELD_EXTENSION];`,
+            `        if(dest.params[0].dim == FIELD_EXTENSION && dest.params[1].dim == FIELD_EXTENSION) {`,
+            `            Goldilocks3::op_${parserType}(2, (${avxTypeExtElement} &)vals3, (${avxTypeExtElement} &)destVals[0], (${avxTypeExtElement} &)destVals[FIELD_EXTENSION]);`,
+            `        } else if(dest.params[0].dim == FIELD_EXTENSION && dest.params[1].dim == 1) {`,
+            `            Goldilocks3::op_31_${parserType}(2, (${avxTypeExtElement} &)vals3, (${avxTypeExtElement} &)destVals[0], destVals[FIELD_EXTENSION]);`,
+            `        } else {`,
+            `            Goldilocks3::op_31_${parserType}(2, (${avxTypeExtElement} &)vals3, (${avxTypeExtElement} &)destVals[FIELD_EXTENSION], destVals[0]);`,
+            `        }`,
+            `        Goldilocks::${avxCopy}(destVals[0], vals3[0]);`,
+            `        Goldilocks::${avxCopy}(destVals[1], vals3[1]);`,
+            `        Goldilocks::${avxCopy}(destVals[2], vals3[2]);`,
+            "    }",
+            "}\n",
+        ]);
+
+        parserCPP.push(...[
             `inline void storePolynomial(std::vector<Dest> dests, ${avxTypeElement}** destVals, uint64_t row) {`,
             "    for(uint64_t i = 0; i < dests.size(); ++i) {",
-            `        ${avxTypeElement} vals1;`,
-            `        ${avxTypeElement} vals3[FIELD_EXTENSION];`,
-            "        uint64_t dim = 1;",
-            "        if(dests[i].params.size() == 1) {",
-            "            if(dests[i].params[0].dim == 1) {",
-            `                Goldilocks::${avxCopy}(vals1, destVals[i][0]);`,
-            "                dim = 1;",
-            "            } else {",
-            `                Goldilocks::${avxCopy}(vals3[0], destVals[i][0]);`,
-            `                Goldilocks::${avxCopy}(vals3[1], destVals[i][1]);`,
-            `                Goldilocks::${avxCopy}(vals3[2], destVals[i][2]);`,
-            "                dim = FIELD_EXTENSION;",
-            "            }",
-            "        } else if(dests[i].params.size() == 2) {",
-            "            if(dests[i].params[0].dim == FIELD_EXTENSION && dests[i].params[1].dim == FIELD_EXTENSION) {",
-            `                Goldilocks3::op_${parserType}(2, (${avxTypeExtElement} &)vals3, (${avxTypeExtElement} &)destVals[i][0], (${avxTypeExtElement} &)destVals[i][FIELD_EXTENSION]);`,
-            "                dim = FIELD_EXTENSION;",
-            "            } else if(dests[i].params[0].dim == FIELD_EXTENSION && dests[i].params[1].dim == 1) {",
-            `                Goldilocks3::op_31_${parserType}(2, (${avxTypeExtElement} &)vals3, (${avxTypeExtElement} &)destVals[i][0], destVals[i][FIELD_EXTENSION]);`,
-            "                dim = FIELD_EXTENSION;",
-            "            } else if(dests[i].params[0].dim == 1 && dests[i].params[1].dim == FIELD_EXTENSION) {",
-            `                Goldilocks3::op_31_${parserType}(2, (${avxTypeExtElement} &)vals3, (${avxTypeExtElement} &)destVals[i][FIELD_EXTENSION], destVals[i][0]);`,
-            "                dim = FIELD_EXTENSION;",
-            "            } else {",
-            `                Goldilocks::op_${parserType}(2, vals1, destVals[i][0], destVals[i][FIELD_EXTENSION]);`,
-            "                dim = 1;",
-            "            }",
-            "        } else {",
-            `            zklog.error("Currently only length 1 and 2 are supported");`,
-            "            exitProcess();",
-            "        }",
-            "        if(dim == 1) {",
+            "        if(dests[i].dim == 1) {",
             "            uint64_t offset = dests[i].offset != 0 ? dests[i].offset : 1;",
-            `            Goldilocks::${avxStore}(&dests[i].dest[row*offset], uint64_t(offset), vals1);`,
+            `            Goldilocks::${avxStore}(&dests[i].dest[row*offset], uint64_t(offset), destVals[i][0]);`,
             "        } else {",
             "            uint64_t offset = dests[i].offset != 0 ? dests[i].offset : FIELD_EXTENSION;",
-            `            Goldilocks::${avxStore}(&dests[i].dest[row*offset], uint64_t(offset), vals3[0]);`,
-            `            Goldilocks::${avxStore}(&dests[i].dest[row*offset + 1], uint64_t(offset),vals3[1]);`,
-            `            Goldilocks::${avxStore}(&dests[i].dest[row*offset + 2], uint64_t(offset), vals3[2]);`,
+            `            Goldilocks::${avxStore}(&dests[i].dest[row*offset], uint64_t(offset), destVals[i][0]);`,
+            `            Goldilocks::${avxStore}(&dests[i].dest[row*offset + 1], uint64_t(offset),destVals[i][1]);`,
+            `            Goldilocks::${avxStore}(&dests[i].dest[row*offset + 2], uint64_t(offset), destVals[i][2]);`,
             "        }",
             "    }",
             "}\n",
         ]);
     } else {
         parserCPP.push(...[
+            `inline void multiplyPolynomials(Dest &dest, Goldilocks::Element* destVals) {`,
+            "    if(dest.dim == 1) {",
+            `        Goldilocks::op_pack(nrowsPack, 2, &destVals[0], &destVals[0], &destVals[FIELD_EXTENSION*nrowsPack]);`,
+            "    } else {",
+            `        Goldilocks::Element vals[FIELD_EXTENSION*nrowsPack];`,
+            `        if(dest.params[0].dim == FIELD_EXTENSION && dest.params[1].dim == FIELD_EXTENSION) {`,
+            `            Goldilocks3::op_${parserType}(nrowsPack, 2, &vals[0], &destVals[0], &destVals[FIELD_EXTENSION*nrowsPack]);`,
+            `        } else if(dest.params[0].dim == FIELD_EXTENSION && dest.params[1].dim == 1) {`,
+            `            Goldilocks3::op_31_${parserType}(nrowsPack, 2, &vals[0], &destVals[0], &destVals[FIELD_EXTENSION*nrowsPack]);`,
+            `        } else {`,
+            `            Goldilocks3::op_31_${parserType}(nrowsPack, 2, &vals[0], &destVals[FIELD_EXTENSION*nrowsPack], &destVals[0]);`,
+            `        }`,
+            `        Goldilocks::copy_pack(nrowsPack, &destVals[0], &vals[0]);`,
+            `        Goldilocks::copy_pack(nrowsPack, &destVals[nrowsPack], &vals[nrowsPack]);`,
+            `        Goldilocks::copy_pack(nrowsPack, &destVals[2*nrowsPack], &vals[2*nrowsPack]);`,
+            "    }",
+            "}\n",
+        ]);
+
+        parserCPP.push(...[
             `inline void storePolynomial(std::vector<Dest> dests, Goldilocks::Element** destVals, uint64_t row) {`,
-            "    for(uint64_t i = 0; i < dests.size(); ++i) {",
-            "        Goldilocks::Element vals[FIELD_EXTENSION*nrowsPack];",
-            "        uint64_t dim = 1;",
-            "        if(dests[i].params.size() == 1) {",
-            "            dim = dests[i].params[0].dim;",
-            "            if(dim == 1) {",
-            `                Goldilocks::copy_pack(nrowsPack, &vals[0], &destVals[i][0]);`,
-            "            } else {",
-            `                Goldilocks::copy_pack(nrowsPack, &vals[0], &destVals[i][0]);`,
-            `                Goldilocks::copy_pack(nrowsPack, &vals[nrowsPack], &destVals[i][nrowsPack]);`,
-            `                Goldilocks::copy_pack(nrowsPack, &vals[2*nrowsPack], &destVals[i][2*nrowsPack]);`,
-            "            }",
-            "        } else if(dests[i].params.size() == 2) {",
-            "            if(dests[i].params[0].dim == FIELD_EXTENSION && dests[i].params[1].dim == FIELD_EXTENSION) {",
-            `                Goldilocks3::op_pack(nrowsPack, 2, &vals[0], &destVals[i][0], &destVals[i][FIELD_EXTENSION*nrowsPack]);`,
-            "                dim = FIELD_EXTENSION;",
-            "            } else if(dests[i].params[0].dim == FIELD_EXTENSION && dests[i].params[1].dim == 1) {",
-            `                Goldilocks3::op_31_pack(nrowsPack, 2, &vals[0], &destVals[i][0], &destVals[i][FIELD_EXTENSION*nrowsPack]);`,
-            "                dim = FIELD_EXTENSION;",
-            "            } else if(dests[i].params[0].dim == 1 && dests[i].params[1].dim == FIELD_EXTENSION) {",
-            `                Goldilocks3::op_31_pack(nrowsPack, 2, &vals[0], &destVals[i][FIELD_EXTENSION*nrowsPack], &destVals[i][0]);`,
-            "                dim = FIELD_EXTENSION;",
-            "            } else {",
-            `                Goldilocks::op_pack(nrowsPack, 2, &vals[0], &destVals[i][0], &destVals[i][FIELD_EXTENSION*nrowsPack]);`,
-            "                dim = 1;",
-            "            }",
-            "        } else {",
-            `            zklog.error("Currently only length 1 and 2 are supported");`,
-            "            exitProcess();",
-            "        }", 
-            "        if(dim == 1) {",
+            "    for(uint64_t i = 0; i < dests.size(); ++i) {",           
+            "        if(dests[i].dim == 1) {",
             "            uint64_t offset = dests[i].offset != 0 ? dests[i].offset : 1;",
-            `            Goldilocks::copy_pack(nrowsPack, &dests[i].dest[row*offset], uint64_t(offset), &vals[0]);`,
+            `            Goldilocks::copy_pack(nrowsPack, &dests[i].dest[row*offset], uint64_t(offset), &destVals[i][0]);`,
             "        } else {",
             "            uint64_t offset = dests[i].offset != 0 ? dests[i].offset : FIELD_EXTENSION;",
-            `            Goldilocks::copy_pack(nrowsPack, &dests[i].dest[row*offset], uint64_t(offset), &vals[0]);`,
-            `            Goldilocks::copy_pack(nrowsPack, &dests[i].dest[row*offset + 1], uint64_t(offset), &vals[nrowsPack]);`,
-            `            Goldilocks::copy_pack(nrowsPack, &dests[i].dest[row*offset + 2], uint64_t(offset), &vals[2*nrowsPack]);`,
+            `            Goldilocks::copy_pack(nrowsPack, &dests[i].dest[row*offset], uint64_t(offset), &destVals[i][0]);`,
+            `            Goldilocks::copy_pack(nrowsPack, &dests[i].dest[row*offset + 1], uint64_t(offset), &destVals[i][nrowsPack]);`,
+            `            Goldilocks::copy_pack(nrowsPack, &dests[i].dest[row*offset + 2], uint64_t(offset), &destVals[i][2*nrowsPack]);`,
             "        }",
             "    }",
             "}\n",
@@ -482,17 +492,28 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
         "}\n"
     ]);
     
-    parserCPP.push(...[
-        `inline void printTmp3(uint64_t row, ${isAvx ? avxTypeExtElement : "Goldilocks::Element*"} tmp) {`,
-        "    Goldilocks::Element buff[FIELD_EXTENSION*nrowsPack];",
-        `    Goldilocks::${isAvx ? avxStore : "copy_pack"}(${!isAvx ? "nrowsPack," : ""}&buff[0], uint64_t(FIELD_EXTENSION), ${!isAvx ? "&tmp[0]" : "tmp[0]"});`,
-        `    Goldilocks::${isAvx ? avxStore : "copy_pack"}(${!isAvx ? "nrowsPack," : ""}&buff[1], uint64_t(FIELD_EXTENSION), ${!isAvx ? "&tmp[1]" : "tmp[1]"});`,
-        `    Goldilocks::${isAvx ? avxStore : "copy_pack"}(${!isAvx ? "nrowsPack," : ""}&buff[2], uint64_t(FIELD_EXTENSION), ${!isAvx ? "&tmp[2]" : "tmp[2]"});`,
-        "    for(uint64_t i = 0; i < 1; ++i) {",
-        `        cout << "Value at row " << row + i << " is [" << Goldilocks::toString(buff[FIELD_EXTENSION*i]) << ", " << Goldilocks::toString(buff[FIELD_EXTENSION*i + 1]) << ", " << Goldilocks::toString(buff[FIELD_EXTENSION*i + 2]) << "]" << endl;`,
-        "    }",
-        "}\n",
-    ]);
+    if(!isAvx) {
+        parserCPP.push(...[
+            `inline void printTmp3(uint64_t row, Goldilocks::Element* tmp) {`,     
+            "    for(uint64_t i = 0; i < nrowsPack; ++i) {",
+            `        cout << "Value at row " << row + i << " is [" << Goldilocks::toString(tmp[i]) << ", " << Goldilocks::toString(tmp[nrowsPack + i]) << ", " << Goldilocks::toString(tmp[2*nrowsPack + i]) << "]" << endl;`,
+            "    }",
+            "}\n",
+        ]);
+    } else {
+        parserCPP.push(...[
+            `inline void printTmp3(uint64_t row, ${avxTypeExtElement} tmp) {`,
+            "    Goldilocks::Element buff[FIELD_EXTENSION*nrowsPack];",
+            `    Goldilocks::${avxStore}(&buff[0], uint64_t(FIELD_EXTENSION), tmp[0]);`,
+            `    Goldilocks::${avxStore}(&buff[1], uint64_t(FIELD_EXTENSION), tmp[1]);`,
+            `    Goldilocks::${avxStore}(&buff[2], uint64_t(FIELD_EXTENSION), tmp[2]);`,
+            "    for(uint64_t i = 0; i < 1; ++i) {",
+            `        cout << "Value at row " << row + i << " is [" << Goldilocks::toString(buff[FIELD_EXTENSION*i]) << ", " << Goldilocks::toString(buff[FIELD_EXTENSION*i + 1]) << ", " << Goldilocks::toString(buff[FIELD_EXTENSION*i + 2]) << "]" << endl;`,
+            "    }",
+            "}\n",
+        ]);
+    }
+   
     
     parserCPP.push(...[
         `inline void printCommit(uint64_t row, ${isAvx ? avxTypeElement : "Goldilocks::Element"}* bufferT, bool extended) {`,
@@ -515,7 +536,7 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
     ]);
     
     parserCPP.push(...[
-        `void calculateExpressions(StepsParams& params, ParserArgs &parserArgs, std::vector<Dest> dests, uint64_t domainSize) override {`,
+        `void calculateExpressions(StepsParams& params, ParserArgs &parserArgs, std::vector<Dest> dests, uint64_t domainSize, bool compilation_time) override {`,
         "    uint64_t nOpenings = setupCtx.starkInfo.openingPoints.size();",
         "    uint64_t ns = 2 + setupCtx.starkInfo.nStages + setupCtx.starkInfo.customCommits.size();",
         "    bool domainExtended = domainSize == uint64_t(1 << setupCtx.starkInfo.starkStruct.nBitsExt) ? true : false;\n",
@@ -546,6 +567,15 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
             `    ${avxTypeElement} publics[setupCtx.starkInfo.nPublics];`,
             "    for(uint64_t i = 0; i < setupCtx.starkInfo.nPublics; ++i) {",
             `        publics[i] = ${avxSet1Epi64}(params.publicInputs[i].fe);`,
+            "    }\n",
+        ]);
+
+        parserCPP.push(...[
+            `    ${avxTypeExtElement} proofValues[setupCtx.starkInfo.proofValuesMap.size()];`,
+            "    for(uint64_t i = 0; i < setupCtx.starkInfo.proofValuesMap.size(); ++i) {",
+            `        proofValues[i][0] = ${avxSet1Epi64}(params.proofValues[i * FIELD_EXTENSION].fe);`,
+            `        proofValues[i][1] = ${avxSet1Epi64}(params.proofValues[i * FIELD_EXTENSION + 1].fe);`,
+            `        proofValues[i][2] = ${avxSet1Epi64}(params.proofValues[i * FIELD_EXTENSION + 2].fe);`,
             "    }\n",
         ]);
     
@@ -579,11 +609,13 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
     } else {
         parserCPP.push(...[
             `    Goldilocks::Element challenges[setupCtx.starkInfo.challengesMap.size()*FIELD_EXTENSION*nrowsPack];`,
-            "    for(uint64_t i = 0; i < setupCtx.starkInfo.challengesMap.size(); ++i) {",
-            "        for(uint64_t j = 0; j < nrowsPack; ++j) {",
-            `            challenges[(i*FIELD_EXTENSION)*nrowsPack + j] = params.challenges[i * FIELD_EXTENSION];`,
-            `            challenges[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.challenges[i * FIELD_EXTENSION + 1];`,
-            `            challenges[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.challenges[i * FIELD_EXTENSION + 2];`,
+            "    if(!compilation_time) {",
+            "        for(uint64_t i = 0; i < setupCtx.starkInfo.challengesMap.size(); ++i) {",
+            "            for(uint64_t j = 0; j < nrowsPack; ++j) {",
+            `                challenges[(i*FIELD_EXTENSION)*nrowsPack + j] = params.challenges[i * FIELD_EXTENSION];`,
+            `                challenges[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.challenges[i * FIELD_EXTENSION + 1];`,
+            `                challenges[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.challenges[i * FIELD_EXTENSION + 2];`,
+            "            }",
             "        }",
             "    }\n",
         ]);
@@ -598,42 +630,63 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
 
         parserCPP.push(...[
             "    Goldilocks::Element publics[setupCtx.starkInfo.nPublics*nrowsPack];",
-            "    for(uint64_t i = 0; i < setupCtx.starkInfo.nPublics; ++i) {",
-            "        for(uint64_t j = 0; j < nrowsPack; ++j) {",
-            `            publics[i*nrowsPack + j] = params.publicInputs[i];`,
+            "    if(!compilation_time) {",
+            "        for(uint64_t i = 0; i < setupCtx.starkInfo.nPublics; ++i) {",
+            "            for(uint64_t j = 0; j < nrowsPack; ++j) {",
+            `                publics[i*nrowsPack + j] = params.publicInputs[i];`,
+            "            }",
             "        }",
             "    }\n",
         ])
 
         parserCPP.push(...[
             `    Goldilocks::Element evals[setupCtx.starkInfo.evMap.size()*FIELD_EXTENSION*nrowsPack];`,
-            "    for(uint64_t i = 0; i < setupCtx.starkInfo.evMap.size(); ++i) {",
-            "        for(uint64_t j = 0; j < nrowsPack; ++j) {",
-            `            evals[(i*FIELD_EXTENSION)*nrowsPack + j] = params.evals[i * FIELD_EXTENSION];`,
-            `            evals[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.evals[i * FIELD_EXTENSION + 1];`,
-            `            evals[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.evals[i * FIELD_EXTENSION + 2];`,
+            "    if(!compilation_time) {",
+            "        for(uint64_t i = 0; i < setupCtx.starkInfo.evMap.size(); ++i) {",
+            "            for(uint64_t j = 0; j < nrowsPack; ++j) {",
+            `                evals[(i*FIELD_EXTENSION)*nrowsPack + j] = params.evals[i * FIELD_EXTENSION];`,
+            `                evals[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.evals[i * FIELD_EXTENSION + 1];`,
+            `                evals[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.evals[i * FIELD_EXTENSION + 2];`,
+            "            }",
             "        }",
             "    }\n",
         ]);
 
         parserCPP.push(...[
             `    Goldilocks::Element airgroupValues[setupCtx.starkInfo.airgroupValuesMap.size()*FIELD_EXTENSION*nrowsPack];`,
-            "    for(uint64_t i = 0; i < setupCtx.starkInfo.airgroupValuesMap.size(); ++i) {",
-            "        for(uint64_t j = 0; j < nrowsPack; ++j) {",
-            `            airgroupValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.airgroupValues[i * FIELD_EXTENSION];`,
-            `            airgroupValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.airgroupValues[i * FIELD_EXTENSION + 1];`,
-            `            airgroupValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.airgroupValues[i * FIELD_EXTENSION + 2];`,
+            "    if(!compilation_time) {",
+            "        for(uint64_t i = 0; i < setupCtx.starkInfo.airgroupValuesMap.size(); ++i) {",
+            "            for(uint64_t j = 0; j < nrowsPack; ++j) {",
+            `                airgroupValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.airgroupValues[i * FIELD_EXTENSION];`,
+            `                airgroupValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.airgroupValues[i * FIELD_EXTENSION + 1];`,
+            `                airgroupValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.airgroupValues[i * FIELD_EXTENSION + 2];`,
+            "            }",
+            "        }",
+            "    }\n",
+        ]);
+
+        parserCPP.push(...[
+            `    Goldilocks::Element proofValues[setupCtx.starkInfo.proofValuesMap.size()*FIELD_EXTENSION*nrowsPack];`,
+            "    if(!compilation_time) {",
+            "        for(uint64_t i = 0; i < setupCtx.starkInfo.proofValuesMap.size(); ++i) {",
+            "            for(uint64_t j = 0; j < nrowsPack; ++j) {",
+            `                proofValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.proofValues[i * FIELD_EXTENSION];`,
+            `                proofValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.proofValues[i * FIELD_EXTENSION + 1];`,
+            `                proofValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.proofValues[i * FIELD_EXTENSION + 2];`,
+            "            }",
             "        }",
             "    }\n",
         ]);
 
         parserCPP.push(...[
             `    Goldilocks::Element airValues[setupCtx.starkInfo.airValuesMap.size()*FIELD_EXTENSION*nrowsPack];`,
-            "    for(uint64_t i = 0; i < setupCtx.starkInfo.airValuesMap.size(); ++i) {",
-            "        for(uint64_t j = 0; j < nrowsPack; ++j) {",
-            `            airValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.airValues[i * FIELD_EXTENSION];`,
-            `            airValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.airValues[i * FIELD_EXTENSION + 1];`,
-            `            airValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.airValues[i * FIELD_EXTENSION + 2];`,
+            "    if(!compilation_time) {",
+            "        for(uint64_t i = 0; i < setupCtx.starkInfo.airValuesMap.size(); ++i) {",
+            "            for(uint64_t j = 0; j < nrowsPack; ++j) {",
+            `                airValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.airValues[i * FIELD_EXTENSION];`,
+            `                airValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.airValues[i * FIELD_EXTENSION + 1];`,
+            `                airValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.airValues[i * FIELD_EXTENSION + 2];`,
+            "            }",
             "        }",
             "    }\n",
         ]);
@@ -651,11 +704,11 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
     }
     
 
-    parserCPP.push("        loadPolynomials(params, parserArgs, dests, bufferT_, i, domainSize);\n");
-    
     if(isAvx) {
+        parserCPP.push("        loadPolynomials(params, parserArgs, dests, bufferT_, i, domainSize);\n");
         parserCPP.push(`        ${avxTypeElement}** destVals = new ${avxTypeElement}*[dests.size()];\n`); 
     } else {
+        parserCPP.push("        if(!compilation_time) loadPolynomials(params, parserArgs, dests, bufferT_, i, domainSize);\n");
         parserCPP.push(`        Goldilocks::Element **destVals = new Goldilocks::Element*[dests.size()];\n`); 
     }
 
@@ -665,22 +718,20 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
         "            for(uint64_t k = 0; k < dests[j].params.size(); ++k) {",
         "                uint64_t i_args = 0;\n",
         "                if(dests[j].params[k].op == opType::cm || dests[j].params[k].op == opType::const_) {",
-        "                    auto openingPointZero = std::find_if(setupCtx.starkInfo.openingPoints.begin(), setupCtx.starkInfo.openingPoints.end(), [](int p) { return p == 0; });",  
-        "                    auto openingPointZeroIndex = std::distance(setupCtx.starkInfo.openingPoints.begin(), openingPointZero);\n",  
-        "                    uint64_t buffPos = ns*openingPointZeroIndex + dests[j].params[k].stage;",
+        "                    uint64_t openingPointIndex = dests[j].params[k].rowOffsetIndex;",
+        "                    uint64_t buffPos = ns*openingPointIndex + dests[j].params[k].stage;",
         "                    uint64_t stagePos = dests[j].params[k].stagePos;",
-        `                    copyPolynomial(${!isAvx ? "&destVals[j][k*FIELD_EXTENSION*nrowsPack]" : "&destVals[j][k*FIELD_EXTENSION]"}, dests[j].params[k].inverse, dests[j].params[k].dim, ${!isAvx ? "&bufferT_[(nColsStagesAcc[buffPos] + stagePos)*nrowsPack]" : "&bufferT_[nColsStagesAcc[buffPos] + stagePos]"});`,
+        `                    copyPolynomial(${!isAvx ? "&destVals[j][k*FIELD_EXTENSION*nrowsPack]" : "&destVals[j][k*FIELD_EXTENSION]"}, dests[j].params[k].inverse${!isAvx ? ",dests[j].params[k].batch" : ""},dests[j].params[k].dim, ${!isAvx ? "&bufferT_[(nColsStagesAcc[buffPos] + stagePos)*nrowsPack]" : "&bufferT_[nColsStagesAcc[buffPos] + stagePos]"});`,
         "                    continue;",
         "                } else if(dests[j].params[k].op == opType::number) {",
-        "                    uint64_t val = dests[j].params[k].inverse ? Goldilocks::inv(Goldilocks::fromU64(dests[j].params[k].value)).fe : dests[j].params[k].value;",
     ]);
 
     if(isAvx) {
-        parserCPP.push(`                    destVals[j][k*FIELD_EXTENSION] = ${avxSet1Epi64}(val);`);
+        parserCPP.push(`                    destVals[j][k*FIELD_EXTENSION] = ${avxSet1Epi64}(dests[j].params[k].value);`);
     } else {
         parserCPP.push(...[
             "                    for(uint64_t r = 0; r < nrowsPack; ++r) {",
-            `                        destVals[j][k*FIELD_EXTENSION*nrowsPack + r] = Goldilocks::fromU64(val);`,
+            `                        destVals[j][k*FIELD_EXTENSION*nrowsPack + r] = Goldilocks::fromU64(dests[j].params[k].value);`,
             "                    }",
         ]);
     }
@@ -751,11 +802,14 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
 
     parserCPP.push(...[
         "                if(dests[j].params[k].parserParams.destDim == 1) {", 
-        `                    copyPolynomial(${!isAvx ? "&destVals[j][k*FIELD_EXTENSION*nrowsPack]" : "&destVals[j][k*FIELD_EXTENSION]"}, dests[j].params[k].inverse, dests[j].params[k].parserParams.destDim, ${isAvx ? "&tmp1[dests[j].params[k].parserParams.destId]" : "&tmp1[dests[j].params[k].parserParams.destId*nrowsPack]"});`, 
+        `                    copyPolynomial(${!isAvx ? "&destVals[j][k*FIELD_EXTENSION*nrowsPack]" : "&destVals[j][k*FIELD_EXTENSION]"}, dests[j].params[k].inverse${!isAvx ? ",dests[j].params[k].batch" : ""}, dests[j].params[k].parserParams.destDim, ${isAvx ? "&tmp1[dests[j].params[k].parserParams.destId]" : "&tmp1[dests[j].params[k].parserParams.destId*nrowsPack]"});`, 
         "                } else {", 
-        `                    copyPolynomial(${!isAvx ? "&destVals[j][k*FIELD_EXTENSION*nrowsPack]" : "&destVals[j][k*FIELD_EXTENSION]"}, dests[j].params[k].inverse, dests[j].params[k].parserParams.destDim, ${isAvx ? "tmp3[dests[j].params[k].parserParams.destId]" : "&tmp3[dests[j].params[k].parserParams.destId*FIELD_EXTENSION*nrowsPack]"});`, 
+        `                    copyPolynomial(${!isAvx ? "&destVals[j][k*FIELD_EXTENSION*nrowsPack]" : "&destVals[j][k*FIELD_EXTENSION]"}, dests[j].params[k].inverse${!isAvx ? ",dests[j].params[k].batch" : ""}, dests[j].params[k].parserParams.destDim, ${isAvx ? "tmp3[dests[j].params[k].parserParams.destId]" : "&tmp3[dests[j].params[k].parserParams.destId*FIELD_EXTENSION*nrowsPack]"});`, 
         "                }", 
     ]);
+    parserCPP.push("            }");
+    parserCPP.push("            if(dests[j].params.size() == 2) {");
+    parserCPP.push("                multiplyPolynomials(dests[j], destVals[j]);");
     parserCPP.push("            }");
     parserCPP.push("        }");
 
@@ -789,7 +843,7 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
             if(operation.src1_type)  {
                 let dimType = "";
                 let dims1 = ["public", "commit1", "tmp1", "const", "number", "airvalue1"];
-                let dims3 = ["commit3", "tmp3", "airgroupvalue", "airvalue3", "challenge", "eval", "xDivXSubXi"];
+                let dims3 = ["commit3", "tmp3", "airgroupvalue", "airvalue3", "proofvalue", "challenge", "eval", "xDivXSubXi"];
                 if(global) dims3.push("proofvalue");
                 if(dims1.includes(operation.src0_type)) dimType += "1";
                 if (dims3.includes(operation.src0_type)) dimType += "3";

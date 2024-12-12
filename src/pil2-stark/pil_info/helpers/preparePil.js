@@ -16,6 +16,7 @@ module.exports.preparePil = function preparePil(F, pil, starkStruct, pil2, optio
     res.constPolsMap = [];
     res.challengesMap = [];
     res.publicsMap = [];
+    res.proofValuesMap = [];
     res.airgroupValuesMap = [];
     res.airValuesMap = [];
     res.pil2 = pil2;
