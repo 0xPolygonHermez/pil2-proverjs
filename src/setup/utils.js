@@ -86,7 +86,10 @@ async function setAiroutInfo(airout, starkStructs) {
     let proofValues = airout.getProofValues();
     vadcopInfo.proofValuesMap = proofValues.map(p => { return {name: p.name, id: p.id }})
 
-    let globalConstraints = [];
+    let globalConstraints = {
+        constraints: [],
+        hints: [],
+    };
     if(airout.constraints !== undefined) {
         globalConstraints = getGlobalConstraintsInfo(airout, true);
     }
