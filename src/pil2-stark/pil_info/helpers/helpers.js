@@ -54,7 +54,7 @@ module.exports.addInfoExpressions = function addInfoExpressions(expressions, exp
         exp.dim = 3;
     } else if(exp.op === "airgroupvalue" || exp.op === "proofvalue") {
         exp.expDeg = 0;
-        exp.dim = 3;
+        if(!exp.dim) exp.dim = exp.stage != 1 ? 3 : 1; 
     } else if (exp.op === "airvalue") {
         exp.expDeg = 0;
         if(!exp.dim) exp.dim = exp.stage != 1 ? 3 : 1; 

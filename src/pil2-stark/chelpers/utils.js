@@ -4,8 +4,8 @@ module.exports.getGlobalOperations = function getGlobalOperations() {
     const possibleDestinationsDim1 = ["tmp1"];
     const possibleDestinationsDim3 = ["tmp3"];
 
-    const possibleSrcDim1 = ["tmp1", "public", "number"];
-    const possibleSrcDim3 = ["tmp3", "airgroupvalue", "proofvalue", "challenge"];
+    const possibleSrcDim1 = ["tmp1", "public", "number", "proofvalue1"];
+    const possibleSrcDim3 = ["tmp3", "airgroupvalue", "proofvalue3", "challenge"];
 
     // Dim1 destinations
     for(let j = 0; j < possibleDestinationsDim1.length; j++) {
@@ -52,8 +52,8 @@ module.exports.getAllOperations = function getAllOperations() {
     const possibleDestinationsDim1 = [ "tmp1" ];
     const possibleDestinationsDim3 = [ "tmp3" ];
 
-    const possibleSrcDim1 = [ "commit1", "tmp1", "public", "number", "airvalue1" ];
-    const possibleSrcDim3 = [ "commit3", "tmp3", "challenge", "airgroupvalue", "airvalue3", "proofvalue" ];
+    const possibleSrcDim1 = [ "commit1", "tmp1", "public", "number", "airvalue1", "proofvalue1" ];
+    const possibleSrcDim3 = [ "commit3", "tmp3", "challenge", "airgroupvalue", "airvalue3", "proofvalue3", ];
 
     // Dim1 destinations
     for(let j = 0; j < possibleDestinationsDim1.length; j++) {

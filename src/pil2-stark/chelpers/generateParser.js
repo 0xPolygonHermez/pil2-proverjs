@@ -166,7 +166,7 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
             "                    if(stage == 1 && !domainExtended) {",
             "                        bufferT[nrowsPack*o + j] = params.trace[l * nColsStages[stage] + stagePos + d];",
             "                    } else {",
-            "                        bufferT[nrowsPack*o + j] = params.pols[offsetsStages[stage] + l * nColsStages[stage] + stagePos + d];",
+            "                        bufferT[nrowsPack*o + j] = params.aux_trace[offsetsStages[stage] + l * nColsStages[stage] + stagePos + d];",
             "                    }",
             "                }",
             `                Goldilocks::${avxLoad}(bufferT_[nColsStagesAcc[ns*o + stage] + (stagePos + d)], &bufferT[nrowsPack*o]);`,
@@ -174,6 +174,7 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
             "        }",
             "    }\n",
             "    for(uint64_t i = 0; i < setupCtx.starkInfo.customCommits.size(); ++i) {",
+            "        Goldilocks::Element *customCommits = domainExtended ? params.pCustomCommitsExtended[i] : params.pCustomCommits[i];",
             "        for(uint64_t j = 0; j < setupCtx.starkInfo.customCommits[i].stageWidths[0]; ++j) {",
             "            if(!customCommitsUsed[i][j]) continue;",
             "            PolMap polInfo = setupCtx.starkInfo.customCommitsMap[i][j];",
@@ -183,7 +184,7 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
             "                for(uint64_t o = 0; o < nOpenings; ++o) {",
             "                    for(uint64_t j = 0; j < nrowsPack; ++j) {",
             "                        uint64_t l = (row + j + nextStrides[o]) % domainSize;",
-            "                        bufferT[nrowsPack*o + j] = params.customCommits[i][offsetsStages[stage] + l * nColsStages[stage] + stagePos + d];",
+            "                        bufferT[nrowsPack*o + j] = customCommits[offsetsStages[stage] + l * nColsStages[stage] + stagePos + d];",
             "                    }",
             "                    Goldilocks::load_avx(bufferT_[nColsStagesAcc[ns*o + stage] + (stagePos + d)], &bufferT[nrowsPack*o]);",
             "                }",
@@ -285,13 +286,14 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
             "                    if(stage == 1 && !domainExtended) {",
             "                        bufferT_[(nColsStagesAcc[ns*o + stage] + (stagePos + d))*nrowsPack + j] = params.trace[l * nColsStages[stage] + stagePos + d];",
             "                    } else {",
-            "                        bufferT_[(nColsStagesAcc[ns*o + stage] + (stagePos + d))*nrowsPack + j] = params.pols[offsetsStages[stage] + l * nColsStages[stage] + stagePos + d];",
+            "                        bufferT_[(nColsStagesAcc[ns*o + stage] + (stagePos + d))*nrowsPack + j] = params.aux_trace[offsetsStages[stage] + l * nColsStages[stage] + stagePos + d];",
             "                    }",
             "                }",
             "            }",
             "        }",
             "    }\n",
             "    for(uint64_t i = 0; i < setupCtx.starkInfo.customCommits.size(); ++i) {",
+            "        Goldilocks::Element *customCommits = domainExtended ? params.pCustomCommitsExtended[i] : params.pCustomCommits[i];",
             "        for(uint64_t j = 0; j < setupCtx.starkInfo.customCommits[i].stageWidths[0]; ++j) {",
             "            if(!customCommitsUsed[i][j]) continue;",
             "            PolMap polInfo = setupCtx.starkInfo.customCommitsMap[i][j];",
@@ -301,7 +303,7 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
             "                for(uint64_t o = 0; o < nOpenings; ++o) {",
             "                    for(uint64_t j = 0; j < nrowsPack; ++j) {",
             "                        uint64_t l = (row + j + nextStrides[o]) % domainSize;",
-            "                        bufferT_[(nColsStagesAcc[ns*o + stage] + (stagePos + d))*nrowsPack + j] = params.customCommits[i][offsetsStages[stage] + l * nColsStages[stage] + stagePos + d];",
+            "                        bufferT_[(nColsStagesAcc[ns*o + stage] + (stagePos + d))*nrowsPack + j] = customCommits[offsetsStages[stage] + l * nColsStages[stage] + stagePos + d];",
             "                    }",
             "                }",
             "            }",
@@ -571,29 +573,56 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
         ]);
 
         parserCPP.push(...[
+            "    uint64_t p = 0;",
             `    ${avxTypeExtElement} proofValues[setupCtx.starkInfo.proofValuesMap.size()];`,
             "    for(uint64_t i = 0; i < setupCtx.starkInfo.proofValuesMap.size(); ++i) {",
-            `        proofValues[i][0] = ${avxSet1Epi64}(params.proofValues[i * FIELD_EXTENSION].fe);`,
-            `        proofValues[i][1] = ${avxSet1Epi64}(params.proofValues[i * FIELD_EXTENSION + 1].fe);`,
-            `        proofValues[i][2] = ${avxSet1Epi64}(params.proofValues[i * FIELD_EXTENSION + 2].fe);`,
+            "        if(setupCtx.starkInfo.proofValuesMap[i].stage == 1) {",
+            `           proofValues[i][0] = ${avxSet1Epi64}(params.proofValues[p].fe);`,
+            `           proofValues[i][1] = ${avxSet1Epi64}(0);`,
+            `           proofValues[i][2] = ${avxSet1Epi64}(0);`,
+            "           p += 1;",
+            "        } else {",
+            `           proofValues[i][0] = ${avxSet1Epi64}(params.proofValues[p].fe);`,
+            `           proofValues[i][1] = ${avxSet1Epi64}(params.proofValues[p + 1].fe);`,
+            `           proofValues[i][2] = ${avxSet1Epi64}(params.proofValues[p + 2].fe);`,
+            "           p += 3;",
+            "        }",
             "    }\n",
         ]);
     
         parserCPP.push(...[
             `    ${avxTypeExtElement} airgroupValues[setupCtx.starkInfo.airgroupValuesMap.size()];`,
+            "    p = 0;",
             "    for(uint64_t i = 0; i < setupCtx.starkInfo.airgroupValuesMap.size(); ++i) {",
-            `        airgroupValues[i][0] = ${avxSet1Epi64}(params.airgroupValues[i * FIELD_EXTENSION].fe);`,
-            `        airgroupValues[i][1] = ${avxSet1Epi64}(params.airgroupValues[i * FIELD_EXTENSION + 1].fe);`,
-            `        airgroupValues[i][2] = ${avxSet1Epi64}(params.airgroupValues[i * FIELD_EXTENSION + 2].fe);`,
+            "        if(setupCtx.starkInfo.airgroupValuesMap[i].stage == 1) {",
+            `           airgroupValues[i][0] = ${avxSet1Epi64}(params.airgroupValues[p].fe);`,
+            `           airgroupValues[i][1] = ${avxSet1Epi64}(0);`,
+            `           airgroupValues[i][2] = ${avxSet1Epi64}(0);`,
+            "           p += 1;",
+            "        } else {",
+            `           airgroupValues[i][0] = ${avxSet1Epi64}(params.airgroupValues[p].fe);`,
+            `           airgroupValues[i][1] = ${avxSet1Epi64}(params.airgroupValues[p+ 1].fe);`,
+            `           airgroupValues[i][2] = ${avxSet1Epi64}(params.airgroupValues[p+ 2].fe);`,
+            "           p += 3;",
+            "        }",
             "    }\n",
         ]);
 
         parserCPP.push(...[
             `    ${avxTypeExtElement} airValues[setupCtx.starkInfo.airValuesMap.size()];`,
+            "    p = 0;",
             "    for(uint64_t i = 0; i < setupCtx.starkInfo.airValuesMap.size(); ++i) {",
-            `        airValues[i][0] = ${avxSet1Epi64}(params.airValues[i * FIELD_EXTENSION].fe);`,
-            `        airValues[i][1] = ${avxSet1Epi64}(params.airValues[i * FIELD_EXTENSION + 1].fe);`,
-            `        airValues[i][2] = ${avxSet1Epi64}(params.airValues[i * FIELD_EXTENSION + 2].fe);`,
+            "        if(setupCtx.starkInfo.airValuesMap[i].stage == 1) {",
+            `           airValues[i][0] = ${avxSet1Epi64}(params.airValues[p].fe);`,
+            `           airValues[i][1] = ${avxSet1Epi64}(0);`,
+            `           airValues[i][2] = ${avxSet1Epi64}(0);`,
+            "           p += 1;",
+            "        } else {",
+            `           airValues[i][0] = ${avxSet1Epi64}(params.airValues[p].fe);`,
+            `           airValues[i][1] = ${avxSet1Epi64}(params.airValues[p + 1].fe);`,
+            `           airValues[i][2] = ${avxSet1Epi64}(params.airValues[p + 2].fe);`,
+            "           p += 3;",
+            "        }",
             "    }\n",
         ]);
     
@@ -655,11 +684,20 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
         parserCPP.push(...[
             `    Goldilocks::Element airgroupValues[setupCtx.starkInfo.airgroupValuesMap.size()*FIELD_EXTENSION*nrowsPack];`,
             "    if(!compilation_time) {",
+            "        uint64_t p = 0;",
             "        for(uint64_t i = 0; i < setupCtx.starkInfo.airgroupValuesMap.size(); ++i) {",
             "            for(uint64_t j = 0; j < nrowsPack; ++j) {",
-            `                airgroupValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.airgroupValues[i * FIELD_EXTENSION];`,
-            `                airgroupValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.airgroupValues[i * FIELD_EXTENSION + 1];`,
-            `                airgroupValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.airgroupValues[i * FIELD_EXTENSION + 2];`,
+            "                if(setupCtx.starkInfo.airgroupValuesMap[i].stage == 1) {",
+            `                    airgroupValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.airgroupValues[p];`,
+            `                    airgroupValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = Goldilocks::zero();`,
+            `                    airgroupValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = Goldilocks::zero();`,
+            "                    p += 1;",
+            "                } else {",
+            `                    airgroupValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.airgroupValues[p];`,
+            `                    airgroupValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.airgroupValues[p + 1];`,
+            `                    airgroupValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.airgroupValues[p + 2];`,
+            "                    p += 3;",
+            "                }",
             "            }",
             "        }",
             "    }\n",
@@ -668,11 +706,20 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
         parserCPP.push(...[
             `    Goldilocks::Element proofValues[setupCtx.starkInfo.proofValuesMap.size()*FIELD_EXTENSION*nrowsPack];`,
             "    if(!compilation_time) {",
+            "        uint64_t p = 0;",
             "        for(uint64_t i = 0; i < setupCtx.starkInfo.proofValuesMap.size(); ++i) {",
             "            for(uint64_t j = 0; j < nrowsPack; ++j) {",
-            `                proofValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.proofValues[i * FIELD_EXTENSION];`,
-            `                proofValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.proofValues[i * FIELD_EXTENSION + 1];`,
-            `                proofValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.proofValues[i * FIELD_EXTENSION + 2];`,
+            "                if(setupCtx.starkInfo.proofValuesMap[i].stage == 1) {",
+            `                    proofValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.proofValues[p];`,
+            `                    proofValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = Goldilocks::zero();`,
+            `                    proofValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = Goldilocks::zero();`,
+            "                    p += 1;",
+            "                } else {",
+            `                    proofValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.proofValues[p];`,
+            `                    proofValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.proofValues[p + 1];`,
+            `                    proofValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.proofValues[p + 2];`,
+            "                    p += 3;",
+            "                }",
             "            }",
             "        }",
             "    }\n",
@@ -681,11 +728,20 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
         parserCPP.push(...[
             `    Goldilocks::Element airValues[setupCtx.starkInfo.airValuesMap.size()*FIELD_EXTENSION*nrowsPack];`,
             "    if(!compilation_time) {",
+            "        uint64_t p = 0;",
             "        for(uint64_t i = 0; i < setupCtx.starkInfo.airValuesMap.size(); ++i) {",
             "            for(uint64_t j = 0; j < nrowsPack; ++j) {",
-            `                airValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.airValues[i * FIELD_EXTENSION];`,
-            `                airValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.airValues[i * FIELD_EXTENSION + 1];`,
-            `                airValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.airValues[i * FIELD_EXTENSION + 2];`,
+            "                if(setupCtx.starkInfo.airValuesMap[i].stage == 1) {",
+            `                    airValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.airValues[p];`,
+            `                    airValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = Goldilocks::zero();`,
+            `                    airValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = Goldilocks::zero();`,
+            "                    p += 1;",
+            "                } else {",
+            `                    airValues[(i*FIELD_EXTENSION)*nrowsPack + j] = params.airValues[p];`,
+            `                    airValues[(i*FIELD_EXTENSION + 1)*nrowsPack + j] = params.airValues[p + 1];`,
+            `                    airValues[(i*FIELD_EXTENSION + 2)*nrowsPack + j] = params.airValues[p + 2];`,
+            "                    p += 3;",
+            "                }",
             "            }",
             "        }",
             "    }\n",
@@ -842,8 +898,8 @@ module.exports.generateParser = function generateParser(parserType = "avx", glob
         if(["tmp3", "commit3"].includes(operation.dest_type)) {
             if(operation.src1_type)  {
                 let dimType = "";
-                let dims1 = ["public", "commit1", "tmp1", "const", "number", "airvalue1"];
-                let dims3 = ["commit3", "tmp3", "airgroupvalue", "airvalue3", "proofvalue", "challenge", "eval", "xDivXSubXi"];
+                let dims1 = ["public", "commit1", "tmp1", "const", "number", "airvalue1", "proofvalue1"];
+                let dims3 = ["commit3", "tmp3", "airgroupvalue", "airvalue3", "proofvalue3", "challenge", "eval", "xDivXSubXi"];
                 if(global) dims3.push("proofvalue");
                 if(dims1.includes(operation.src0_type)) dimType += "1";
                 if (dims3.includes(operation.src0_type)) dimType += "3";
@@ -908,10 +964,14 @@ function writeType(type, c_args, parserType, global = false) {
             return parserType === "pack" 
                 ? `&publics[args[i_args + ${c_args}] * nrowsPack]`
                 : `publics[args[i_args + ${c_args}]]`;
-        case "proofvalue":
+        case "proofvalue3":
             return parserType === "pack" 
                 ? `&proofValues[args[i_args + ${c_args}] * nrowsPack * FIELD_EXTENSION]`
                 : `proofValues[args[i_args + ${c_args}]]`;
+        case "proofvalue1":
+            return parserType === "pack" 
+                ? `&proofValues[args[i_args + ${c_args}] * nrowsPack * FIELD_EXTENSION]`
+                : `proofValues[args[i_args + ${c_args}]][0]`;
         case "tmp1":
             return parserType === "pack" 
                 ? `&tmp1[args[i_args + ${c_args}] * nrowsPack]`
@@ -973,7 +1033,8 @@ function numberOfArgs(type, global = false) {
         case "number":
         case "airvalue1":
         case "airvalue3":
-        case "proofvalue":
+        case "proofvalue1":
+        case "proofvalue3":
             return 1;
         case "airgroupvalue":
             return global ? 2 : 1;

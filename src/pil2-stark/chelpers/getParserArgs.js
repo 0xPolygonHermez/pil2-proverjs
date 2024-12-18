@@ -18,6 +18,7 @@ const operationsMap = {
     "public": 3,
     "number": 4,
     "airvalue1": 5,
+    "proofvalue1": 6,
     "custom3": 7,
     "commit3": 7,
     "xDivXSubXi": 7,
@@ -25,6 +26,7 @@ const operationsMap = {
     "airvalue3": 9,
     "airgroupvalue": 10,
     "proofvalue": 11,
+    "proofvalue3": 11,
     "challenge": 12, 
     "eval": 13,
 }
@@ -217,6 +219,8 @@ module.exports.getParserArgs = function getParserArgs(starkInfo, operations, cod
             return `tmp${r.dim}`;
         } else if(r.type === "airvalue") {
             return `airvalue${r.dim}`;
+        } else if(r.type === "proofvalue") {
+            return `proofvalue${r.dim}`;
         } else {
             return r.type;
         }
@@ -236,8 +240,8 @@ module.exports.getParserArgs = function getParserArgs(starkInfo, operations, cod
         _op.src = [...r.src];
         
         _op.src.sort((a, b) => {
-            let opA =  a.type === "cm" ? operationsMap[`commit${a.dim}`] :  ["airvalue", "tmp", "custom"].includes(a.type) ? operationsMap[`${a.type}${a.dim}`] : operationsMap[a.type];
-            let opB = b.type === "cm" ? operationsMap[`commit${b.dim}`] : ["airvalue", "tmp", "custom"].includes(b.type) ? operationsMap[`${b.type}${b.dim}`] : operationsMap[b.type];
+            let opA =  a.type === "cm" ? operationsMap[`commit${a.dim}`] :  ["airvalue", "proofvalue", "tmp", "custom"].includes(a.type) ? operationsMap[`${a.type}${a.dim}`] : operationsMap[a.type];
+            let opB = b.type === "cm" ? operationsMap[`commit${b.dim}`] : ["airvalue", "proofvalue", "tmp", "custom"].includes(b.type) ? operationsMap[`${b.type}${b.dim}`] : operationsMap[b.type];
             let swap = a.dim !== b.dim ? b.dim - a.dim : opA - opB;
             if(r.op === "sub" && swap < 0) _op.op = "sub_swap";
             return swap;

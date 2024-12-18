@@ -140,12 +140,13 @@ function formatExpression(exp, pilout, symbols, saveSymbols = false, global = fa
     } else if (op === "airGroupValue") {
         const id = exp[op].idx;
         const stage = !global ? pilout.airGroupValues[id].stage : pilout.airGroups[exp[op].airGroupId].airGroupValues[id].stage;
-        exp = { op: "airgroupvalue", id, airgroupId: exp[op].airGroupId, dim: 3, stage };
+        const dim = stage === 1 ? 1 : 3; 
+        exp = { op: "airgroupvalue", id, airgroupId: exp[op].airGroupId, dim, stage };
         store = true;
     } else if (op === "airValue") {
         const id = exp[op].idx;
         const stage = pilout.airValues[id].stage;
-        const dim = stage !== 1 && 3; 
+        const dim = stage === 1 ? 1 : 3; 
         exp = { op: "airvalue", id, stage, dim };
         store = true;
     } else if (op === "challenge") {
@@ -156,7 +157,9 @@ function formatExpression(exp, pilout, symbols, saveSymbols = false, global = fa
         store = true;
     } else if (op === "proofValue") {
         const id = exp[op].idx;
-        exp = { op: "proofvalue", id};
+        const stage = exp[op].stage;
+        const dim = stage === 1 ? 1 : 3; 
+        exp = { op: "proofvalue", id, stage, dim};
         store = true;
     } else {
         throw new Error("Unknown op: " + op);
@@ -216,14 +219,15 @@ function addSymbol(pilout, symbols, exp, global = false) {
         const airvalueSymbol = symbols.find(s => s.type === "airvalue" && s.id === exp.id && s.airId === airId && s.airgroupId === airgroupId);
         if(!airvalueSymbol) {
             const name = pilout.name + ".airvalue_" + exp.id;
-            const dim = stage !== 1 && 3; 
+            const dim = stage === 1 ? 1 : 3; 
             symbols.push({type: "airvalue", dim, id: exp.id, stage: exp.stage, name, airId, airgroupId });
         }
     } else if(exp.op === "proofvalue") {
         const proofValueSymbol = symbols.find(s => s.type === "proofvalue" && s.id === exp.id);
         if(!proofValueSymbol) {
             const name = pilout.name + ".proofvalue_" + exp.id;
-            symbols.push({type: "proofvalue", name, id: exp.id })
+            const dim = stage === 1 ? 1 : 3; 
+            symbols.push({type: "proofvalue", name, dim, id: exp.id })
         }
     } else {
         throw new Error ("Unknown operation " + exp.op);
@@ -275,7 +279,7 @@ module.exports.printExpressions = function printExpressions(res, exp, expression
     } else if (exp.op === "Zi") {
         return "zh";
     } else if (exp.op === "proofvalue") {
-        return res.proofValuesMap[exp.id].name;;
+        return res.proofValuesMap[exp.id].name;
     } else throw new Error("Unknown op: " + exp.op);
 }
 
@@ -339,15 +343,18 @@ module.exports.formatSymbols = function formatSymbols(pilout, global = false) {
                 return multiArraySymbols;
             }
         } else if(s.type === piloutTypes.PROOF_VALUE) {
+            const dim = s.stage === 1 ? 1 : 3; 
             if(!s.dim) {
                 return {
                     name: s.name,
                     type: "proofvalue",
+                    stage: s.stage,
+                    dim,
                     id: s.id,
                 }
             } else {
                 const multiArraySymbols = [];
-                generateMultiArraySymbols(multiArraySymbols, [], s, "proofvalue", undefined, 3, s.id, 0);
+                generateMultiArraySymbols(multiArraySymbols, [], s, "proofvalue", undefined, dim, s.id, 0);
                 return multiArraySymbols;
             }
         } else if(s.type === piloutTypes.CHALLENGE) {
