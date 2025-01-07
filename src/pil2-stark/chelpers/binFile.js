@@ -20,14 +20,17 @@ module.exports.writeStringToFile = async function writeStringToFile(fd, str) {
     await fd.write(buff);
 }
 
-module.exports.writeVerifierExpressionsBinFile = async function writeVerifierExpressionsBinFile(cHelpersFilename, binFileInfo) {
+module.exports.writeVerifierExpressionsBinFile = async function writeVerifierExpressionsBinFile(cHelpersFilename, starkInfo, verifierInfo) {
     console.log("> Writing the chelpers verifier file");
+        
+    const binFileInfo = await prepareVerifierExpressionsBin(starkInfo, verifierInfo);
+
+    const verInfo = {};
+    verInfo.expsInfo = [binFileInfo.qCode, binFileInfo.queryCode];
 
     const cHelpersBin = await createBinFile(cHelpersFilename, "chps", 1, 2, 1 << 22, 1 << 24);
 
-    const expressionsInfo = [binFileInfo.qCode, binFileInfo.queryCode];
-
-    await writeExpressionsSection(cHelpersBin, expressionsInfo, binFileInfo.numbersExps, 2, true);
+    await writeExpressionsSection(cHelpersBin, verInfo.expsInfo, binFileInfo.numbersExps, 2, true);
 
     console.log("> Writing the chelpers file finished");
     console.log("---------------------------------------------");
@@ -596,7 +599,6 @@ async function prepareExpressionsBin(starkInfo, expressionsInfo) {
         constraintInfo.imPol = constraintCode.imPol;
         constraintsInfo.push(constraintInfo);
     }
-
 
     // Get parser args for each expression
     for(let i = 0; i < expressionsInfo.expressionsCode.length; ++i) {

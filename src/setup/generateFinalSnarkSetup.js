@@ -12,7 +12,7 @@ const snarkjs = require("snarkjs");
 
 const F3g = require("../pil2-stark/utils/f3g.js");
 const {starkSetup} = require("../pil2-stark/stark_setup.js");
-const { writeExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
+const { writeExpressionsBinFile, writeVerifierExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
 const { generateStarkStruct } = require('./utils.js');
 const { runFinalSnarkWitnessLibraryGenerationAwait, witnessLibraryGenerationAwait, runWitnessLibraryGeneration } = require('./generateWitness.js');
 
@@ -79,7 +79,8 @@ module.exports.genFinalSnarkSetup = async function genFinalSnarkSetup(buildDir, 
     setupRecursiveF.constRoot = JSONbig.parse(await fs.promises.readFile(`${filesDir}/${template}.verkey.json`, "utf8"));
     
     await writeExpressionsBinFile(`${filesDir}/${template}.bin`, setupRecursiveF.starkInfo, setupRecursiveF.expressionsInfo);
-    
+    await writeVerifierExpressionsBinFile(`${filesDir}/${template}.verifier.bin`, setupRecursiveF.starkInfo, setupRecursiveF.verifierInfo);
+
     template = "final";
     verifierName = "recursivef.verifier.circom";
     templateFilename = path.resolve(__dirname,"../../", `node_modules/stark-recurser/src/recursion/templates/final.circom.ejs`);

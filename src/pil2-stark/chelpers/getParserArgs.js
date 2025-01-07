@@ -131,7 +131,12 @@ module.exports.getParserArgs = function getParserArgs(starkInfo, operations, cod
                 const primeIndex = starkInfo.openingPoints.findIndex(p => p === r.prime);
                 if(primeIndex == -1) throw new Error("Something went wrong");
 
-                args.push(nStages*primeIndex + starkInfo.nStages + 2 + r.commitId);
+                if(verify) {
+                    args.push(starkInfo.nStages + 2 + r.commitId);
+                } else {
+                    args.push(nStages*primeIndex + starkInfo.nStages + 2 + r.commitId);
+                }
+                
                 args.push(r.id);
 
                 break;

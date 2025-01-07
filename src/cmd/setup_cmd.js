@@ -9,7 +9,7 @@ const log = require("../../logger.js");
 const { AirOut } = require("../airout.js");
 
 const F3g = require('../pil2-stark/utils/f3g.js');
-const { writeExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
+const { writeExpressionsBinFile, writeVerifierExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
 const { writeGlobalConstraintsBinFile } = require("../pil2-stark/chelpers/globalConstraintsBinFile.js");
 const { starkSetup } = require('../pil2-stark/stark_setup.js');
 const { getFixedPolsPil2 } = require("../pil2-stark/pil_info/helpers/pil2/piloutInfo.js");
@@ -95,6 +95,8 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             setup[airgroup.airgroupId][air.airId].constRoot = JSONbig.parse(await fs.promises.readFile(path.join(filesDir, `${air.name}.verkey.json`), "utf8"));
 
             await writeExpressionsBinFile(path.join(filesDir, `${air.name}.bin`), setup[airgroup.airgroupId][air.airId].starkInfo, setup[airgroup.airgroupId][air.airId].expressionsInfo);
+
+            await writeVerifierExpressionsBinFile(path.join(filesDir, `${air.name}.verifier.bin`), setup[airgroup.airgroupId][air.airId].starkInfo, setup[airgroup.airgroupId][air.airId].verifierInfo);
         }));
     }));
 
