@@ -95,16 +95,20 @@ module.exports.getAllOperations = function getAllOperations() {
 
     // Step FRI
     possibleOps.push({ dest_type: "tmp3", src0_type: "eval"}); // Copy operation for PIL1
-    possibleOps.push({ dest_type: "tmp3", src0_type: "challenge", src1_type: "eval"});
-    possibleOps.push({ dest_type: "tmp3", src0_type: "tmp3", src1_type: "eval"});
 
+    possibleOps.push({ dest_type: "tmp3", src0_type: "eval", src1_type: "tmp1"});
+    possibleOps.push({ dest_type: "tmp3", src0_type: "eval", src1_type: "airvalue1"});
     possibleOps.push({ dest_type: "tmp3", src0_type: "eval", src1_type: "commit1"});
-    possibleOps.push({ dest_type: "tmp3", src0_type: "commit3", src1_type: "eval"});
-    
-    possibleOps.push({ dest_type: "tmp3", src0_type: "eval", src1_type: "eval"});
-    possibleOps.push({ dest_type: "tmp3", src0_type: "eval", src1_type: "public"});
     possibleOps.push({ dest_type: "tmp3", src0_type: "eval", src1_type: "number"});
+    possibleOps.push({ dest_type: "tmp3", src0_type: "eval", src1_type: "public"});
+    
+    possibleOps.push({ dest_type: "tmp3", src0_type: "tmp3", src1_type: "eval"});
+    possibleOps.push({ dest_type: "tmp3", src0_type: "commit3", src1_type: "eval"});
+    possibleOps.push({ dest_type: "tmp3", src0_type: "challenge", src1_type: "eval"});
     possibleOps.push({ dest_type: "tmp3", src0_type: "airgroupvalue", src1_type: "eval"});
+    possibleOps.push({ dest_type: "tmp3", src0_type: "airvalue3", src1_type: "eval"});
+    possibleOps.push({ dest_type: "tmp3", src0_type: "commit3", src1_type: "eval"});
+    possibleOps.push({ dest_type: "tmp3", src0_type: "eval", src1_type: "eval"});    
 
     return possibleOps;
 }
