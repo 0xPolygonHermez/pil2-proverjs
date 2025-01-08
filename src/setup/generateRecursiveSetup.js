@@ -27,6 +27,7 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
     let nameFilename;
     let filesDir;
     let constRootCircuit = constRoot || [];
+    let recursive2 = false;
     if((template === "recursive1" && !hasCompressor) || template === "compressor") {
         let airName = globalInfo.airs[airgroupId][airId].name;
         inputChallenges = true;
@@ -41,17 +42,18 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
         templateFilename = path.resolve(__dirname,"../../", `node_modules/stark-recurser/src/vadcop/templates/recursive1.circom.ejs`);
         filesDir = `${buildDir}/provingKey/${globalInfo.name}/${airgroupName}/airs/${airName}/recursive1/`;
     } else if (template === "recursive2") {
-        verifierName = `${airgroupName}_recursive2.verifier.circom`;
+        verifierName = `${airgroupName}_recursive1.verifier.circom`;
         nameFilename = `${airgroupName}_${template}`;
         templateFilename =  path.resolve(__dirname,"../../", `node_modules/stark-recurser/src/vadcop/templates/recursive2.circom.ejs`);
         filesDir = `${buildDir}/provingKey/${globalInfo.name}/${airgroupName}/${template}`;
         enableInput = (globalInfo.air_groups.length > 1 || globalInfo.airs[0].length > 1)  ? true : false;
         verkeyInput = true;
+        recursive2 = true;
     } else {
         throw new Error("Unknown template" + template);
     }
 
-    const options = { skipMain: true, verkeyInput, enableInput, inputChallenges, airgroupId, hasCompressor }
+    const options = { skipMain: true, verkeyInput, enableInput, inputChallenges, airgroupId, hasCompressor, recursive2 }
         
     await fs.promises.mkdir(`${buildDir}/circom/`, { recursive: true });
     await fs.promises.mkdir(`${buildDir}/build/`, { recursive: true });
@@ -61,6 +63,11 @@ module.exports.genRecursiveSetup = async function genRecursiveSetup(buildDir, se
     //Generate circom
     const verifierCircomTemplate = await pil2circom(constRootCircuit, starkInfo, verifierInfo, options);
     await fs.promises.writeFile(`${buildDir}/circom/${verifierName}`, verifierCircomTemplate, "utf8");
+
+    if (template === "recursive2") {
+        const verifierCircomTemplate = await pil2circom(constRootCircuit, starkInfo, verifierInfo, {...options, recursive2: false });
+        await fs.promises.writeFile(`${buildDir}/circom/${airgroupName}_recursive2.verifier.circom`, verifierCircomTemplate, "utf8");
+    }
 
     const recursiveVerifier = await genCircom(templateFilename, [starkInfo], globalInfo, [verifierName], verificationKeys, [], [], options);
     await fs.promises.writeFile(`${buildDir}/circom/${nameFilename}.circom`, recursiveVerifier, "utf8");
