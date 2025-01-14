@@ -8,7 +8,7 @@ async function fileExists(path) {
 }
 
 
-function generateStarkStruct(settings, nBits, setFRI) {
+function generateStarkStruct(settings, nBits, setFRI = true) {
     let starkStruct = {
         nBits,
     };
