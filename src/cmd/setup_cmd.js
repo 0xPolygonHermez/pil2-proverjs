@@ -41,6 +41,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
 
     let starkStructs = [];
 
+    let stepsFRI = [];
     let minFinalDegree = 5;
     for(const airgroup of airout.airGroups) {
         for(const air of airgroup.airs) {
@@ -48,13 +49,39 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             if(proofManagerConfig.setup && proofManagerConfig.setup.settings) {
                 settings = proofManagerConfig.setup && proofManagerConfig.setup.settings[air.name + "_" + air.airId] || proofManagerConfig.setup.settings.default || {};
             }
-            if(settings.starkStruct) {
-                minFinalDegree = Math.min(minFinalDegree, settings.starkStruct.steps[settings.starkStruct.steps.length - 1].nBits);
-            } else {
-                minFinalDegree = Math.min(minFinalDegree, log2(air.numRows) + 1);
+            let blowupFactor = settings.blowupFactor || 1;
+            let nBitsExt = Math.log2(air.numRows) + blowupFactor;
+            if(!stepsFRI.find(s => s.nBits == nBitsExt)) {
+                stepsFRI.push({nBits: nBitsExt, instance: true});
             }
+            
+            minFinalDegree = Math.min(minFinalDegree, nBitsExt);
         }
     }
+
+    stepsFRI = stepsFRI.sort((a, b) => b.nBits - a.nBits);
+
+    let foldingFactor = 4;
+    let step = stepsFRI[0].nBits;
+    let c = 0;
+    while (step > minFinalDegree) {
+        if(!stepsFRI.find(s => s.nBits === step)) {
+            if(c >= foldingFactor) {
+                stepsFRI.push({nBits: step});
+                c = 0;
+            } else {
+                c++;
+            }
+        } else {
+            c = 0;
+        }
+        --step;
+    }
+    if(!stepsFRI.includes(minFinalDegree)) {
+        stepsFRI.push({nBits: minFinalDegree});
+    }
+
+    stepsFRI = stepsFRI.sort((a, b) => b.nBits - a.nBits);
 
     await Promise.all(airout.airGroups.map(async (airgroup) => {
         setup[airgroup.airgroupId] = [];
@@ -77,8 +104,25 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             const filesDir = path.join(buildDir, "provingKey", airout.name, airgroup.name, "airs", `${air.name}`, "air");
             await fs.promises.mkdir(filesDir, { recursive: true });
 
-            let starkStruct = settings.starkStruct || generateStarkStruct(settings, log2(air.numRows));
-            starkStructs.push(starkStruct);
+            let starkStruct = settings.starkStruct || generateStarkStruct(settings, log2(air.numRows), false);
+
+            let c = 0;
+            for(let i = 0; i < stepsFRI.length; i++) {
+                if(stepsFRI[i].nBits > starkStruct.nBitsExt) continue;   
+                
+                if(stepsFRI[i].nBits == starkStruct.nBitsExt) {
+                    starkStruct.steps = [{nBits: starkStruct.nBitsExt}];
+                } else if(i == stepsFRI.length - 1) {
+                    starkStruct.steps.push({nBits: stepsFRI[i].nBits});
+                } else {
+                    if(c + stepsFRI[i - 1].nBits - stepsFRI[i + 1].nBits >= foldingFactor) {
+                        starkStruct.steps.push({nBits: stepsFRI[i].nBits});
+                        c = 0;
+                    } else {
+                        c += stepsFRI[i - 1].nBits - stepsFRI[i].nBits;
+                    }
+                }
+            }
 
             const fixedPols = generateFixedCols(air.symbols.filter(s => s.airGroupId == airgroup.airgroupId), air.numRows);
             await getFixedPolsPil2(air, fixedPols, setupOptions.F);
@@ -106,7 +150,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
     let globalConstraints;
     
     if(proofManagerConfig.setup && proofManagerConfig.setup.genAggregationSetup) {
-        const airoutInfo = await setAiroutInfo(airout, starkStructs);
+        const airoutInfo = await setAiroutInfo(airout, stepsFRI);
         airoutInfo.vadcopInfo.publicsMap = setup[0][0].starkInfo.publicsMap;
         globalConstraints = airoutInfo.globalConstraints;
         globalInfo = airoutInfo.vadcopInfo;
@@ -233,7 +277,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         }
         
     } else {
-        const airoutInfo = await setAiroutInfo(airout, starkStructs);
+        const airoutInfo = await setAiroutInfo(airout, stepsFRI);
         airoutInfo.vadcopInfo.publicsMap = setup[0][0].starkInfo.publicsMap;
         globalInfo = airoutInfo.vadcopInfo;
         globalConstraints = airoutInfo.globalConstraints;
