@@ -9,8 +9,9 @@ globalThis.require = async (modulePath) => {
 
   console.log(`Normalized path: ${normalizedPath}`);
 
-  // Dynamically import the module, relative to the baked-in `src` directory
-  const resolvedPath = normalizedPath.replace(/^(\.\/|\/)/, ""); // Strip leading "./" or "/"
+  // Construct an absolute specifier relative to `file:///`
+  const basePath = "file:///entrypoint.js"; // Default virtual base for resolving
+  const resolvedPath = new URL(normalizedPath, basePath).toString();
   console.log(`Resolved path: ${resolvedPath}`);
 
   try {

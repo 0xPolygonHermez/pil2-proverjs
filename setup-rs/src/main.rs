@@ -23,7 +23,8 @@ impl ModuleLoader for EmbeddedModuleLoader {
             specifier, referrer
         );
 
-        let base = if referrer.is_empty() {
+        // Fallback to a virtual base URL if the referrer is not valid
+        let base = if referrer.is_empty() || !referrer.starts_with("file://") {
             Url::parse("file:///").map_err(|err| {
                 println!("Error parsing base URL: {}", err);
                 deno_core::error::ModuleLoaderError::Resolution(
