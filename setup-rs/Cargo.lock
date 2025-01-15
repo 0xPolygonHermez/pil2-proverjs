@@ -878,6 +878,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "deno_core",
+ "deno_ops",
  "include_dir",
  "tokio",
 ]
