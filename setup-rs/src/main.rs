@@ -54,26 +54,32 @@ impl ModuleLoader for EmbeddedModuleLoader {
         _module_type: deno_core::RequestedModuleType,
     ) -> deno_core::ModuleLoadResponse {
         let path = module_specifier.path();
-        println!("Loading module: '{}'", path);
-
-        let trimmed_path = path.strip_prefix('/').unwrap_or(path);
-        println!("Trimmed path: '{}'", trimmed_path);
+        // Always resolve paths relative to the baked-in src directory
+        let trimmed_path = path.trim_start_matches('/');
 
         if let Some(file) = JS_FILES.get_file(trimmed_path) {
             if let Some(source) = file.contents_utf8() {
-                println!("Found module: '{}'", trimmed_path);
+                println!("Loading module: '{}'", trimmed_path);
                 return deno_core::ModuleLoadResponse::Sync(Ok(ModuleSource::new(
                     deno_core::ModuleType::JavaScript,
                     ModuleSourceCode::String(source.to_string().into()),
                     module_specifier,
                     None,
                 )));
-            } else {
-                println!("Module '{}' has no UTF-8 content.", trimmed_path);
             }
-        } else {
-            println!("Module '{}' not found in embedded files.", trimmed_path);
         }
+
+        // List all embeddable files in the error message
+        let available_files: Vec<_> = JS_FILES
+            .files()
+            .map(|file| file.path().display().to_string())
+            .collect();
+
+        eprintln!(
+            "Module '{}' not found in embedded files. Available files:\n{}",
+            trimmed_path,
+            available_files.join("\n")
+        );
 
         deno_core::ModuleLoadResponse::Sync(Err(deno_core::error::ModuleLoaderError::NotFound))
     }

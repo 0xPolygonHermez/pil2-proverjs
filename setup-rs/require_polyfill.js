@@ -2,24 +2,22 @@
 globalThis.require = async (modulePath) => {
   console.log(`Requiring module: ${modulePath}`);
 
-  // Normalize the path to handle relative imports
-  const normalizedPath = modulePath.startsWith("./") || modulePath.startsWith("../")
-    ? modulePath
-    : `./${modulePath}`;
+  // Normalize the path and add .js if missing
+  let normalizedPath = modulePath.startsWith("./") || modulePath.startsWith("../")
+    ? modulePath.replace(/^\.\//, "") // Remove leading "./" for embedded file lookup
+    : modulePath;
+
+  if (!normalizedPath.endsWith(".js")) {
+    normalizedPath += ".js"; // Add `.js` if missing
+  }
 
   console.log(`Normalized path: ${normalizedPath}`);
 
-  // Construct an absolute specifier relative to `file:///`
-  const basePath = "file:///entrypoint.js"; // Default virtual base for resolving
-  const resolvedPath = new URL(normalizedPath, basePath).toString();
-  console.log(`Resolved path: ${resolvedPath}`);
-
+  // Dynamically import the module
   try {
-    const module = await import(resolvedPath);
-    console.log(`Successfully loaded module: ${resolvedPath}`);
+    const module = await import(normalizedPath);
     return module;
   } catch (err) {
-    console.error(`Failed to load module: ${resolvedPath}`, err);
     throw new Error(`Module not found: ${modulePath}`);
   }
 };
