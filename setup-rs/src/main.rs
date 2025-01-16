@@ -124,3 +124,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     js_runtime.run_event_loop(Default::default()).await?;
     Ok(())
 }
+
+// TODO: https://docs.rs/deno_runtime/latest/src/extension/main.rs.html#66
