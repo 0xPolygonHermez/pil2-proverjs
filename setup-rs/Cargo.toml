@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+crossterm = "0.28.1"
 deno_console = "0.185.0"
 deno_core = "0.330.0"
 deno_fs = "0.95.0"

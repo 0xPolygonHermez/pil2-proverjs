@@ -1,4 +1,5 @@
-use deno_core::{error::AnyError, JsRuntime, RuntimeOptions};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+use deno_core::{extension, op2, JsRuntime, RuntimeOptions};
 use deno_fs::{FileSystem, RealFs};
 use deno_node::NodeExtInitServices;
 use deno_permissions::PermissionsContainer;
@@ -8,6 +9,19 @@ use sys_traits::impls::RealSys;
 
 // Embed JavaScript files
 const JS_FILES: Dir = include_dir!("$CARGO_MANIFEST_DIR/../src");
+
+// Declare the `op_set_raw` operation
+#[op2(fast)]
+fn op_set_raw(is_raw: bool) {
+    if is_raw {
+        enable_raw_mode().unwrap();
+    } else {
+        disable_raw_mode().unwrap();
+    }
+}
+
+// Register the operation in an extension
+extension!(terminal, ops = [op_set_raw]);
 
 struct EmbeddedModuleLoader;
 
@@ -26,7 +40,7 @@ impl EmbeddedModuleLoader {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), AnyError> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create the file system service using `RealFs`
     let file_system: Arc<dyn FileSystem> = Arc::new(RealFs);
 
@@ -49,6 +63,9 @@ async fn main() -> Result<(), AnyError> {
         file_system,
     );
 
+    // Include the terminal extension
+    let terminal_extensions = terminal::init_ops_and_esm();
+
     // Create the JavaScript runtime
     let mut js_runtime = JsRuntime::new(RuntimeOptions {
         extensions: vec![
@@ -59,6 +76,7 @@ async fn main() -> Result<(), AnyError> {
             io_extensions,
             fs_extensions,
             node_extensions,
+            terminal_extensions, // Add the terminal extension here
         ],
         ..Default::default()
     });
@@ -69,8 +87,7 @@ async fn main() -> Result<(), AnyError> {
     if let Some(entrypoint_code) = loader.fetch_embedded_module("entrypoint.js") {
         js_runtime.execute_script("entrypoint.js", entrypoint_code)?;
     } else {
-        eprintln!("Error: entrypoint.js not found in embedded files");
-        return Err(AnyError::msg("entrypoint.js missing"));
+        panic!("Error: entrypoint.js not found in embedded files");
     }
 
     println!("Running event loop...");
