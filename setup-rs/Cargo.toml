@@ -4,11 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.95"
-async-trait = "0.1.85"
+anyhow = "1"
+async-trait = "0"
 deno_core = "0"
-deno_ops = "0.206.0"
-include_dir = "0.7.4"
-regex = "1.11.1"
-reqwest = "0.12.12"
+deno_fs = "0.95.0"
+deno_node = { version = "0", features = ["sync_fs"] }
+deno_ops = "0"
+deno_permissions = "0.44.0"
+include_dir = "0"
+regex = "1"
+reqwest = "0"
+sys_traits = "0.1.7"
 tokio = { version = "1", features = ["full"] }
