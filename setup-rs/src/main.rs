@@ -23,11 +23,17 @@ impl ModuleLoader for EmbeddedModuleLoader {
             specifier, referrer
         );
 
-        // Use "file:///src/" as the base URL for resolution
-        let base = Url::parse("file:///src/").unwrap();
+        let base = Url::parse("file:///src/").map_err(|err| {
+            println!("Error parsing base URL: {}", err);
+            deno_core::error::ModuleLoaderError::Resolution(
+                deno_core::ModuleResolutionError::InvalidBaseUrl(err),
+            )
+        })?;
 
-        base.join(specifier)
-            .map_err(|_| deno_core::error::ModuleLoaderError::NotFound)
+        base.join(specifier).map_err(|err| {
+            println!("Error joining URL: {}", err);
+            deno_core::error::ModuleLoaderError::NotFound
+        })
     }
 
     fn load(
@@ -37,29 +43,31 @@ impl ModuleLoader for EmbeddedModuleLoader {
         _is_dyn_import: bool,
         _module_type: deno_core::RequestedModuleType,
     ) -> deno_core::ModuleLoadResponse {
-        let path = module_specifier
-            .path()
-            .strip_prefix("/src/")
-            .unwrap_or(module_specifier.path());
-        println!("Loading module: '{}'", path);
+        let path = module_specifier.path();
+        let trimmed_path = path.strip_prefix("/src/").unwrap_or(path);
 
-        if let Some(file) = JS_FILES.get_file(path) {
-            let source = file.contents();
-            return deno_core::ModuleLoadResponse::Sync(Ok(ModuleSource::new(
-                deno_core::ModuleType::JavaScript,
-                ModuleSourceCode::Bytes(source.into()),
-                module_specifier,
-                None,
-            )));
+        if let Some(file) = JS_FILES.get_file(trimmed_path) {
+            if let Some(source) = file.contents_utf8() {
+                println!("Loading module: '{}'", trimmed_path);
+                return deno_core::ModuleLoadResponse::Sync(Ok(ModuleSource::new(
+                    deno_core::ModuleType::JavaScript,
+                    ModuleSourceCode::String(source.to_string().into()),
+                    module_specifier,
+                    None,
+                )));
+            }
         }
 
-        println!(
-            "Module '{}' not found in embedded files. Available files:",
-            path
+        let available_files: Vec<_> = JS_FILES
+            .files()
+            .map(|file| file.path().display().to_string())
+            .collect();
+
+        eprintln!(
+            "Module '{}' not found in embedded files. Available files:\n{}",
+            trimmed_path,
+            available_files.join("\n")
         );
-        for file in JS_FILES.files() {
-            println!("- {}", file.path().display());
-        }
 
         deno_core::ModuleLoadResponse::Sync(Err(deno_core::error::ModuleLoaderError::NotFound))
     }
@@ -67,28 +75,29 @@ impl ModuleLoader for EmbeddedModuleLoader {
 
 #[tokio::main]
 async fn main() -> Result<(), AnyError> {
-    // Include the require polyfill and entrypoint code
     let require_polyfill = include_str!("../require_polyfill.js");
     let entrypoint_code = include_str!("../entrypoint.js");
 
-    // Initialize the runtime with the custom module loader
     let mut js_runtime = JsRuntime::new(RuntimeOptions {
         module_loader: Some(Rc::new(EmbeddedModuleLoader)),
         ..Default::default()
     });
 
-    println!("Embedded files:");
-    for file in JS_FILES.files() {
-        println!("- {}", file.path().display());
-    }
-
-    // Inject the require polyfill
     println!("Injecting require polyfill...");
-    js_runtime.execute_script("require_polyfill.js", require_polyfill)?;
+    js_runtime
+        .execute_script("require_polyfill.js", require_polyfill)
+        .map_err(|e| {
+            println!("Error injecting require polyfill: {:?}", e);
+            e
+        })?;
 
-    // Inject and execute the entrypoint script
     println!("Injecting entrypoint script...");
-    js_runtime.execute_script("entrypoint.js", entrypoint_code)?;
+    js_runtime
+        .execute_script("entrypoint.js", entrypoint_code)
+        .map_err(|e| {
+            println!("Error injecting entrypoint script: {:?}", e);
+            e
+        })?;
 
     println!("Running event loop...");
     js_runtime.run_event_loop(Default::default()).await?;
