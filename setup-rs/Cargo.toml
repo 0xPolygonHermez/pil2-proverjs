@@ -9,4 +9,5 @@ deno_fs = "0.95.0"
 deno_node = { version = "0.123.0", features = ["sync_fs"] }
 deno_permissions = "0.44.0"
 include_dir = "0"
+sys_traits = "0.1.6"
 tokio = { version = "1", features = ["full"] }

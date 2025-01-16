@@ -1,5 +1,6 @@
 use deno_core::{error::AnyError, JsRuntime, RuntimeOptions};
-use deno_node::{deno_node, NodeExtInitServices, RealIsBuiltInNodeModuleChecker};
+use deno_fs::RealFs;
+use deno_node::NodeExtInitServices;
 use deno_permissions::PermissionsContainer;
 use include_dir::{include_dir, Dir};
 use std::sync::Arc;
@@ -26,22 +27,27 @@ impl EmbeddedModuleLoader {
 
 #[tokio::main]
 async fn main() -> Result<(), AnyError> {
-    // Initialize Node.js extensions
+    // Create the file system service using `RealFs`
+    let file_system: Arc<dyn deno_fs::FileSystem> = Arc::new(RealFs);
+
+    // Initialize Node.js extensions with RealSys for system services
     let maybe_init: Option<NodeExtInitServices<RealSys>> = None;
-    let file_system = Arc::new(RealSys);
-    let extensions =
-        vec![deno_node::init_ops_and_esm::<PermissionsContainer, RealSys>(maybe_init, file_system)];
+
+    // Initialize extensions using `deno_node`
+    let node_extensions = deno_node::deno_node::init_ops_and_esm::<PermissionsContainer, RealSys>(
+        maybe_init,
+        file_system.clone(),
+    );
 
     // Create the JavaScript runtime
     let mut js_runtime = JsRuntime::new(RuntimeOptions {
-        extensions,
+        extensions: vec![node_extensions],
         ..Default::default()
     });
 
-    // Load and execute `require_polyfill.js`
+    // Load and execute `entrypoint.js`
     let loader = EmbeddedModuleLoader::new();
 
-    // Load and execute `entrypoint.js`
     if let Some(entrypoint_code) = loader.fetch_embedded_module("entrypoint.js") {
         js_runtime.execute_script("entrypoint.js", entrypoint_code)?;
     } else {
