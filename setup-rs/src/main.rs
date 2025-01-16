@@ -20,8 +20,22 @@ fn op_set_raw(is_raw: bool) {
     }
 }
 
-// Register the operation in an extension
+// Register the terminal extension
 extension!(terminal, ops = [op_set_raw]);
+
+// Register the `primordials` extension
+extension!(
+    primordials,
+    esm = [r#"ext:primordials_polyfill"# = {
+        source = r#"
+        globalThis.primordials = {
+            SafeRegExp: RegExp,
+            RegExpPrototypeTest: RegExp.prototype.test.bind(RegExp.prototype),
+            Symbol,
+        };
+        "#
+    }]
+);
 
 struct EmbeddedModuleLoader;
 
@@ -63,12 +77,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         file_system,
     );
 
-    // Include the terminal extension
+    // Include the terminal and primordials extensions
     let terminal_extensions = terminal::init_ops_and_esm();
+    let primordials_extensions = primordials::init_ops_and_esm();
+
+    println!("initializing js runtime");
 
     // Create the JavaScript runtime
     let mut js_runtime = JsRuntime::new(RuntimeOptions {
         extensions: vec![
+            primordials_extensions, // Ensure primordials are loaded first
             webidl_extensions,
             url_extensions,
             console_extensions,
