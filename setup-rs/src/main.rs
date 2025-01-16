@@ -76,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             io_extensions,
             fs_extensions,
             node_extensions,
-            terminal_extensions, // Add the terminal extension here
+            terminal_extensions,
         ],
         ..Default::default()
     });
