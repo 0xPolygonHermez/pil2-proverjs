@@ -23,27 +23,11 @@ impl ModuleLoader for EmbeddedModuleLoader {
             specifier, referrer
         );
 
-        // Fallback to a virtual base URL if the referrer is not valid
-        let base = if referrer.is_empty() || !referrer.starts_with("file://") {
-            Url::parse("file:///").map_err(|err| {
-                println!("Error parsing base URL: {}", err);
-                deno_core::error::ModuleLoaderError::Resolution(
-                    deno_core::ModuleResolutionError::InvalidBaseUrl(err),
-                )
-            })?
-        } else {
-            Url::parse(referrer).map_err(|err| {
-                println!("Error parsing referrer URL: {}", err);
-                deno_core::error::ModuleLoaderError::Resolution(
-                    deno_core::ModuleResolutionError::InvalidBaseUrl(err),
-                )
-            })?
-        };
+        // Use "file:///src/" as the base URL for resolution
+        let base = Url::parse("file:///src/").unwrap();
 
-        base.join(specifier).map_err(|err| {
-            println!("Error joining URL: {}", err);
-            deno_core::error::ModuleLoaderError::NotFound
-        })
+        base.join(specifier)
+            .map_err(|_| deno_core::error::ModuleLoaderError::NotFound)
     }
 
     fn load(
@@ -53,33 +37,29 @@ impl ModuleLoader for EmbeddedModuleLoader {
         _is_dyn_import: bool,
         _module_type: deno_core::RequestedModuleType,
     ) -> deno_core::ModuleLoadResponse {
-        let path = module_specifier.path();
-        // Always resolve paths relative to the baked-in src directory
-        let trimmed_path = path.trim_start_matches('/');
+        let path = module_specifier
+            .path()
+            .strip_prefix("/src/")
+            .unwrap_or(module_specifier.path());
+        println!("Loading module: '{}'", path);
 
-        if let Some(file) = JS_FILES.get_file(trimmed_path) {
-            if let Some(source) = file.contents_utf8() {
-                println!("Loading module: '{}'", trimmed_path);
-                return deno_core::ModuleLoadResponse::Sync(Ok(ModuleSource::new(
-                    deno_core::ModuleType::JavaScript,
-                    ModuleSourceCode::String(source.to_string().into()),
-                    module_specifier,
-                    None,
-                )));
-            }
+        if let Some(file) = JS_FILES.get_file(path) {
+            let source = file.contents();
+            return deno_core::ModuleLoadResponse::Sync(Ok(ModuleSource::new(
+                deno_core::ModuleType::JavaScript,
+                ModuleSourceCode::Bytes(source.into()),
+                module_specifier,
+                None,
+            )));
         }
 
-        // List all embeddable files in the error message
-        let available_files: Vec<_> = JS_FILES
-            .files()
-            .map(|file| file.path().display().to_string())
-            .collect();
-
-        eprintln!(
-            "Module '{}' not found in embedded files. Available files:\n{}",
-            trimmed_path,
-            available_files.join("\n")
+        println!(
+            "Module '{}' not found in embedded files. Available files:",
+            path
         );
+        for file in JS_FILES.files() {
+            println!("- {}", file.path().display());
+        }
 
         deno_core::ModuleLoadResponse::Sync(Err(deno_core::error::ModuleLoaderError::NotFound))
     }
@@ -87,29 +67,28 @@ impl ModuleLoader for EmbeddedModuleLoader {
 
 #[tokio::main]
 async fn main() -> Result<(), AnyError> {
+    // Include the require polyfill and entrypoint code
     let require_polyfill = include_str!("../require_polyfill.js");
     let entrypoint_code = include_str!("../entrypoint.js");
 
+    // Initialize the runtime with the custom module loader
     let mut js_runtime = JsRuntime::new(RuntimeOptions {
         module_loader: Some(Rc::new(EmbeddedModuleLoader)),
         ..Default::default()
     });
 
-    println!("Injecting require polyfill...");
-    js_runtime
-        .execute_script("require_polyfill.js", require_polyfill)
-        .map_err(|e| {
-            println!("Error injecting require polyfill: {:?}", e);
-            e
-        })?;
+    println!("Embedded files:");
+    for file in JS_FILES.files() {
+        println!("- {}", file.path().display());
+    }
 
+    // Inject the require polyfill
+    println!("Injecting require polyfill...");
+    js_runtime.execute_script("require_polyfill.js", require_polyfill)?;
+
+    // Inject and execute the entrypoint script
     println!("Injecting entrypoint script...");
-    js_runtime
-        .execute_script("entrypoint.js", entrypoint_code)
-        .map_err(|e| {
-            println!("Error injecting entrypoint script: {:?}", e);
-            e
-        })?;
+    js_runtime.execute_script("entrypoint.js", entrypoint_code)?;
 
     println!("Running event loop...");
     js_runtime.run_event_loop(Default::default()).await?;
