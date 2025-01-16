@@ -5,7 +5,9 @@ use deno_core::{
 };
 use include_dir::{include_dir, Dir};
 use reqwest::Client;
+use std::collections::HashMap;
 use std::rc::Rc;
+use tokio::sync::RwLock;
 
 // Embed the JavaScript files
 const JS_FILES: Dir = include_dir!("$CARGO_MANIFEST_DIR/../src");
@@ -22,19 +24,32 @@ fn node_module_url(module_name: &str) -> Option<String> {
 
 struct EmbeddedModuleLoader {
     client: Client,
+    cache: RwLock<HashMap<String, String>>, // Cache for remote module content
 }
 
 impl EmbeddedModuleLoader {
     pub fn new() -> Self {
         Self {
             client: Client::new(),
+            cache: RwLock::new(HashMap::new()),
         }
     }
 
     async fn fetch_remote_module(&self, url: &str) -> Result<String, AnyError> {
-        println!("Fetching remote module: {}", url);
-        let response = self.client.get(url).send().await?.text().await?;
-        Ok(response)
+        // Check if already cached
+        if let Some(cached) = self.cache.read().await.get(url).cloned() {
+            return Ok(cached);
+        }
+
+        println!("Fetching remote module from: {}", url);
+        let response = self.client.get(url).send().await?;
+        let text = response.text().await?;
+        self.cache
+            .write()
+            .await
+            .insert(url.to_string(), text.clone());
+        println!("Fetched and cached remote module: {}", url);
+        Ok(text)
     }
 
     fn fetch_embedded_module(&self, module_specifier: &ModuleSpecifier) -> ModuleLoadResponse {
@@ -73,6 +88,17 @@ impl ModuleLoader for EmbeddedModuleLoader {
         referrer: &str,
         _kind: ResolutionKind,
     ) -> Result<ModuleSpecifier, ModuleLoaderError> {
+        println!(
+            "Resolving specifier: '{}' with referrer: '{}'",
+            specifier, referrer
+        );
+
+        if let Some(remote_url) = node_module_url(specifier) {
+            return Url::parse(&remote_url).map_err(|err| {
+                ModuleLoaderError::Resolution(deno_core::ModuleResolutionError::InvalidBaseUrl(err))
+            });
+        }
+
         let base = if referrer.is_empty() || !referrer.starts_with("file://") {
             Url::parse("file:///").map_err(|err| {
                 ModuleLoaderError::Resolution(deno_core::ModuleResolutionError::InvalidBaseUrl(err))
@@ -94,8 +120,14 @@ impl ModuleLoader for EmbeddedModuleLoader {
         _is_dyn_import: bool,
         _module_type: deno_core::RequestedModuleType,
     ) -> ModuleLoadResponse {
-        if let Some(url) = node_module_url(module_specifier.path()) {
-            match tokio::runtime::Handle::current().block_on(self.fetch_remote_module(&url)) {
+        if let Some(remote_url) = node_module_url(module_specifier.path()) {
+            println!(
+                "Using std/node module for: {} (URL: {})",
+                module_specifier.path(),
+                remote_url
+            );
+            match tokio::runtime::Handle::current().block_on(self.fetch_remote_module(&remote_url))
+            {
                 Ok(source) => {
                     return ModuleLoadResponse::Sync(Ok(ModuleSource::new(
                         deno_core::ModuleType::JavaScript,
@@ -104,7 +136,14 @@ impl ModuleLoader for EmbeddedModuleLoader {
                         None,
                     )));
                 }
-                Err(e) => eprintln!("Failed to fetch remote module: {}", e),
+                Err(err) => {
+                    eprintln!(
+                        "Failed to fetch std/node module: {} - {}",
+                        module_specifier.path(),
+                        err
+                    );
+                    return ModuleLoadResponse::Sync(Err(ModuleLoaderError::NotFound));
+                }
             }
         }
 
