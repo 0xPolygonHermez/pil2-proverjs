@@ -1,4 +1,5 @@
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+use deno_cache::SqliteBackedCache;
 use deno_core::{extension, op2, JsRuntime, RuntimeOptions};
 use deno_fs::{FileSystem, RealFs};
 use deno_node::NodeExtInitServices;
@@ -76,6 +77,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         maybe_init,
         file_system,
     );
+    let tls_extensions = deno_tls::deno_tls::init_ops_and_esm();
+    let fetch_extensions = deno_fetch::deno_fetch::init_ops_and_esm::<PermissionsContainer>(
+        deno_fetch::Options::default(),
+    );
+    let cache_extensions =
+        deno_cache::deno_cache::init_ops_and_esm::<SqliteBackedCache>(Default::default());
+    //let ws_extensions = deno_websocket::deno_websocket::init_ops_and_esm();
 
     // Include the terminal and primordials extensions
     let terminal_extensions = terminal::init_ops_and_esm();
@@ -95,6 +103,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             fs_extensions,
             node_extensions,
             terminal_extensions,
+            tls_extensions,
+            fetch_extensions,
+            cache_extensions,
+            deno_runtime::runtime::init_ops_and_esm(),
         ],
         ..Default::default()
     });
