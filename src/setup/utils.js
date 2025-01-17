@@ -8,7 +8,7 @@ async function fileExists(path) {
 }
 
 
-function generateStarkStruct(settings, nBits, setFRI = true) {
+function generateStarkStruct(settings, nBits) {
     let starkStruct = {
         nBits,
     };
@@ -35,23 +35,20 @@ function generateStarkStruct(settings, nBits, setFRI = true) {
     starkStruct.nQueries = nQueries;
     starkStruct.verificationHashType = verificationHashType;
     
-    if(setFRI) {
-        starkStruct.steps = [{nBits: starkStruct.nBitsExt}];
-        let friStepBits = starkStruct.nBitsExt;
-        while (friStepBits > finalDegree) {
-            friStepBits = Math.max(friStepBits - foldingFactor, finalDegree);
-            starkStruct.steps.push({
-                nBits: friStepBits,
-            });
-        }
+    starkStruct.steps = [{nBits: starkStruct.nBitsExt}];
+    let friStepBits = starkStruct.nBitsExt;
+    while (friStepBits > finalDegree) {
+        friStepBits = Math.max(friStepBits - foldingFactor, finalDegree);
+        starkStruct.steps.push({
+            nBits: friStepBits,
+        });
     }
-    
 
     return starkStruct;
 }
 
 
-async function setAiroutInfo(airout, stepsFRI) {
+async function setAiroutInfo(airout, starkStructs) {
     let vadcopInfo = {};
 
     vadcopInfo.name = airout.name;
@@ -71,7 +68,16 @@ async function setAiroutInfo(airout, stepsFRI) {
         }
     }
 
-    vadcopInfo.stepsFRI = stepsFRI;
+    let finalStep = starkStructs[0].steps[starkStructs[0].steps.length - 1].nBits;
+
+    let stepsFRI = new Set([]);
+    for(let i = 0; i < starkStructs.length; i++) {
+        const starkStruct = starkStructs[i];
+        starkStruct.steps.map(step => step.nBits).forEach(e => stepsFRI.add(e));
+        if(starkStruct.steps[starkStruct.steps.length - 1].nBits !== finalStep) throw new Error("All FRI steps for different airgroups needs to end at the same nBits");
+    }
+
+    vadcopInfo.stepsFRI = Array.from(stepsFRI).sort((a, b) => b - a).map(s => { return { nBits: s }});
     vadcopInfo.nPublics = airout.numPublicValues;
     vadcopInfo.numChallenges = airout.numChallenges || [0];
 
