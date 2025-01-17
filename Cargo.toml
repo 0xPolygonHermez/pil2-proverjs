@@ -1,3 +1,11 @@
-[workspace]
-resolver = "2"
-members = ["setup-rs"]
+[package]
+name = "pil2-proofman-setup"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+include_dir = "0"
+tempfile = "3.15.0"
+
+[build-dependencies]
+build-print = "0"

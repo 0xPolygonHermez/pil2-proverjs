@@ -17,6 +17,15 @@
     "test:wc_manager": "mocha test/wc_manager/wc_manager.test.js",
     "test:wc_manager:coverage": "nyc mocha test/wc_manager/wc_manager.test.js"
   },
+  "pkg": {
+    "assets": [
+      "src/pilout.proto",
+      "node_modules/pil2-compiler/src/pilout.proto"
+    ]
+  },
+  "bin": {
+    "proofman-setup": "./src/main_setup.js"
+  },
   "keywords": [
     "pil",
     "pil2",
@@ -38,7 +47,7 @@
     "json-bigint": "^1.0.0",
     "npmlog": "^7.0.1",
     "protobufjs": "^7.2.4",
-    "stark-recurser":  "https://github.com/0xPolygonHermez/stark-recurser#pil2"
+    "stark-recurser": "https://github.com/0xPolygonHermez/stark-recurser#pil2"
   },
   "devDependencies": {
     "chai": "^4.3.8",
