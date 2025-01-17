@@ -2,6 +2,8 @@
 #include <sstream>
 #include <assert.h>
 #include "calcwit.hpp"
+#include <cstring>
+#include <cstdint>
 
 extern void run(Circom_CalcWit* ctx);
 
@@ -31,6 +33,7 @@ Circom_CalcWit::Circom_CalcWit (Circom_Circuit *aCircuit, uint maxTh) {
     inputSignalAssigned[i] = false;
   }
   signalValues = new u64[get_total_signal_no()];
+  memset(signalValues, 0, get_total_signal_no()*sizeof(u64));
   signalValues[0] = 1;
   componentMemory = new Circom_Component[get_number_of_components()];
   // circuitConstants = circuit ->circuitConstants;
