@@ -1,41 +1,53 @@
 const fs = require("fs");
 const version = require("../package").version;
 
-const path = require("path");
-
-const compilePil2 = require("pil2-compiler/src/compiler.js");
 const setupCmd = require("./cmd/setup_cmd");
-const F3g = require("pil2-stark-js/src/helpers/f3g");
 
 const argv = require("yargs")
     .version(version)
-    .usage("node main_gensetup.js -p <pil.json> -a <airout.ptb> -s <starkstructs.json> -b <buildDir> ")
+    .usage("node main_gensetup.js -a <airout.ptb> -s <starkstructs.json> -b <buildDir> ")
     .alias("a", "airout")
-    .alias("p", "pil")
     .alias("b", "builddir")
     .alias("s", "starkstructs")
     .alias("t", "consttree")
     .alias("r", "recursive")
+    .alias("m", "impols")
+    .alias("p", "publicsinfo")
+    .alias("w", "ptau")
+    .alias("f", "final")
         .argv;
 
 async function run() {
-    if(!argv.airout && !argv.pil) throw new Error("Either pilout or pil file needs to be provided!");
-    if(argv.airout && argv.pil) throw new Error("Only one out of pilout and pil files needs to be provided!");
 
     const buildDir = argv.builddir || "tmp";
     await fs.promises.mkdir(buildDir, { recursive: true });
 
-    const F = new F3g();
-
-    let piloutFile = argv.airout.trim();
-    let piloutPath;
-    if(argv.pil) {
-        piloutPath = path.join(buildDir, "pilout.ptb");
-        let pilConfig = { outputFile: piloutPath };
-        compilePil2(F, piloutFile, null, pilConfig);
-    } else {
-        piloutPath = argv.airout;
+    if (!argv.consttree || !fs.existsSync(argv.consttree)) {
+        throw new Error("Bctree path must be provided and must be an executable file");
     }
+
+    let publicsInfo;
+    let powersOfTauFile;
+    let fflonkSetup;
+    if(argv.final && !argv.recursive) {
+        throw new Error("Only can generate the final snark if recursive part is activated");
+    }
+
+    if(argv.recursive) {
+        if(argv.final) {
+            if(!argv.ptau) {
+                throw new Error("PowersOfTau file must be provided in order to generate final snark");
+            }
+            if(!argv.publicsinfo) {
+                throw new Error("Publics info must be provided in order to generate final snark");
+            }
+            fflonkSetup = argv.final;
+            powersOfTauFile = argv.ptau;
+            publicsInfo = JSON.parse(await fs.promises.readFile(argv.publicsinfo, "utf8"))
+        }
+    }
+
+    let piloutPath = argv.airout;
 
     let starkStructsInfo = argv.starkstructs ? JSON.parse(await fs.promises.readFile(argv.starkstructs, "utf8")) : {};
     
@@ -46,11 +58,13 @@ async function run() {
         setup: {
             settings: starkStructsInfo,
             genAggregationSetup: argv.recursive || false,
+            genFinalSnarkSetup: argv.final || false,
+            optImPols: argv.impols || false,
+            constTree: argv.consttree,
+            publicsInfo,
+            fflonkSetup,
+            powersOfTauFile,
         }
-    }
-
-    if(argv.consttree) {
-        config.setup.constTree = argv.consttree;
     }
 
     await setupCmd(config, buildDir);

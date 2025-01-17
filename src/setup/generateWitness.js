@@ -6,7 +6,6 @@ const path = require('path');
 const crypto = require('crypto');
 
 const mkdir = util.promisify(fs.mkdir);
-const copyFile = util.promisify(fs.copyFile);
 const rm = util.promisify(fs.rm);
 
 const pendingTasks = [];
@@ -21,8 +20,7 @@ async function generateWitnessLibrary(buildDir,filesDir, nameFilename, template)
         mkdir(tmpDir, { recursive: true });
 
         await exec(`cp -r ${path.join(__dirname, "circom/*")} ${tmpDir}`);
-        copyFile(`${buildDir}/build/${nameFilename}_cpp/${nameFilename}.cpp`, path.join(tmpDir, "verifier.cpp"));
-        await exec(`sed -i 's/Fr/FrG/g' ${path.join(tmpDir, "verifier.cpp")}`);
+        await exec(`cp ${buildDir}/build/${nameFilename}_cpp/${nameFilename}.cpp ${path.join(tmpDir, "verifier.cpp")}`);
         
         console.log(`Generating witness library for ${nameFilename}...`);
         await exec(`make -C ${tmpDir} -j witness WITNESS_DIR=${path.resolve(filesDir)} WITNESS_FILE=${template}.so`);
@@ -38,16 +36,45 @@ async function generateWitnessLibrary(buildDir,filesDir, nameFilename, template)
     }
 }
 
+async function generateWitnessFinalSnarkLibrary(buildDir, filesDir, template, nameFilename) {
+    try {
+        const randomString = crypto.randomBytes(16).toString('hex');
+        const tmpDir = path.join(path.join(__dirname, "../../tmp"), `circom_temp_${randomString}`);
+        pendingTasks.push(randomString);
+        try {
+            mkdir(tmpDir, { recursive: true });
+
+            await exec(`cp -r ${path.join(__dirname, "final_snark_circom/*")} ${tmpDir}`);
+            await exec(`cp ${buildDir}/build/${nameFilename}_cpp/${nameFilename}.cpp ${path.join(tmpDir, "verifier.cpp")}`);
+            
+            console.log(`Generating witness library for ${nameFilename}...`);
+            await exec(`make -C ${tmpDir} -j witness WITNESS_DIR=${path.resolve(filesDir)} WITNESS_FILE=${template}.so`);
+        } catch (err) {
+            console.error("Error during the witness library generation process:", err);
+        } finally {
+            try {
+                pendingTasks.splice(pendingTasks.indexOf(randomString), 1);
+                rm(tmpDir, { recursive: true });
+            } catch (err) {
+                console.error('Error removing temporary directory:', err);
+            }
+        }
+        console.log('Final Snark Witness library generation completed.');
+
+    } catch (err) {
+        console.error('Error running witness library generation:', err);
+    }
+}
+
 module.exports.runWitnessLibraryGeneration = function runWitnessLibraryGeneration(buildDir, filesDir, template, nameFilename) {
     generateWitnessLibrary(buildDir, filesDir, template, nameFilename)
         .then(() => console.log(`Witness library for ${nameFilename} generated.`))
         .catch((err) => console.error('Error running witness library generation:', err));
 }
 
-module.exports.runFinalWitnessLibraryGeneration = async function runFinalWitnessLibraryGeneration(buildDir, filesDir) {
+module.exports.witnessLibraryGenerationAwait = async function witnessLibraryGenerationAwait() {
     try {
-        await generateWitnessLibrary(buildDir, filesDir, "final", "final");
-        console.log('Final Witness library generation completed.');
+        console.log('Waiting for all library generation to be completed.');
 
         while (pendingTasks.length > 0) {
             console.log(`Waiting for ${pendingTasks.length} witness libraries to be calculated...`);
@@ -56,4 +83,25 @@ module.exports.runFinalWitnessLibraryGeneration = async function runFinalWitness
     } catch (err) {
         console.error('Error running witness library generation:', err);
     }
+}
+
+
+module.exports.runFinalSnarkWitnessLibraryGenerationAwait = async function runFinalSnarkWitnessLibraryGenerationAwait(buildDir, filesDir, template, nameFilename) {
+    try {
+        await generateWitnessFinalSnarkLibrary(buildDir, filesDir, template, nameFilename);
+        console.log('Witness library generation completed.');
+
+        while (pendingTasks.length > 0) {
+            console.log(`Waiting for ${pendingTasks.length} witness libraries to be calculated...`);
+            await new Promise(resolve => setTimeout(resolve, 10000)); // Adjust the delay as needed
+        }
+    } catch (err) {
+        console.error('Error running witness library generation:', err);
+    }
+}
+
+module.exports.runFinalSnarkWitnessLibraryGeneration = async function runFinalSnarkWitnessLibraryGeneration(buildDir, filesDir, template, nameFilename) {
+    generateWitnessFinalSnarkLibrary(buildDir, filesDir, template, nameFilename)
+        .then(() => console.log(`Witness library for ${nameFilename} generated.`))
+        .catch((err) => console.error('Error running witness library generation:', err));
 }

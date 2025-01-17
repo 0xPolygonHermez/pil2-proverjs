@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "circom.hpp"
-#include "fr_goldilocks.hpp"
+//#include "fr.hpp"
 
 #define NMUTEXES 32 //512
 
@@ -23,9 +23,9 @@ class Circom_CalcWit {
 
 public:
 
-  FrGElement *signalValues;
+  u64* signalValues;
   Circom_Component* componentMemory;
-  FrGElement* circuitConstants; 
+  // u64* circuitConstants; 
   std::map<u32,IOFieldDefPair> templateInsId2IOSignalInfo; 
   IOFieldDefPair* busInsId2FieldInfo;
   std::string* listOfTemplateMessages; 
@@ -42,7 +42,7 @@ public:
   ~Circom_CalcWit();
 
   // Public functions
-  void setInputSignal(u64 h, uint i, FrGElement &val);
+  void setInputSignal(u64 h, uint i, u64 &val);
   void tryRunCircuit();
   
   u64 getInputSignalSize(u64 h);
@@ -51,8 +51,8 @@ public:
     return inputSignalAssignedCounter;
   }
   
-  inline void getWitness(uint idx, PFrGElement val) {
-    FrG_copy(val, &signalValues[circuit->witness2SignalList[idx]]);
+  inline void getWitness(uint idx, u64 & val) {
+    val  = signalValues[circuit->witness2SignalList[idx]];
   }
 
   std::string getTrace(u64 id_cmp);

@@ -13,24 +13,21 @@
 #include <vector>
 #include <chrono>
 
-using ordered_json = nlohmann::ordered_json;
+using json = nlohmann::json;
 
 #include "calcwit.hpp"
 #include "circom.hpp"
-
-#include "commit_pols_starks.hpp"
-#include "exec_file.hpp"
 
 using namespace std;
 
 Circom_Circuit *loadCircuit(std::string const &datFileName);
 void freeCircuit(Circom_Circuit *circuit);
 void loadJson(Circom_CalcWit *ctx, std::string filename);
-void loadJsonImpl(Circom_CalcWit *ctx, ordered_json &j);
+void loadJsonImpl(Circom_CalcWit *ctx, json &j);
 void writeBinWitness(Circom_CalcWit *ctx, std::string wtnsFileName);
-void getBinWitness(Circom_CalcWit *ctx, FrGElement *&pWitness, uint64_t &witnessSize);
 bool check_valid_number(std::string &s, uint base);
 
-extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAddress, void* pPublics, void *zkin, uint64_t N, uint64_t nPublics, uint64_t offsetCm1, char* datFile, char* execFile);
+extern "C" __attribute__((visibility("default"))) uint64_t getSizeWitness();
+extern "C" __attribute__((visibility("default"))) void getWitness(void *zkin, char* datFile, void* pWitness, uint64_t nMutexes = NMUTEXES);
 
 #endif

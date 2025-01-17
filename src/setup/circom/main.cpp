@@ -31,13 +31,15 @@ Circom_Circuit* loadCircuit(std::string const &datFileName) {
     dsize = get_size_of_witness()*sizeof(u64);
     memcpy((void *)(circuit->witness2SignalList), (void *)(bdata+inisize), dsize);
 
-    circuit->circuitConstants = new FrGElement[get_size_of_constants()];
+    /* in 64 bit constants are not in a map
+    circuit->circuitConstants = new u64[get_size_of_constants()];
     if (get_size_of_constants()>0) {
       inisize += dsize;
-      dsize = get_size_of_constants()*sizeof(FrGElement);
+      dsize = get_size_of_constants()*sizeof(u64);
       memcpy((void *)(circuit->circuitConstants), (void *)(bdata+inisize), dsize);
     }
-
+    */
+    
     std::map<u32,IOFieldDefPair> templateInsId2IOSignalInfo1;
     IOFieldDefPair* busInsId2FieldInfo1;
     if (get_size_of_io_map()>0) {
@@ -125,9 +127,9 @@ bool check_valid_number(std::string & s, uint base){
   return is_valid;
 }
 
-void json2FrGElements (ordered_json val, std::vector<FrGElement> & vval){
+void json2FrElements (json val, std::vector<u64> & vval){
   if (!val.is_array()) {
-    FrGElement v;
+    u64 v;
     std::string s_aux, s;
     uint base;
     if (val.is_string()) {
@@ -162,21 +164,20 @@ void json2FrGElements (ordered_json val, std::vector<FrGElement> & vval){
         errStrStream << "Invalid JSON type\n";
 	      throw std::runtime_error(errStrStream.str() );
     }
-    FrG_str2element (&v, s.c_str(), base);
-    vval.push_back(v);
+    vval.push_back(strtoull(s.c_str(), NULL, base));
   } else {
     for (uint i = 0; i < val.size(); i++) {
-      json2FrGElements (val[i], vval);
+      json2FrElements (val[i], vval);
     }
   }
 }
 
-ordered_json::value_t check_type(std::string prefix, ordered_json in){
+json::value_t check_type(std::string prefix, json in){
   if (not in.is_array()) {
       return in.type();
     } else {
-    if (in.size() == 0) return ordered_json::value_t::null;
-    ordered_json::value_t t = check_type(prefix, in[0]);
+    if (in.size() == 0) return json::value_t::null;
+    json::value_t t = check_type(prefix, in[0]);
     for (uint i = 1; i < in.size(); i++) {
       if (t != check_type(prefix, in[i])) {
 	fprintf(stderr, "Types are not the same in the the key %s\n",prefix.c_str());
@@ -187,9 +188,9 @@ ordered_json::value_t check_type(std::string prefix, ordered_json in){
   }
 }
 
-void qualify_input(std::string prefix, ordered_json &in, ordered_json &in1);
+void qualify_input(std::string prefix, json &in, json &in1);
 
-void qualify_input_list(std::string prefix, ordered_json &in, ordered_json &in1){
+void qualify_input_list(std::string prefix, json &in, json &in1){
     if (in.is_array()) {
       for (uint i = 0; i<in.size(); i++) {
 	  std::string new_prefix = prefix + "[" + std::to_string(i) + "]";
@@ -200,11 +201,11 @@ void qualify_input_list(std::string prefix, ordered_json &in, ordered_json &in1)
     }
 }
 
-void qualify_input(std::string prefix, ordered_json &in, ordered_json &in1) {
+void qualify_input(std::string prefix, json &in, json &in1) {
   if (in.is_array()) {
     if (in.size() > 0) {
-      ordered_json::value_t t = check_type(prefix,in);
-      if (t == ordered_json::value_t::object) {
+      json::value_t t = check_type(prefix,in);
+      if (t == json::value_t::object) {
 	qualify_input_list(prefix,in,in1);
       } else {
 	in1[prefix] = in;
@@ -213,7 +214,7 @@ void qualify_input(std::string prefix, ordered_json &in, ordered_json &in1) {
       in1[prefix] = in;
     }
   } else if (in.is_object()) {
-    for (ordered_json::iterator it = in.begin(); it != in.end(); ++it) {
+    for (json::iterator it = in.begin(); it != in.end(); ++it) {
       std::string new_prefix = prefix.length() == 0 ? it.key() : prefix + "." + it.key();
       qualify_input(new_prefix,it.value(),in1);
     }
@@ -222,17 +223,17 @@ void qualify_input(std::string prefix, ordered_json &in, ordered_json &in1) {
   }
 }
 
-void loadJsonImpl(Circom_CalcWit *ctx, ordered_json &j) {
+void loadJsonImpl(Circom_CalcWit *ctx, json &j) {
   u64 nItems = j.size();
   // printf("Items : %llu\n",nItems);
   if (nItems == 0){
     ctx->tryRunCircuit();
   }
-  for (ordered_json::iterator it = j.begin(); it != j.end(); ++it) {
+  for (json::iterator it = j.begin(); it != j.end(); ++it) {
     // std::cout << it.key() << " => " << it.value() << '\n';
     u64 h = fnv1a(it.key());
-    std::vector<FrGElement> v;
-    json2FrGElements(it.value(),v);
+    std::vector<u64> v;
+    json2FrElements(it.value(),v);
     uint signalSize = ctx->getInputSignalSize(h);
     if (v.size() < signalSize) {
 	std::ostringstream errStrStream;
@@ -246,9 +247,9 @@ void loadJsonImpl(Circom_CalcWit *ctx, ordered_json &j) {
     }
     for (uint i = 0; i<v.size(); i++){
       try {
-	// std::cout << it.key() << "," << i << " => " << FrG_element2str(&(v[i])) << '\n';
+	// std::cout << it.key() << "," << i << " => " << Fr_element2str(&(v[i])) << '\n';
 	ctx->setInputSignal(h,i,v[i]);
-      } catch (const std::runtime_error &e) {
+      } catch (std::runtime_error e) {
 	std::ostringstream errStrStream;
 	errStrStream << "Error setting signal: " << it.key() << "\n" << e.what();
 	throw std::runtime_error(errStrStream.str() );
@@ -260,86 +261,36 @@ void loadJsonImpl(Circom_CalcWit *ctx, ordered_json &j) {
 void loadJson(Circom_CalcWit *ctx, std::string filename)
 {
   std::ifstream inStream(filename);
-  ordered_json jin;
+  json jin;
   inStream >> jin;
-  ordered_json j;
+  json j;
   std::string prefix = "";
   qualify_input(prefix, jin, j);
   inStream.close();
   loadJsonImpl(ctx, j);
 }
 
-
-void writeBinWitness(Circom_CalcWit *ctx, std::string wtnsFileName) {
-    FILE *write_ptr;
-
-    write_ptr = fopen(wtnsFileName.c_str(),"wb");
-
-    fwrite("wtns", 4, 1, write_ptr);
-
-    u32 version = 2;
-    fwrite(&version, 4, 1, write_ptr);
-
-    u32 nSections = 2;
-    fwrite(&nSections, 4, 1, write_ptr);
-
-    // Header
-    u32 idSection1 = 1;
-    fwrite(&idSection1, 4, 1, write_ptr);
-
-    u32 n8 = FrG_N64*8;
-
-    u64 idSection1length = 8 + n8;
-    fwrite(&idSection1length, 8, 1, write_ptr);
-
-    fwrite(&n8, 4, 1, write_ptr);
-
-    fwrite(FrG_q.longVal, FrG_N64*8, 1, write_ptr);
-
-    uint Nwtns = get_size_of_witness();
-    
-    u32 nVars = (u32)Nwtns;
-    fwrite(&nVars, 4, 1, write_ptr);
-
-    // Data
-    u32 idSection2 = 2;
-    fwrite(&idSection2, 4, 1, write_ptr);
-    
-    u64 idSection2length = (u64)n8*(u64)Nwtns;
-    fwrite(&idSection2length, 8, 1, write_ptr);
-
-    FrGElement v;
-
-    for (unsigned int i=0;i<Nwtns;i++) {
-        ctx->getWitness(i, &v);
-        FrG_toLongNormal(&v, &v);
-        fwrite(v.longVal, FrG_N64*8, 1, write_ptr);
-    }
-    fclose(write_ptr);
-}
-
 void freeCircuit(Circom_Circuit *circuit)
 {
   delete[] circuit->InputHashMap;
   delete[] circuit->witness2SignalList;
-  delete[] circuit->circuitConstants;
+  // delete[] circuit->circuitConstants;
   delete circuit;
 }
 
-extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAddress, void* pPublics, void *zkin, uint64_t N, uint64_t nPublics, uint64_t offsetCm1, char* datFile, char* execFile)  {
+extern "C" __attribute__((visibility("default"))) uint64_t getSizeWitness()  {
+  return get_size_of_witness();
+}
 
-    uint64_t nCols = 18;
-
-    CommitPolsStarks commitPols((uint8_t *)pAddress + offsetCm1 * sizeof(Goldilocks::Element), N, nCols);
-
+extern "C" __attribute__((visibility("default"))) void getWitness(void *zkin, char* datFile, void* pWitness, uint64_t nMutexes)  {
     //-------------------------------------------
     // Verifier stark proof
     //-------------------------------------------
     Circom_Circuit *circuit = loadCircuit(string(datFile));
 
-    Circom_CalcWit *ctx = new Circom_CalcWit(circuit);
+    Circom_CalcWit *ctx = new Circom_CalcWit(circuit, nMutexes);
 
-    loadJsonImpl(ctx, *(ordered_json*) zkin);
+    loadJsonImpl(ctx, *(json*) zkin);
 
     if (ctx->getRemaingInputsToBeSet() != 0)
     {
@@ -348,71 +299,15 @@ extern "C" __attribute__((visibility("default"))) void getCommitedPols(void *pAd
     }
 
     //-------------------------------------------
-    // Compute witness and commited pols
+    // Compute witness
     //------------------------------------------- 
-    ExecFile exec(string(execFile), nCols);
+    uint64_t *witness = (uint64_t *)pWitness;
     uint64_t sizeWitness = get_size_of_witness();
-    Goldilocks::Element *tmp = new Goldilocks::Element[exec.nAdds + sizeWitness];
     for (uint64_t i = 0; i < sizeWitness; i++)
     {
-      FrGElement aux;
-      ctx->getWitness(i, &aux);
-      FrG_toLongNormal(&aux, &aux);
-      tmp[i] = Goldilocks::fromU64(aux.longVal[0]);
-    }
-    
-
-    Goldilocks::Element *publics = (Goldilocks::Element *)pPublics;
-
-    for(uint64_t i = 0; i < nPublics; ++i) {
-      publics[i] = tmp[1 + i];
+      ctx->getWitness(i, witness[i]);
     }
     
     delete ctx;
-  
-    // #pragma omp parallel for
-    for (uint64_t i = 0; i < exec.nAdds; i++)
-    {
-      FrG_toLongNormal(&exec.p_adds[i * 4], &exec.p_adds[i * 4]);
-      FrG_toLongNormal(&exec.p_adds[i * 4 + 1], &exec.p_adds[i * 4 + 1]);
-      FrG_toLongNormal(&exec.p_adds[i * 4 + 2], &exec.p_adds[i * 4 + 2]);
-      FrG_toLongNormal(&exec.p_adds[i * 4 + 3], &exec.p_adds[i * 4 + 3]);
-
-      uint64_t idx_1 = exec.p_adds[i * 4].longVal[0];
-      uint64_t idx_2 = exec.p_adds[i * 4 + 1].longVal[0];
-
-      Goldilocks::Element c = tmp[idx_1] * Goldilocks::fromU64(exec.p_adds[i * 4 + 2].longVal[0]);
-      Goldilocks::Element d = tmp[idx_2] * Goldilocks::fromU64(exec.p_adds[i * 4 + 3].longVal[0]);
-      tmp[sizeWitness + i] = c + d;
-    }
-
-    // #pragma omp parallel for
-    for (uint i = 0; i < exec.nSMap; i++)
-    {
-      for (uint j = 0; j < nCols; j++)
-      {
-        FrGElement aux;
-        FrG_toLongNormal(&aux, &exec.p_sMap[nCols * i + j]);
-        uint64_t idx_1 = aux.longVal[0];
-        if (idx_1 != 0)
-        {
-          uint64_t idx_2 = Goldilocks::toU64(tmp[idx_1]);
-          commitPols.Compressor.a[j][i] = Goldilocks::fromU64(idx_2);
-        }
-        else
-        {
-          commitPols.Compressor.a[j][i] = Goldilocks::zero();
-        }
-      }
-    }
-    // #pragma omp parallel for
-    for (uint i = exec.nSMap; i < N; i++)
-    {
-      for (uint j = 0; j < nCols; j++)
-      {
-        commitPols.Compressor.a[j][i] = Goldilocks::zero();
-      }
-    }
-    delete[] tmp;
     freeCircuit(circuit);
-  }
+}

@@ -7,9 +7,9 @@
 #include <condition_variable>
 #include <thread>
 
-#include "fr_goldilocks.hpp"
+//#include "fr.hpp"
 
-typedef unsigned long long u64;
+typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint8_t u8;
 
@@ -37,7 +37,7 @@ struct Circom_Circuit {
   //  const char *P;
   HashSignalInfo* InputHashMap;
   u64* witness2SignalList;
-  FrGElement* circuitConstants;  
+  //u64* circuitConstants;  
   std::map<u32,IOFieldDefPair> templateInsId2IOSignalInfo;
   IOFieldDefPair* busInsId2FieldInfo;
 };
@@ -64,7 +64,7 @@ uint get_total_signal_no();
 uint get_number_of_components();
 uint get_size_of_input_hashmap();
 uint get_size_of_witness();
-uint get_size_of_constants();
+//uint get_size_of_constants();
 uint get_size_of_io_map();
 uint get_size_of_bus_field_map();
 
