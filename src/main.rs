@@ -25,11 +25,15 @@ fn proofman_setup(args: &[&str]) -> io::Result<()> {
         temp_file.as_file().set_permissions(perms)?;
     }
 
+    // Persist the temporary file to a path
+    let temp_path = temp_file.into_temp_path();
+    let temp_path = temp_path.to_path_buf(); // Convert to PathBuf to avoid borrow issues
+
     // Get the current working directory
     let current_dir = env::current_dir()?;
 
     // Run the binary from the temporary file with arguments
-    Command::new(temp_file.path())
+    Command::new(temp_path)
         .current_dir(&current_dir) // Set the current directory for the process
         .args(args) // Pass the provided arguments
         .stdin(Stdio::inherit()) // Attach stdin
