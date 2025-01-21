@@ -41,6 +41,9 @@ async function run() {
             if(!argv.publicsinfo) {
                 throw new Error("Publics info must be provided in order to generate final snark");
             }
+            if (!fs.existsSync(argv.final)) {
+                throw new Error("Fflonk setup path must be provided and must be an executable file");
+            }
             fflonkSetup = argv.final;
             powersOfTauFile = argv.ptau;
             publicsInfo = JSON.parse(await fs.promises.readFile(argv.publicsinfo, "utf8"))
