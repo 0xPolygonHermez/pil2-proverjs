@@ -20,6 +20,7 @@ const { genRecursiveSetup } = require("../setup/generateRecursiveSetup.js");
 const { isCompressorNeeded } = require('../setup/is_compressor_needed.js');
 const { generateStarkStruct, setAiroutInfo, log2 } = require("../setup/utils.js");
 const { genFinalSnarkSetup } = require('../setup/generateFinalSnarkSetup.js');
+const { readFixedPolsBin } = require('../pil2-stark/witness_computation/fixed_cols.js');
 
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
@@ -81,7 +82,8 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             starkStructs.push(starkStruct);
 
             const fixedPols = generateFixedCols(air.symbols.filter(s => s.airGroupId == airgroup.airgroupId), air.numRows);
-            await getFixedPolsPil2(air, fixedPols, setupOptions.F);
+            let fixedPolsFile = readFixedPolsBin();
+            await getFixedPolsPil2(air, fixedPols, fixedPolsFile);
             await fixedPols.saveToFile(path.join(filesDir, `${air.name}.const`));
 
             setup[airgroup.airgroupId][air.airId] = await starkSetup(air, starkStruct, setupOptions);

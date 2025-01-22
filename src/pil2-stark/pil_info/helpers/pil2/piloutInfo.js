@@ -51,7 +51,7 @@ module.exports.getPiloutInfo = function getPiloutInfo(res, pilout) {
     return {expressions, hints, constraints, symbols};
 }
 
-module.exports.getFixedPolsPil2 = function getFixedPolsPil2(pil, cnstPols, F) {        
+module.exports.getFixedPolsPil2 = function getFixedPolsPil2(pil, cnstPols, cnstPolsBinFile) {        
     const P = new ProtoOut();
 
     for(let i = 0; i < cnstPols.$$defArray.length; ++i) {
@@ -59,10 +59,22 @@ module.exports.getFixedPolsPil2 = function getFixedPolsPil2(pil, cnstPols, F) {
         const id = def.id;
         const deg = def.polDeg;
         const fixedCols = pil.fixedCols[i];
-        for(let j = 0; j < deg; ++j) {
-            const constPol = cnstPols[id];
-            constPol[j] = P.buf2bint(fixedCols.values[j]);
-        }
+        // Check if json fixedCols is empty
+        const constPol = cnstPols[id];
+        if(!fixedCols) {
+            let name = def.name;
+            let lengths = def.lengths;
+            console.log(cnstPolsBinFile[name]);
+            // TODO: FINISH
+            let values = cnstPolsBinFile[name][0].values;
+            for(let j = 0; j < deg; ++j) {
+                constPol[j] = values[j];
+            }
+        } else {
+            for(let j = 0; j < deg; ++j) {
+                constPol[j] = P.buf2bint(fixedCols.values[j]);
+            }
+        }        
     }
 }
     
