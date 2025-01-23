@@ -82,7 +82,11 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             starkStructs.push(starkStruct);
 
             const fixedPols = generateFixedCols(air.symbols.filter(s => s.airGroupId == airgroup.airgroupId), air.numRows);
-            let fixedPolsFile = readFixedPolsBin();
+            let fixedPolsFile;
+            if (air.name == "Module") {
+                console.log("Reading fixed pols from file...");
+                fixedPolsFile = await readFixedPolsBin(path.join(filesDir, "../../../../../../../../../hola.bin"), setupOptions.F);
+            }
             await getFixedPolsPil2(air, fixedPols, fixedPolsFile);
             await fixedPols.saveToFile(path.join(filesDir, `${air.name}.const`));
 
