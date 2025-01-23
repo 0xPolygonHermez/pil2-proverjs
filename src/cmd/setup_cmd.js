@@ -36,11 +36,18 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         publicsInfo: proofManagerConfig.setup && proofManagerConfig.setup.publicsInfo,
         powersOfTauFile: proofManagerConfig.setup && proofManagerConfig.setup.powersOfTauFile,
         fflonkSetup: proofManagerConfig.setup && proofManagerConfig.setup.fflonkSetup,
+        binFiles: proofManagerConfig.setup && proofManagerConfig.setup.binFiles,
     };
 
     let setup = [];
 
     let starkStructs = [];
+
+    let fixedInfo = {};
+
+    for(let i = 0; i < setupOptions.binFiles.length; ++i) {
+        await readFixedPolsBin(fixedInfo, setupOptions.binFiles[i], setupOptions.F);
+    }
 
     let minFinalDegree = 5;
     for(const airgroup of airout.airGroups) {
@@ -82,12 +89,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             starkStructs.push(starkStruct);
 
             const fixedPols = generateFixedCols(air.symbols.filter(s => s.airGroupId == airgroup.airgroupId), air.numRows);
-            let fixedPolsFile;
-            if (air.name == "Module") {
-                console.log("Reading fixed pols from file...");
-                fixedPolsFile = await readFixedPolsBin(path.join(filesDir, "../../../../../../../../../hola.bin"), setupOptions.F);
-            }
-            await getFixedPolsPil2(air, fixedPols, fixedPolsFile);
+            await getFixedPolsPil2(airgroup.name, air, fixedPols, fixedInfo);
             await fixedPols.saveToFile(path.join(filesDir, `${air.name}.const`));
 
             setup[airgroup.airgroupId][air.airId] = await starkSetup(air, starkStruct, setupOptions);

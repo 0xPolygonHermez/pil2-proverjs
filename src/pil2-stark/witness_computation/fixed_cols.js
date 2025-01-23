@@ -6,10 +6,12 @@ const {
 
 const FIXED_POLS_SECTION = 1;
 
-module.exports.readFixedPolsBin = async function readFixedPolsBin(binFileName, F) {
+module.exports.readFixedPolsBin = async function readFixedPolsBin(fixedInfo, binFileName, F) {
     const { fd: fdBin, sections } = await readBinFile(binFileName, "cnst", 1, 1 << 25, 1 << 23);
 
     await startReadUniqueSection(fdBin, sections, FIXED_POLS_SECTION);
+    const airgroupName = await fdBin.readString();
+    const airName = await fdBin.readString();
     const N = await fdBin.readULE64();
     const nFixedPols = await fdBin.readULE32();
     const fixedPolsInfo = {};
@@ -36,5 +38,5 @@ module.exports.readFixedPolsBin = async function readFixedPolsBin(binFileName, F
 
     await fdBin.close();
 
-    return fixedPolsInfo;
+    fixedInfo[`${airgroupName}_${airName}`] = fixedPolsInfo;
 }

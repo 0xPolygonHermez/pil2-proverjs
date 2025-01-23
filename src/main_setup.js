@@ -8,6 +8,7 @@ const argv = require("yargs")
     .usage("node main_gensetup.js -a <airout.ptb> -s <starkstructs.json> -b <buildDir> ")
     .alias("a", "airout")
     .alias("b", "builddir")
+    .alias("i", "binfiles").array("i")
     .alias("s", "starkstructs")
     .alias("t", "consttree")
     .alias("r", "recursive")
@@ -54,6 +55,8 @@ async function run() {
 
     let starkStructsInfo = argv.starkstructs ? JSON.parse(await fs.promises.readFile(argv.starkstructs, "utf8")) : {};
     
+    const binFiles = argv.binfiles || [];
+
     const config = {
         airout: {
             airoutFilename: piloutPath,
@@ -65,6 +68,7 @@ async function run() {
             optImPols: argv.impols || false,
             constTree: argv.consttree,
             publicsInfo,
+            binFiles,
             fflonkSetup,
             powersOfTauFile,
         }
