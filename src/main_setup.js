@@ -10,12 +10,12 @@ const argv = require("yargs")
     .alias("b", "builddir")
     .alias("i", "binfiles").array("i")
     .alias("s", "starkstructs")
-    .alias("t", "consttree")
     .alias("r", "recursive")
     .alias("m", "impols")
     .alias("p", "publicsinfo")
     .alias("w", "ptau")
     .alias("f", "final")
+    .alias("c", "cexec")
         .argv;
 
 async function run() {
@@ -23,8 +23,18 @@ async function run() {
     const buildDir = argv.builddir || "tmp";
     await fs.promises.mkdir(buildDir, { recursive: true });
 
-    if (!argv.consttree || !fs.existsSync(argv.consttree)) {
+    if (!argv.cexec) {
+        throw new Error("C++ build executables path must be provided");
+    }
+
+    let constTree = `${argv.cexec}/bctree`;
+    if (!fs.existsSync(constTree)) {
         throw new Error("Bctree path must be provided and must be an executable file");
+    }
+
+    let binFile = `${argv.cexec}/binfile`;
+    if (!fs.existsSync(binFile)) {
+        throw new Error("BinFile path must be provided and must be an executable file");
     }
 
     let publicsInfo;
@@ -42,10 +52,10 @@ async function run() {
             if(!argv.publicsinfo) {
                 throw new Error("Publics info must be provided in order to generate final snark");
             }
-            if (!fs.existsSync(argv.final)) {
+            fflonkSetup = `${argv.cexec}/fflonkSetup`;
+            if (!fs.existsSync(fflonkSetup)) {
                 throw new Error("Fflonk setup path must be provided and must be an executable file");
             }
-            fflonkSetup = argv.final;
             powersOfTauFile = argv.ptau;
             publicsInfo = JSON.parse(await fs.promises.readFile(argv.publicsinfo, "utf8"))
         }
@@ -66,10 +76,11 @@ async function run() {
             genAggregationSetup: argv.recursive || false,
             genFinalSnarkSetup: argv.final || false,
             optImPols: argv.impols || false,
-            constTree: argv.consttree,
+            constTree,
             publicsInfo,
             binFiles,
             fflonkSetup,
+            binFile,
             powersOfTauFile,
         }
     }

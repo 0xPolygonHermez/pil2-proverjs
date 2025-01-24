@@ -82,6 +82,12 @@ module.exports.genFinalSnarkSetup = async function genFinalSnarkSetup(buildDir, 
     await writeExpressionsBinFile(`${filesDir}/${template}.bin`, setupRecursiveF.starkInfo, setupRecursiveF.expressionsInfo);
     await writeVerifierExpressionsBinFile(`${filesDir}/${template}.verifier.bin`, setupRecursiveF.starkInfo, setupRecursiveF.verifierInfo);
 
+    console.log("Computing Bin File...");
+    await exec(`${setupOptions.binFile} -s ${filesDir}/${template}.starkinfo.json -e ${filesDir}/${template}.expressionsinfo.json -b ${filesDir}/${template}.bin2`);
+    
+    console.log("Computing Verifier Bin File...");
+    await exec(`${setupOptions.binFile} -s ${filesDir}/${template}.starkinfo.json -e ${filesDir}/${template}.verifierinfo.json -b ${filesDir}/${template}.verifier.bin2 -v`);
+    
     template = "final";
     verifierName = "recursivef.verifier.circom";
     templateFilename = path.resolve(__dirname,"../../", `node_modules/stark-recurser/src/recursion/templates/final.circom.ejs`);

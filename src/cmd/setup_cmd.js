@@ -8,7 +8,6 @@ const JSONbig = require('json-bigint')({ useNativeBigInt: true, alwaysParseAsBig
 const log = require("../../logger.js");
 const { AirOut } = require("../airout.js");
 
-const F3g = require('../pil2-stark/utils/f3g.js');
 const { writeExpressionsBinFile, writeVerifierExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
 const { writeGlobalConstraintsBinFile } = require("../pil2-stark/chelpers/globalConstraintsBinFile.js");
 const { starkSetup } = require('../pil2-stark/stark_setup.js');
@@ -28,11 +27,11 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
     const airout = new AirOut(proofManagerConfig.airout.airoutFilename);
 
     const setupOptions = {
-        F: new F3g("0xFFFFFFFF00000001"),
         pil2: true,
         optImPols: (proofManagerConfig.setup && proofManagerConfig.setup.optImPols) || false,
         skipConstTree: (proofManagerConfig.setup && proofManagerConfig.setup.constTree !== undefined) ? true : false,
         constTree: proofManagerConfig.setup && proofManagerConfig.setup.constTree !== undefined ? proofManagerConfig.setup.constTree : undefined,
+        binFile: proofManagerConfig.setup && proofManagerConfig.setup.binFile,
         publicsInfo: proofManagerConfig.setup && proofManagerConfig.setup.publicsInfo,
         powersOfTauFile: proofManagerConfig.setup && proofManagerConfig.setup.powersOfTauFile,
         fflonkSetup: proofManagerConfig.setup && proofManagerConfig.setup.fflonkSetup,
@@ -46,7 +45,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
     let fixedInfo = {};
 
     for(let i = 0; i < setupOptions.binFiles.length; ++i) {
-        await readFixedPolsBin(fixedInfo, setupOptions.binFiles[i], setupOptions.F);
+        await readFixedPolsBin(fixedInfo, setupOptions.binFiles[i]);
     }
 
     let minFinalDegree = 5;
@@ -105,6 +104,13 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             await writeExpressionsBinFile(path.join(filesDir, `${air.name}.bin`), setup[airgroup.airgroupId][air.airId].starkInfo, setup[airgroup.airgroupId][air.airId].expressionsInfo);
 
             await writeVerifierExpressionsBinFile(path.join(filesDir, `${air.name}.verifier.bin`), setup[airgroup.airgroupId][air.airId].starkInfo, setup[airgroup.airgroupId][air.airId].verifierInfo);
+        
+            console.log("Computing Bin File...");
+            await exec(`${setupOptions.binFile} -s ${path.join(filesDir, `${air.name}.starkinfo.json`)} -e ${path.join(filesDir, `${air.name}.expressionsinfo.json`)} -b ${path.join(filesDir, `${air.name}.bin2`)}`);
+
+            console.log("Computing Verifier Bin File...");
+            await exec(`${setupOptions.binFile} -s ${path.join(filesDir, `${air.name}.starkinfo.json`)} -e ${path.join(filesDir, `${air.name}.verifierinfo.json`)} -b ${path.join(filesDir, `${air.name}.verifier.bin2 -v`)}`);
+
         }));
     }));
 
@@ -249,7 +255,11 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
 
     await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalInfo.json`, JSON.stringify(globalInfo, null, 1), "utf8");
     await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalConstraints.json`, JSON.stringify(globalConstraints, null, 1), "utf8");
+    
     await writeGlobalConstraintsBinFile(globalConstraints, `${buildDir}/provingKey/pilout.globalConstraints.bin`);
+
+    console.log("Computing Global Bin File...");
+    await exec(`${setupOptions.binFile} -g -e ${buildDir}/provingKey/pilout.globalConstraints.json -b ${buildDir}/provingKey/pilout.globalConstraints.bin2`);
 
     return { setup, airoutInfo: {...globalInfo, globalConstraints}, config: proofManagerConfig };
 }

@@ -1,4 +1,5 @@
 
+const F3g = require("../../../../utils/f3g");
 const ExpressionOps = require("../../../expressionops");
 const { getExpDim } = require("../../helpers");
 
@@ -55,6 +56,7 @@ module.exports.grandProductConnection = function grandProductConnection(pil, sym
         let dDim = getExpDim(pil.expressions, ciCtx.denId);
         pil.expressions[ciCtx.denId].dim = dDim;
 
+        let F = new F3g();
         let ks = getKs(F, ci.pols.length-1);
         for (let i=1; i<ci.pols.length; i++) {
             const numExp =

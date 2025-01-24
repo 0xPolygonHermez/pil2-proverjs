@@ -76,7 +76,7 @@ function evalExp(ctx, symbols, expressions, exp, prime) {
     } else if (exp.op === "proofvalue") {
         return { type: exp.op, id: exp.id, dim: exp.dim}
     } else if (exp.op == "number") {
-        return { type: exp.op, value: exp.value.toString(), dim: 1 }
+        return { type: exp.op, value: BigInt(exp.value).toString(), dim: 1 }
     } else if ("eval" === exp.op) {
         return { type: exp.op, id: exp.id, dim: exp.dim}
     } else if (["airgroupvalue", "airvalue"].includes(exp.op)) {

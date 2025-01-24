@@ -107,7 +107,6 @@ module.exports.getAllOperations = function getAllOperations() {
     possibleOps.push({ dest_type: "tmp3", src0_type: "challenge", src1_type: "eval"});
     possibleOps.push({ dest_type: "tmp3", src0_type: "airgroupvalue", src1_type: "eval"});
     possibleOps.push({ dest_type: "tmp3", src0_type: "airvalue3", src1_type: "eval"});
-    possibleOps.push({ dest_type: "tmp3", src0_type: "commit3", src1_type: "eval"});
     possibleOps.push({ dest_type: "tmp3", src0_type: "eval", src1_type: "eval"});    
 
     return possibleOps;

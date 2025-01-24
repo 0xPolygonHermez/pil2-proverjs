@@ -5,10 +5,10 @@ const { createBinFile,
 const { getParserArgs } = require("./getParserArgs.js");
 const { getAllOperations } = require("./utils.js");
 
-const CHELPERS_NSECTIONS = 4;
-const CHELPERS_EXPRESSIONS_SECTION = 2;
-const CHELPERS_CONSTRAINTS_DEBUG_SECTION = 3;
-const CHELPERS_HINTS_SECTION = 4;
+const CHELPERS_NSECTIONS = 3;
+const CHELPERS_EXPRESSIONS_SECTION = 1;
+const CHELPERS_CONSTRAINTS_DEBUG_SECTION = 2;
+const CHELPERS_HINTS_SECTION = 3;
 
 module.exports.writeStringToFile = async function writeStringToFile(fd, str) {
     let buff = new Uint8Array(str.length + 1);
@@ -28,9 +28,9 @@ module.exports.writeVerifierExpressionsBinFile = async function writeVerifierExp
     const verInfo = {};
     verInfo.expsInfo = [binFileInfo.qCode, binFileInfo.queryCode];
 
-    const cHelpersBin = await createBinFile(cHelpersFilename, "chps", 1, 2, 1 << 22, 1 << 24);
+    const cHelpersBin = await createBinFile(cHelpersFilename, "chps", 1, 1, 1 << 22, 1 << 24);
 
-    await writeExpressionsSection(cHelpersBin, verInfo.expsInfo, binFileInfo.numbersExps, 2, true);
+    await writeExpressionsSection(cHelpersBin, verInfo.expsInfo, binFileInfo.numbersExps, 1, true);
 
     console.log("> Writing the chelpers file finished");
     console.log("---------------------------------------------");
@@ -629,9 +629,11 @@ async function prepareVerifierExpressionsBin(starkInfo, verifierInfo) {
     let numbersExps = [];
     let {expsInfo: qCode} = getParserArgs(starkInfo, operations, verifierInfo.qVerifier, numbersExps, false, true, true);
     qCode.expId = starkInfo.cExpId;
+    qCode.stage = starkInfo.nStages + 1;
     qCode.line = "";
     let {expsInfo: queryCode} = getParserArgs(starkInfo, operations, verifierInfo.queryVerifier, numbersExps, false, true);
     queryCode.expId = starkInfo.friExpId;
+    queryCode.stage = starkInfo.nStages + 3;
     queryCode.line = "";
    
     return {qCode, queryCode, numbersExps};

@@ -106,7 +106,7 @@ class ExpressionOps {
     number(n) {
         return {
             op: "number",
-            value: n.toString()
+            value: BigInt(n).toString()
         }
     }
 
