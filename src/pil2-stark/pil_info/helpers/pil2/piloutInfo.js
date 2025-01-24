@@ -1,4 +1,3 @@
-const ProtoOut = require("pil2-compiler/src/proto_out.js");
 const { formatExpressions, formatConstraints, formatSymbols, formatHints } = require("./utils");
 
 module.exports.getPiloutInfo = function getPiloutInfo(res, pilout) {
@@ -50,37 +49,3 @@ module.exports.getPiloutInfo = function getPiloutInfo(res, pilout) {
 
     return {expressions, hints, constraints, symbols};
 }
-
-module.exports.getFixedPolsPil2 = function getFixedPolsPil2(airgroupName, pil, cnstPols, cnstPolsBinFilesInfo) {        
-    const P = new ProtoOut();
-
-    for(let i = 0; i < cnstPols.$$defArray.length; ++i) {
-        const def = cnstPols.$$defArray[i];
-        const id = def.id;
-        const deg = def.polDeg;
-        const fixedCols = pil.fixedCols[i];
-        const fixedPolsInfo = cnstPolsBinFilesInfo[`${airgroupName}_${pil.name}`];
-        const constPol = cnstPols[id];
-        if(Object.keys(fixedCols).length === 0) {
-            if (!fixedPolsInfo) {
-                throw new Error(`Fixed polynomials info for airgroup ${airgroupName} and air ${pil.name} not found`);
-            }
-            if(!fixedPolsInfo[def.name]) {
-                throw new Error(`Fixed polynomial ${def.name} not found`);
-            }
-            let fixed = fixedPolsInfo[def.name].find(e => JSON.stringify(e.lengths) === JSON.stringify(def.lengths));
-            if(!fixed) {
-                throw new Error(`Fixed polynomial ${def.name} with lenghts ${def.lengths} not found`);
-            }
-            let values = fixed.values;
-            for(let j = 0; j < deg; ++j) {
-                constPol[j] = BigInt(values[j]);
-            }
-        } else {
-            for(let j = 0; j < deg; ++j) {
-                constPol[j] = P.buf2bint(fixedCols.values[j]);
-            }
-        }        
-    }
-}
-    

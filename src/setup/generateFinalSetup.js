@@ -12,7 +12,6 @@ const { runWitnessLibraryGeneration, witnessLibraryGenerationAwait } = require("
 
 const F3g = require("../pil2-stark/utils/f3g.js");
 const {starkSetup} = require("../pil2-stark/stark_setup");
-const { writeExpressionsBinFile, writeVerifierExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
 
 module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptions, finalSettings, globalInfo, globalConstraints, compressorCols) {
     const F = new F3g();
@@ -103,15 +102,11 @@ module.exports.genFinalSetup = async function genFinalSetup(buildDir, setupOptio
     const {stdout} = await exec(`${setupOptions.constTree} -c ${filesDir}/${nameFilename}.const -s ${filesDir}/${nameFilename}.starkinfo.json -v ${filesDir}/${nameFilename}.verkey.json`);
     setup.constRoot = JSONbig.parse(await fs.promises.readFile(`${filesDir}/${nameFilename}.verkey.json`, "utf8"));
     
-    await writeExpressionsBinFile(`${filesDir}/${nameFilename}.bin`, setup.starkInfo, setup.expressionsInfo);
-
-    await writeVerifierExpressionsBinFile(`${filesDir}/${nameFilename}.verifier.bin`, setup.starkInfo, setup.verifierInfo);
-
     console.log("Computing Bin File...");
-    await exec(`${setupOptions.binFile} -s ${filesDir}/${nameFilename}.starkinfo.json -e ${filesDir}/${nameFilename}.expressionsinfo.json -b ${filesDir}/${nameFilename}.bin2`);
+    await exec(`${setupOptions.binFile} -s ${filesDir}/${nameFilename}.starkinfo.json -e ${filesDir}/${nameFilename}.expressionsinfo.json -b ${filesDir}/${nameFilename}.bin`);
     
     console.log("Computing Verifier Bin File...");
-    await exec(`${setupOptions.binFile} -s ${filesDir}/${nameFilename}.starkinfo.json -e ${filesDir}/${nameFilename}.verifierinfo.json -b ${filesDir}/${nameFilename}.verifier.bin2 -v`);
+    await exec(`${setupOptions.binFile} -s ${filesDir}/${nameFilename}.starkinfo.json -e ${filesDir}/${nameFilename}.verifierinfo.json -b ${filesDir}/${nameFilename}.verifier.bin -v`);
 
     return {starkInfoFinal: setup.starkInfo, verifierInfoFinal: setup.verifierInfo, constRootFinal: setup.constRoot, nBitsFinal: nBits};
 }

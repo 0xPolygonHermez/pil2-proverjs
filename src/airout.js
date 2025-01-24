@@ -50,18 +50,25 @@ class AirOut {
 
             for(let j=0; j<airgroup.airs.length; j++) {
                 const air = airgroup.airs[j];
+                console.log(air);
+
                 air.airgroupId = i;
                 air.airId = j;
 
+
                 air.symbols = this.getSymbolsByAirgroupIdAirId(airgroup.airgroupId, air.airId);
+
 
                 for(const airgroupValue of airgroupvalues) {
                     air.symbols.push( { ...airgroupValue, airId: j });
                 }
+
                 air.hints = this.getHintsByAirgroupIdAirId(airgroup.airgroupId, air.airId);
                 air.numChallenges = this.numChallenges;
                 air.airGroupValues = airgroup.airGroupValues;
                 
+                console.log(air);
+
                 if(!air.constraints) {
                     log.error(`[Airout    ]`, `Air ${air.airId} of airgroup ${air.airgroupId} does not have any constraint!`);
                     throw new Error(`Air ${air.airId} of airgroup ${air.airgroupId} does not have any constraint!`);

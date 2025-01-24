@@ -3,7 +3,13 @@ const F3g = require("../../../../utils/f3g");
 const ExpressionOps = require("../../../expressionops");
 const { getExpDim } = require("../../helpers");
 
-const getKs = require("pilcom").getKs;
+function getKs(Fr, n) {
+    const ks = [Fr.k];
+    for (let i=1; i<n; i++) {
+        ks[i] = Fr.mul(ks[i-1], ks[0]);
+    }
+    return ks;
+}
 
 module.exports.initChallengesConnection = function initChallengesConnection() {
     const dim = 3;

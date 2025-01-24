@@ -8,18 +8,14 @@ const JSONbig = require('json-bigint')({ useNativeBigInt: true, alwaysParseAsBig
 const log = require("../../logger.js");
 const { AirOut } = require("../airout.js");
 
-const { writeExpressionsBinFile, writeVerifierExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
-const { writeGlobalConstraintsBinFile } = require("../pil2-stark/chelpers/globalConstraintsBinFile.js");
 const { starkSetup } = require('../pil2-stark/stark_setup.js');
-const { getFixedPolsPil2 } = require("../pil2-stark/pil_info/helpers/pil2/piloutInfo.js");
-const { generateFixedCols } = require('../pil2-stark/witness_computation/witness_calculator.js');
 
 const { genFinalSetup } = require("../setup/generateFinalSetup.js");
 const { genRecursiveSetup } = require("../setup/generateRecursiveSetup.js");
 const { isCompressorNeeded } = require('../setup/is_compressor_needed.js');
 const { generateStarkStruct, setAiroutInfo, log2 } = require("../setup/utils.js");
 const { genFinalSnarkSetup } = require('../setup/generateFinalSnarkSetup.js');
-const { readFixedPolsBin } = require('../pil2-stark/witness_computation/fixed_cols.js');
+const { readFixedPolsBin, getFixedPolsPil2 } = require('../pil2-stark/fixed_cols.js');
 
 
 // NOTE: by the moment this is a STARK setup process, it should be a generic setup process?
@@ -87,9 +83,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             let starkStruct = settings.starkStruct || generateStarkStruct(settings, log2(air.numRows));
             starkStructs.push(starkStruct);
 
-            const fixedPols = generateFixedCols(air.symbols.filter(s => s.airGroupId == airgroup.airgroupId), air.numRows);
-            await getFixedPolsPil2(airgroup.name, air, fixedPols, fixedInfo);
-            await fixedPols.saveToFile(path.join(filesDir, `${air.name}.const`));
+            await getFixedPolsPil2(path.join(filesDir, `${air.name}.const`), airgroup.name, airgroup.airgroupId, air, fixedInfo);
 
             setup[airgroup.airgroupId][air.airId] = await starkSetup(air, starkStruct, setupOptions);
             await fs.promises.writeFile(path.join(filesDir, `${air.name}.starkinfo.json`), JSON.stringify(setup[airgroup.airgroupId][air.airId].starkInfo, null, 1), "utf8");
@@ -100,16 +94,12 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
             const { stdout } = await exec(`${proofManagerConfig.setup.constTree} -c ${path.join(filesDir, `${air.name}.const`)} -s ${path.join(filesDir, `${air.name}.starkinfo.json`)} -v ${path.join(filesDir, `${air.name}.verkey.json`)}`);
             console.log(stdout);
             setup[airgroup.airgroupId][air.airId].constRoot = JSONbig.parse(await fs.promises.readFile(path.join(filesDir, `${air.name}.verkey.json`), "utf8"));
-
-            await writeExpressionsBinFile(path.join(filesDir, `${air.name}.bin`), setup[airgroup.airgroupId][air.airId].starkInfo, setup[airgroup.airgroupId][air.airId].expressionsInfo);
-
-            await writeVerifierExpressionsBinFile(path.join(filesDir, `${air.name}.verifier.bin`), setup[airgroup.airgroupId][air.airId].starkInfo, setup[airgroup.airgroupId][air.airId].verifierInfo);
         
             console.log("Computing Bin File...");
-            await exec(`${setupOptions.binFile} -s ${path.join(filesDir, `${air.name}.starkinfo.json`)} -e ${path.join(filesDir, `${air.name}.expressionsinfo.json`)} -b ${path.join(filesDir, `${air.name}.bin2`)}`);
+            await exec(`${setupOptions.binFile} -s ${path.join(filesDir, `${air.name}.starkinfo.json`)} -e ${path.join(filesDir, `${air.name}.expressionsinfo.json`)} -b ${path.join(filesDir, `${air.name}.bin`)}`);
 
             console.log("Computing Verifier Bin File...");
-            await exec(`${setupOptions.binFile} -s ${path.join(filesDir, `${air.name}.starkinfo.json`)} -e ${path.join(filesDir, `${air.name}.verifierinfo.json`)} -b ${path.join(filesDir, `${air.name}.verifier.bin2 -v`)}`);
+            await exec(`${setupOptions.binFile} -s ${path.join(filesDir, `${air.name}.starkinfo.json`)} -e ${path.join(filesDir, `${air.name}.verifierinfo.json`)} -b ${path.join(filesDir, `${air.name}.verifier.bin -v`)}`);
 
         }));
     }));
@@ -256,10 +246,8 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
     await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalInfo.json`, JSON.stringify(globalInfo, null, 1), "utf8");
     await fs.promises.writeFile(`${buildDir}/provingKey/pilout.globalConstraints.json`, JSON.stringify(globalConstraints, null, 1), "utf8");
     
-    await writeGlobalConstraintsBinFile(globalConstraints, `${buildDir}/provingKey/pilout.globalConstraints.bin`);
-
     console.log("Computing Global Bin File...");
-    await exec(`${setupOptions.binFile} -g -e ${buildDir}/provingKey/pilout.globalConstraints.json -b ${buildDir}/provingKey/pilout.globalConstraints.bin2`);
+    await exec(`${setupOptions.binFile} -g -e ${buildDir}/provingKey/pilout.globalConstraints.json -b ${buildDir}/provingKey/pilout.globalConstraints.bin`);
 
     return { setup, airoutInfo: {...globalInfo, globalConstraints}, config: proofManagerConfig };
 }

@@ -12,7 +12,6 @@ const snarkjs = require("snarkjs");
 
 const F3g = require("../pil2-stark/utils/f3g.js");
 const {starkSetup} = require("../pil2-stark/stark_setup.js");
-const { writeExpressionsBinFile, writeVerifierExpressionsBinFile } = require("../pil2-stark/chelpers/binFile.js");
 const { generateStarkStruct } = require('./utils.js');
 const { runFinalSnarkWitnessLibraryGenerationAwait, witnessLibraryGenerationAwait, runWitnessLibraryGeneration } = require('./generateWitness.js');
 
@@ -78,15 +77,12 @@ module.exports.genFinalSnarkSetup = async function genFinalSnarkSetup(buildDir, 
     console.log("Computing Constant Tree...");
     await exec(`${setupOptions.constTree} -c ${filesDir}/${template}.const -s ${filesDir}/${template}.starkinfo.json -v ${filesDir}/${template}.verkey.json`);
     setupRecursiveF.constRoot = JSONbig.parse(await fs.promises.readFile(`${filesDir}/${template}.verkey.json`, "utf8"));
-    
-    await writeExpressionsBinFile(`${filesDir}/${template}.bin`, setupRecursiveF.starkInfo, setupRecursiveF.expressionsInfo);
-    await writeVerifierExpressionsBinFile(`${filesDir}/${template}.verifier.bin`, setupRecursiveF.starkInfo, setupRecursiveF.verifierInfo);
 
     console.log("Computing Bin File...");
-    await exec(`${setupOptions.binFile} -s ${filesDir}/${template}.starkinfo.json -e ${filesDir}/${template}.expressionsinfo.json -b ${filesDir}/${template}.bin2`);
+    await exec(`${setupOptions.binFile} -s ${filesDir}/${template}.starkinfo.json -e ${filesDir}/${template}.expressionsinfo.json -b ${filesDir}/${template}.bin`);
     
     console.log("Computing Verifier Bin File...");
-    await exec(`${setupOptions.binFile} -s ${filesDir}/${template}.starkinfo.json -e ${filesDir}/${template}.verifierinfo.json -b ${filesDir}/${template}.verifier.bin2 -v`);
+    await exec(`${setupOptions.binFile} -s ${filesDir}/${template}.starkinfo.json -e ${filesDir}/${template}.verifierinfo.json -b ${filesDir}/${template}.verifier.bin -v`);
     
     template = "final";
     verifierName = "recursivef.verifier.circom";
