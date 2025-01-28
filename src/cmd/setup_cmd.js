@@ -121,7 +121,7 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
                 
         let recursiveSettings =  { blowupFactor: 3 };
         if(proofManagerConfig.setup && proofManagerConfig.setup.settings && proofManagerConfig.setup.settings.recursive) {
-            recursiveSettings = proofManagerConfig.setup.settings.recursive;
+        recursiveSettings = proofManagerConfig.setup.settings.recursive;
         }
 
         let starkStructRecursive = recursiveSettings.starkStruct || generateStarkStruct(recursiveSettings, 17);
@@ -132,94 +132,94 @@ module.exports = async function setupCmd(proofManagerConfig, buildDir = "tmp") {
         const pilRecursives1 = [];
 
         for(const airgroup of airout.airGroups) {
-            constRootsRecursives1[airgroup.airgroupId] = [];
-            starkInfoRecursives1[airgroup.airgroupId] = [];
-            verifierInfoRecursives1[airgroup.airgroupId] = [];
-            pilRecursives1[airgroup.airgroupId] = [];
+        constRootsRecursives1[airgroup.airgroupId] = [];
+        starkInfoRecursives1[airgroup.airgroupId] = [];
+        verifierInfoRecursives1[airgroup.airgroupId] = [];
+        pilRecursives1[airgroup.airgroupId] = [];
     
-            for(const air of airgroup.airs) {
-                log.info("[Setup Cmd]", `······ Checking if air '${air.name}' needs a compressor`);
+        for(const air of airgroup.airs) {
+        log.info("[Setup Cmd]", `······ Checking if air '${air.name}' needs a compressor`);
                 
-                const filesDir = path.join(buildDir, "provingKey", airout.name, airgroup.name, "airs", `${air.name}`, "air");
+        const filesDir = path.join(buildDir, "provingKey", airout.name, airgroup.name, "airs", `${air.name}`, "air");
 
-                const compressorNeeded = await isCompressorNeeded(
-                    setup[airgroup.airgroupId][air.airId].constRoot,
-                    setup[airgroup.airgroupId][air.airId].starkInfo,
-                    setup[airgroup.airgroupId][air.airId].verifierInfo,
-                    path.join(filesDir, `${air.name}.starkinfo.json`),
-                );
+        const compressorNeeded = await isCompressorNeeded(
+        setup[airgroup.airgroupId][air.airId].constRoot,
+        setup[airgroup.airgroupId][air.airId].starkInfo,
+        setup[airgroup.airgroupId][air.airId].verifierInfo,
+        path.join(filesDir, `${air.name}.starkinfo.json`),
+        );
     
-                let constRoot, starkInfo, verifierInfo;
-                const starkStructRecursive1 = { ...starkStructRecursive };
+        let constRoot, starkInfo, verifierInfo;
+        const starkStructRecursive1 = { ...starkStructRecursive };
     
-                if (compressorNeeded.hasCompressor) {
-                    setup[airgroup.airgroupId][air.airId].hasCompressor = true;
-                    globalInfo.airs[airgroup.airgroupId][air.airId].hasCompressor = true;
+        if (compressorNeeded.hasCompressor) {
+        setup[airgroup.airgroupId][air.airId].hasCompressor = true;
+        globalInfo.airs[airgroup.airgroupId][air.airId].hasCompressor = true;
     
-                    const starkStructSettings = { blowupFactor: 2 };
-                    const starkStructCompressor = generateStarkStruct(starkStructSettings, compressorNeeded.nBits);
+        const starkStructSettings = { blowupFactor: 2 };
+        const starkStructCompressor = generateStarkStruct(starkStructSettings, compressorNeeded.nBits);
     
-                    const recursiveSetup = await genRecursiveSetup(
-                        buildDir, setupOptions, "compressor", airgroup.name, airgroup.airgroupId, air.airId, globalInfo,
-                        setup[airgroup.airgroupId][air.airId].constRoot, [], setup[airgroup.airgroupId][air.airId].starkInfo,
-                        setup[airgroup.airgroupId][air.airId].verifierInfo, starkStructCompressor, 18
-                    );
+        const recursiveSetup = await genRecursiveSetup(
+        buildDir, setupOptions, "compressor", airgroup.name, airgroup.airgroupId, air.airId, globalInfo,
+        setup[airgroup.airgroupId][air.airId].constRoot, [], setup[airgroup.airgroupId][air.airId].starkInfo,
+        setup[airgroup.airgroupId][air.airId].verifierInfo, starkStructCompressor, 18
+        );
     
-                    ({ constRoot, starkInfo, verifierInfo } = recursiveSetup);
-                } else {
-                    constRoot = setup[airgroup.airgroupId][air.airId].constRoot;
-                    starkInfo = setup[airgroup.airgroupId][air.airId].starkInfo;
-                    verifierInfo = setup[airgroup.airgroupId][air.airId].verifierInfo;
-                    starkStructRecursive1.hashCommits = true;
-                }
+        ({ constRoot, starkInfo, verifierInfo } = recursiveSetup);
+        } else {
+        constRoot = setup[airgroup.airgroupId][air.airId].constRoot;
+        starkInfo = setup[airgroup.airgroupId][air.airId].starkInfo;
+        verifierInfo = setup[airgroup.airgroupId][air.airId].verifierInfo;
+        starkStructRecursive1.hashCommits = true;
+        }
     
-                const {
-                    starkInfo: starkInfoRecursive1,
-                    constRoot: constRootRecursive1,
-                    verifierInfo: verifierInfoRecursive1,
-                    pil: pilRecursive1
-                } = await genRecursiveSetup(
-                    buildDir, setupOptions, "recursive1", airgroup.name, airgroup.airgroupId, air.airId, globalInfo,
-                    constRoot, [], starkInfo, verifierInfo, starkStructRecursive, 18,
-                    setup[airgroup.airgroupId][air.airId].hasCompressor
-                );
+        const {
+        starkInfo: starkInfoRecursive1,
+        constRoot: constRootRecursive1,
+        verifierInfo: verifierInfoRecursive1,
+        pil: pilRecursive1
+        } = await genRecursiveSetup(
+        buildDir, setupOptions, "recursive1", airgroup.name, airgroup.airgroupId, air.airId, globalInfo,
+        constRoot, [], starkInfo, verifierInfo, starkStructRecursive, 18,
+        setup[airgroup.airgroupId][air.airId].hasCompressor
+        );
     
-                constRootsRecursives1[airgroup.airgroupId][air.airId] = constRootRecursive1;
-                starkInfoRecursives1[airgroup.airgroupId][air.airId] = starkInfoRecursive1;
-                verifierInfoRecursives1[airgroup.airgroupId][air.airId] = verifierInfoRecursive1;
-                pilRecursives1[airgroup.airgroupId][air.airId] = pilRecursive1;
-            };
+        constRootsRecursives1[airgroup.airgroupId][air.airId] = constRootRecursive1;
+        starkInfoRecursives1[airgroup.airgroupId][air.airId] = starkInfoRecursive1;
+        verifierInfoRecursives1[airgroup.airgroupId][air.airId] = verifierInfoRecursive1;
+        pilRecursives1[airgroup.airgroupId][air.airId] = pilRecursive1;
+        };
         };
 
         for(const airgroup of airout.airGroups) {
-            const hashPilRecursive1 = crypto.createHash("sha256")
-                .update(JSON.stringify(pilRecursives1[airgroup.airgroupId][0]))
-                .digest("hex");
+        const hashPilRecursive1 = crypto.createHash("sha256")
+        .update(JSON.stringify(pilRecursives1[airgroup.airgroupId][0]))
+        .digest("hex");
     
-            for (let i = 1; i < airgroup.airs.length; i++) {
-                const hash = crypto.createHash("sha256")
-                    .update(JSON.stringify(pilRecursives1[airgroup.airgroupId][i]))
-                    .digest("hex");
+        for (let i = 1; i < airgroup.airs.length; i++) {
+        const hash = crypto.createHash("sha256")
+        .update(JSON.stringify(pilRecursives1[airgroup.airgroupId][i]))
+        .digest("hex");
     
-                if (hashPilRecursive1 !== hash) {
-                    throw new Error("All recursive1 pil must be the same");
-                }
+        if (hashPilRecursive1 !== hash) {
+        throw new Error("All recursive1 pil must be the same");
+        }
             }
     
-            const { pil: pilRecursive2 } = await genRecursiveSetup(
-                buildDir, setupOptions, "recursive2", airgroup.name, airgroup.airgroupId,
-                undefined, globalInfo, [], constRootsRecursives1[airgroup.airgroupId],
-                starkInfoRecursives1[airgroup.airgroupId][0], verifierInfoRecursives1[airgroup.airgroupId][0],
-                starkStructRecursive, 18
-            );
+        const { pil: pilRecursive2 } = await genRecursiveSetup(
+        buildDir, setupOptions, "recursive2", airgroup.name, airgroup.airgroupId,
+        undefined, globalInfo, [], constRootsRecursives1[airgroup.airgroupId],
+        starkInfoRecursives1[airgroup.airgroupId][0], verifierInfoRecursives1[airgroup.airgroupId][0],
+        starkStructRecursive, 18
+        );
     
-            const hashPilRecursive2 = crypto.createHash("sha256")
-                .update(JSON.stringify(pilRecursive2))
-                .digest("hex");
+        const hashPilRecursive2 = crypto.createHash("sha256")
+        .update(JSON.stringify(pilRecursive2))
+        .digest("hex");
     
-            if (hashPilRecursive1 !== hashPilRecursive2) {
-                throw new Error("Recursive1 and recursive2 pil must be the same");
-            }
+        if (hashPilRecursive1 !== hashPilRecursive2) {
+        throw new Error("Recursive1 and recursive2 pil must be the same");
+        }
         };
   
         let finalSettings = { blowupFactor: 3};
