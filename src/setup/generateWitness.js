@@ -23,7 +23,7 @@ async function generateWitnessLibrary(buildDir,filesDir, nameFilename, template)
         await exec(`cp ${buildDir}/build/${nameFilename}_cpp/${nameFilename}.cpp ${path.join(tmpDir, "verifier.cpp")}`);
         
         console.log(`Generating witness library for ${nameFilename}...`);
-        await exec(`make -C ${tmpDir} -j witness WITNESS_DIR=${path.resolve(filesDir)} WITNESS_FILE=${template}.so`);
+        await exec(`make -C ${tmpDir} -j witness WITNESS_DIR=${path.resolve(filesDir)} WITNESS_FILE=${template}.so FINAL_VADCOP=true`);
     } catch (err) {
         console.error("Error during the witness library generation process:", err);
     } finally {

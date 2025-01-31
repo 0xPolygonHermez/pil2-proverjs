@@ -1,10 +1,17 @@
 WITNESS_DIR ?= ./tmp
 WITNESS_FILE ?= libwitness.so
+FINAL_VADCOP ?= false
 
 BUILD_DIR := ./build
 
+ifeq ($(FINAL_VADCOP), true)
+    OPT_LEVEL := -O1
+else
+    OPT_LEVEL := -O3
+endif
+
 CXX := g++
-CXXFLAGS := -std=c++17 -Wall -pthread -flarge-source-files -Wno-unused-label -rdynamic -mavx2 -O1 #-Wfatal-errors
+CXXFLAGS := -std=c++17 -Wall -pthread -flarge-source-files -Wno-unused-label -rdynamic -mavx2 $(OPT_LEVEL) #-Wfatal-errors
 CXXFLAGS_EXT := -fPIC
 CFLAGS := -fopenmp -Wno-unused-variable
 
